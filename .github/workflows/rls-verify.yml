@@ -1,0 +1,138 @@
+name: RLS Verification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *' # daily at 06:00 UTC
+
+jobs:
+  verify-rls:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verify RLS vs Policies (should be zero rows)
+        id: verify
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::STAGING_DATABASE_URL secret is not configured. Set it in repository secrets (a Postgres connection string to your staging/prod DB)."
+            exit 1
+          fi
+
+          # First query: tables with policies but RLS disabled
+          echo "Running RLS disabled check..."
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "\
+          select distinct p.schemaname || '.' || p.tablename as table, c.relrowsecurity::text as rls_enabled\
+          from pg_policies p\
+          join pg_class c on c.relname = p.tablename\
+          join pg_namespace n on n.oid = c.relnamespace and n.nspname = p.schemaname\
+          where c.relkind = 'r' and c.relrowsecurity = false\
+          order by 1;\
+          " > rls_disabled.txt
+
+          echo "Found:" && cat rls_disabled.txt || true
+
+          if [ -s rls_disabled.txt ]; then
+            echo "::error::Some tables have policies but RLS is disabled. See artifact rls_disabled.txt"
+            exit 2
+          fi
+
+      - name: Enforce critical tables have RLS enabled
+        run: |
+          # List of critical tables that must always have RLS on
+          CRITICAL_TABLES=(
+            "public.player_achievements"
+            "public.player_stats"
+            "public.tournament_invitations"
+            "public.tournament_members"
+            "public.scores"
+            "public.tournaments"
+            "public.user_roles"
+          )
+
+          FAIL=0
+          for tbl in "${CRITICAL_TABLES[@]}"; do
+            SCHEMA="${tbl%%.*}"
+            NAME="${tbl##*.}"
+            RES=$(psql "$DATABASE_URL" -Atc "select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='${SCHEMA}' and c.relname='${NAME}' and c.relkind='r';")
+            if [ "$RES" != "t" ]; then
+              echo "::error::RLS not enabled on critical table ${tbl}"
+              FAIL=1
+            fi
+          done
+          if [ $FAIL -ne 0 ]; then exit 3; fi
+
+  verify-rls-prod:
+    if: false
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verify RLS vs Policies (should be zero rows)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "\
+          select distinct p.schemaname || '.' || p.tablename as table, c.relrowsecurity::text as rls_enabled\
+          from pg_policies p\
+          join pg_class c on c.relname = p.tablename\
+          join pg_namespace n on n.oid = c.relnamespace and n.nspname = p.schemaname\
+          where c.relkind = 'r' and c.relrowsecurity = false\
+          order by 1;\
+          " > rls_disabled.txt
+          echo "Found:" && cat rls_disabled.txt || true
+          if [ -s rls_disabled.txt ]; then
+            echo "::error::Some tables have policies but RLS is disabled in PROD. See artifact rls_disabled.txt"
+            exit 2
+          fi
+
+      - name: Enforce critical tables have RLS enabled
+        run: |
+          CRITICAL_TABLES=(
+            "public.player_achievements"
+            "public.player_stats"
+            "public.tournament_invitations"
+            "public.tournament_members"
+            "public.scores"
+            "public.tournaments"
+            "public.user_roles"
+          )
+          FAIL=0
+          for tbl in "${CRITICAL_TABLES[@]}"; do
+            SCHEMA="${tbl%%.*}"
+            NAME="${tbl##*.}"
+            RES=$(psql "$DATABASE_URL" -Atc "select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='${SCHEMA}' and c.relname='${NAME}' and c.relkind='r';")
+            if [ "$RES" != "t" ]; then
+              echo "::error::RLS not enabled on critical table ${tbl} (PROD)"
+              FAIL=1
+            fi
+          done
+          if [ $FAIL -ne 0 ]; then exit 3; fi
+
+      - name: Upload artifact if any
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-disabled-report-prod
+          path: rls_disabled.txt
+
+      - name: Upload artifact if any
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-disabled-report
+          path: rls_disabled.txt

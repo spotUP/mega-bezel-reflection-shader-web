@@ -1,0 +1,41 @@
+# Working simplified Mega Bezel preset
+# Skips the complex cache-info pass that requires feedback textures
+shaders = 3
+
+# Pass 0: Derez shader
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type_x0 = viewport
+scale_x0 = 1.0
+scale_type_y0 = viewport
+scale_y0 = 1.0
+wrap_mode0 = "clamp_to_edge"
+alias0 = "DerezedPass"
+
+# Pass 1: SKIP cache-info (causes black screen due to missing textures)
+
+# Pass 2: Fetch derez output
+shader1 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear1 = false
+srgb_framebuffer1 = true
+scale_type1 = source
+scale_x1 = 1
+scale_y1 = 1
+
+# Pass 3: Linearize (final output)
+shader2 = shaders/base/linearize.slang
+filter_linear2 = true
+scale_type2 = source
+scale2 = 1.0
+float_framebuffer2 = true
+alias2 = "LinearizePass"
+
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true

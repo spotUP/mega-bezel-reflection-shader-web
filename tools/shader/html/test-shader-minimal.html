@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shader Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+</head>
+<body>
+    <script>
+        const renderer = new THREE.WebGLRenderer();
+        document.body.appendChild(renderer.domElement);
+        renderer.setSize(400, 400);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+        // Test with simplified version of the failing shader
+        const testMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                FrameCount: { value: 0 }, // This was uint, now float
+                MVP: { value: new THREE.Matrix4() }
+            },
+            vertexShader: `
+                precision highp float;
+                uniform float FrameCount;
+                uniform mat4 MVP;
+
+                void main() {
+                    gl_Position = MVP * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                precision highp float;
+                uniform float FrameCount;
+
+                void main() {
+                    float t = FrameCount * 0.01;
+                    gl_FragColor = vec4(sin(t), cos(t), 0.5, 1.0);
+                }
+            `
+        });
+
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), testMaterial);
+        scene.add(mesh);
+
+        try {
+            renderer.compile(scene, camera);
+            renderer.render(scene, camera);
+
+            // Check if program was created
+            const program = testMaterial.__webglProgram;
+            console.log('Program created:', !!program);
+
+            if (program) {
+                console.log('✅ Simple shader compiled successfully!');
+            } else {
+                console.log('❌ Simple shader failed to compile');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+        }
+    </script>
+</body>
+</html>

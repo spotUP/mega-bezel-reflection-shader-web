@@ -1,0 +1,23 @@
+# CRT with Simple Frame (3 passes)
+# Working CRT + simple bezel frame effect
+
+shaders = 3
+
+# Pass 0: Capture input
+shader0 = shaders/base/drez-none.slang
+filter_linear0 = false
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Simple CRT effect (scanlines, curvature, vignette)
+shader1 = shaders/guest/hsm-crt-simple.slang
+filter_linear1 = true
+scale_type1 = source
+scale1 = 1.0
+
+# Pass 2: Simple frame/bezel
+shader2 = shaders/base/simple-frame.slang
+filter_linear2 = true
+scale_type2 = viewport
+scale2 = 1.0

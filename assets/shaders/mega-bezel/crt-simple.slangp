@@ -1,0 +1,22 @@
+# Simple CRT Shader Preset for WebGL2
+# Minimal passes - just input capture and CRT effect
+
+shaders = 2
+
+# Pass 0: Capture input
+shader0 = shaders/base/drez-none.slang
+filter_linear0 = false
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Simple CRT effect (scanlines, curvature, vignette)
+shader1 = shaders/guest/hsm-crt-simple.slang
+filter_linear1 = true
+scale_type1 = viewport
+scale1 = 1.0
+
+# Basic CRT parameters
+brightness = 1.2
+saturation = 1.1
+scanline_strength = 0.3

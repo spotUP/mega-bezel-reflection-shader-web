@@ -1,0 +1,86 @@
+# CRT Shader with Full Reflection Bezel - 12 Passes
+# Includes: Sharpen, Shadow Mask, Background Texture
+
+shaders = 12
+
+# Pass 0: Sharpening (before everything for crisp pixels)
+shader0 = sharpen.slang
+filter_linear0 = true
+scale_type0 = source
+scale0 = 1.0
+alias0 = "SharpenPass"
+
+# Pass 1: Color correction
+shader1 = color-correct.slang
+filter_linear1 = true
+scale_type1 = source
+scale1 = 1.0
+alias1 = "ColorCorrectPass"
+
+# Pass 2: Horizontal blur for glow
+shader2 = glow-horizontal.slang
+filter_linear2 = true
+scale_type2 = source
+scale2 = 1.0
+alias2 = "GlowH"
+
+# Pass 3: Vertical blur for glow
+shader3 = glow-vertical.slang
+filter_linear3 = true
+scale_type3 = source
+scale3 = 1.0
+alias3 = "GlowPass"
+
+# Pass 4: Combine original + bloom
+shader4 = bloom-combine.slang
+filter_linear4 = true
+scale_type4 = source
+scale4 = 1.0
+alias4 = "BloomPass"
+
+# Pass 5: CRT effects (scanlines, curvature, shadow mask, vignette)
+shader5 = crt-minimal.slang
+filter_linear5 = true
+scale_type5 = source
+scale5 = 1.0
+alias5 = "CRTPass"
+
+# Pass 6: Chromatic aberration (sharp screen output)
+shader6 = chromatic-aberration.slang
+filter_linear6 = true
+scale_type6 = source
+scale6 = 1.0
+alias6 = "ChromaPass"
+
+# Pass 7: Reflection blur horizontal
+shader7 = reflection-blur-h.slang
+filter_linear7 = true
+scale_type7 = source
+scale7 = 1.0
+
+# Pass 8: Reflection blur vertical (light blur)
+shader8 = reflection-blur-v.slang
+filter_linear8 = true
+scale_type8 = source
+scale8 = 1.0
+alias8 = "ReflectBlur"
+
+# Pass 9: Diffused glow (medium blur)
+shader9 = diffused-glow.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+alias9 = "DiffusedPass"
+
+# Pass 10: Fullscreen glow (heavy blur)
+shader10 = fullscreen-glow.slang
+filter_linear10 = true
+scale_type10 = source
+scale10 = 1.0
+alias10 = "FullscreenGlow"
+
+# Pass 11: Final Reflection/Bezel composite
+shader11 = simple-reflection.slang
+filter_linear11 = true
+scale_type11 = viewport
+scale11 = 1.0

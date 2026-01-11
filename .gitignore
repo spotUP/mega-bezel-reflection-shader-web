@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Large database files and data exports
+*.db
+Metadata.xml
+launchbox-metadata.zip
+public/clear-logo-chunks/
+public/sql.js/
+public/clear-logos.db
+
+# Checkpoint and progress files
+*checkpoint*.json
+*progress*.json
+scraper-pids.txt
+
+# Development artifacts
+corrected-logos.db
+final-corrected-logos.db
+improved-*.db
+name-based-logs.db
+test-query.js
+test-puppeteer-*.ts
+tools/shader/artifacts/
+.vercel
+websocket-server/

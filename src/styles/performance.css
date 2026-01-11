@@ -1,0 +1,182 @@
+/* Performance optimizations for low-end devices like Raspberry Pi */
+
+/* Disable expensive animations on low-end devices */
+.performance-mode {
+  /* Disable all animations and transitions */
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  
+  /* Disable expensive CSS effects */
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+  }
+  
+  .animate-glow,
+  .animate-gold-shine,
+  .animate-silver-shine,
+  .animate-bronze-shine {
+    animation: none !important;
+  }
+  
+  /* Static colorful text for performance mode - reliable and visible */
+  .animated-gradient,
+  .animated-gradient-vertical {
+    /* Remove all gradient effects */
+    background: none !important;
+    background-clip: unset !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #00ffff !important; /* Cyan color for static appeal */
+    color: #00ffff !important;
+    animation: none !important;
+
+    /* Add subtle text shadow for better visibility and depth */
+    text-shadow: 0 0 3px rgba(0, 255, 255, 0.3), 0 1px 1px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  /* Alternate colors for different elements to add variety */
+  .animated-gradient:nth-child(even),
+  .animated-gradient-vertical:nth-child(even) {
+    -webkit-text-fill-color: #ff00ff !important; /* Magenta for even elements */
+    color: #ff00ff !important;
+    text-shadow: 0 0 3px rgba(255, 0, 255, 0.3), 0 1px 1px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .animated-gradient:nth-child(3n),
+  .animated-gradient-vertical:nth-child(3n) {
+    -webkit-text-fill-color: #ffff00 !important; /* Yellow for every 3rd element */
+    color: #ffff00 !important;
+    text-shadow: 0 0 3px rgba(255, 255, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.8) !important;
+  }
+  
+  /* Ensure all text elements have proper contrast in performance mode */
+  .font-arcade {
+    color: #ffffff !important;
+    background: transparent !important;
+  }
+  
+  /* Fix any other text color issues */
+  .text-white,
+  .text-gray-100,
+  .text-gray-200,
+  .text-gray-300 {
+    color: #ffffff !important;
+  }
+  
+  /* Disable transform effects that can cause repaints */
+  .hover\\:scale-102:hover,
+  .hover\\:scale-\\[1\\.02\\]:hover {
+    transform: none !important;
+  }
+  
+  /* Optimize shadows */
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+  }
+}
+
+/* Raspberry Pi 5 specific optimizations */
+.raspberry-pi-mode,
+.rpi-optimized {
+  /* Disable expensive GPU operations */
+  * {
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    mask: none !important;
+    clip-path: none !important;
+    mix-blend-mode: normal !important;
+  }
+
+  /* Optimize transforms for critical elements only */
+  .leaderboard-entry,
+  .game-card,
+  .overall-leaderboard {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: contents;
+  }
+
+  /* Reduce font smoothing for better performance */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
+  }
+
+  /* Optimize images for ARM GPU */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    will-change: contents;
+    contain: layout style paint;
+  }
+
+  /* Reduce shadow complexity */
+  * {
+    box-shadow: none !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+  }
+
+  /* Disable hover effects on touch devices */
+  @media (hover: none) {
+    *:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  /* Optimize scrolling */
+  * {
+    scroll-behavior: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  /* Reduce paint areas */
+  .game-card,
+  .leaderboard-entry {
+    contain: layout style paint;
+  }
+
+  /* Disable complex gradients (but preserve QR codes) */
+  .gradient-bg,
+  .arcade-gradient {
+    background: #1a1a1a !important;
+  }
+
+  /* Ensure QR codes remain visible */
+  canvas {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Optimize animations that must run */
+  @keyframes simple-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-in {
+    animation: simple-fade 0.2s ease-out !important;
+  }
+}
+
+/* Disable complex CSS features that are slow on ARM */
+@media (max-width: 1920px) and (-webkit-min-device-pixel-ratio: 1) {
+  .low-end-device {
+    /* Disable complex filters */
+    filter: none !important;
+    
+    /* Simplify backgrounds */
+    background-attachment: scroll !important;
+    
+    /* Disable 3D transforms */
+    transform-style: flat !important;
+    perspective: none !important;
+  }
+}

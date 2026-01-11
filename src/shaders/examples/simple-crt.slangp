@@ -1,0 +1,18 @@
+# Simple CRT Shader Preset
+# Single-pass CRT effect with scanlines and curvature
+
+shaders = 1
+
+shader0 = shaders/crt-lottes.slang
+filter_linear0 = false
+scale_type0 = viewport
+
+# Optional parameter overrides
+parameters = "hardScan;hardPix;warpX;warpY;maskDark;brightboost"
+
+hardScan = -8.0
+hardPix = -3.0
+warpX = 0.031
+warpY = 0.041
+maskDark = 0.5
+brightboost = 1.0

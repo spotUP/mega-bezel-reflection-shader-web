@@ -1,0 +1,16 @@
+shaders = 2
+
+# Simplest working preset: derez → stock (skip cache-info and CRT)
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Stock - Final output to screen
+shader1 = shaders/base/stock.slang
+filter_linear1 = false
+scale_type1 = viewport
+scale1 = 1.0

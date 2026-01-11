@@ -1,0 +1,29 @@
+shaders = 3
+
+# TIER 1 MVP - Minimal Bezel Implementation
+# Following the implementation guide priority order
+
+# Pass 0: Derez - Resolution handling
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+srgb_framebuffer0 = true
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info - CRITICAL for coordinate system
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Simple background passthrough (instead of complex bezel for now)
+# We'll use do-nothing.slang to just pass through the game
+shader2 = shaders/base/do-nothing.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0
+
+# No textures needed for MVP

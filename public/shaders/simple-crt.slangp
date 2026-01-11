@@ -1,0 +1,5 @@
+# Simple CRT Shader Preset - Minimal test case
+shaders = 1
+
+shader0 = simple-crt.slang
+filter_linear0 = true

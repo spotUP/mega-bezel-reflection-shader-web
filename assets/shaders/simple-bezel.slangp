@@ -1,0 +1,18 @@
+# Simple Bezel and Reflection Shader
+# Just the game with a bezel frame and subtle reflection
+
+shaders = 2
+
+# Pass 0: Game passthrough with CRT curve
+shader0 = simple-crt.slang
+filter_linear0 = true
+scale_type0 = viewport
+scale_x0 = 0.9
+scale_y0 = 0.9
+alias0 = "GamePass"
+
+# Pass 1: Add bezel frame and reflection
+shader1 = simple-bezel-composite.slang
+filter_linear1 = true
+scale_type1 = viewport
+scale1 = 1.0

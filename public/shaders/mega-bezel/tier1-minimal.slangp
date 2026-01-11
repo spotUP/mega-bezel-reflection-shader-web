@@ -1,0 +1,35 @@
+shaders = 3
+
+# TIER 1 MINIMAL - Following implementation guide exactly
+# Need to keep game separate from cache-info
+
+# Pass 0: Stock (pass through game)
+shader0 = shaders/base/stock.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0
+alias0 = "GamePass"
+
+# Pass 1: Cache Info (CRITICAL - coordinates & scaling, render to off-screen texture)
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Bezel Frame (THE BEZEL FRAME - renders bezel over game)
+shader2 = shaders/base/bezel-and-image-layers.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0
+
+# Bezel textures - using actual frame images from Mega Bezel
+textures = "BackgroundImage;FrameTextureImage"
+
+BackgroundImage = shaders/textures/Baked_Frame_Carbonfiber_Background.png
+BackgroundImage_linear = true
+BackgroundImage_mipmap = 1
+
+FrameTextureImage = shaders/textures/FrameTexture_2800x2120.png
+FrameTextureImage_linear = true
+FrameTextureImage_mipmap = 1

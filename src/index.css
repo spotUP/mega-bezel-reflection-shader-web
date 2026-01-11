@@ -1,0 +1,1593 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
+
+@keyframes tronGlowBtn {
+  0%   { box-shadow: 0 0 16px rgba(0,255,255,0.28), inset 0 0 10px rgba(0,255,255,0.16); border-color: rgba(0,255,255,0.75); }
+  50%  { box-shadow: 0 0 30px rgba(0,255,255,0.55), inset 0 0 14px rgba(0,255,255,0.22); border-color: rgba(0,255,255,0.95); }
+  100% { box-shadow: 0 0 16px rgba(0,255,255,0.28), inset 0 0 10px rgba(0,255,255,0.16); border-color: rgba(0,255,255,0.75); }
+}
+
+/* ================= Bracket animations ================= */
+@keyframes connectorDraw {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0; }
+}
+.connector-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: connectorDraw 1200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+@keyframes boingOnce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.boing {
+  transform-origin: center;
+  animation: boingOnce 800ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes boingZoomIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  1% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  65% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  85% {
+    transform: translate(-50%, -50%) scale(1.03);
+  }
+  92% {
+    transform: translate(-50%, -50%) scale(0.99);
+  }
+  96% {
+    transform: translate(-50%, -50%) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.boing-zoom-in {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: unset !important;
+  bottom: unset !important;
+  margin: 0 !important;
+  transform-origin: center !important;
+  animation: boingZoomIn 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+  z-index: 9999 !important;
+}
+
+/* Disable Dialog's default animations */
+.boing-zoom-in[data-state] {
+  animation: boingZoomIn 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* Custom Boing Modal Animations */
+@keyframes boingModalEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  55% {
+    transform: scale(0.92);
+  }
+  65% {
+    transform: scale(1.08);
+  }
+  75% {
+    transform: scale(0.96);
+  }
+  85% {
+    transform: scale(1.03);
+  }
+  92% {
+    transform: scale(0.99);
+  }
+  96% {
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes boingModalExit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.boing-modal-enter {
+  animation: boingModalEnter 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.boing-modal-exit {
+  animation: boingModalExit 300ms ease-out both;
+}
+
+/* ================= Ticker spring animation ================= */
+@keyframes tickerSpring {
+  0% { transform: rotate(0deg) translateX(0px); }
+  15% { transform: rotate(18deg) translateX(2px); }
+  30% { transform: rotate(-8deg) translateX(-1px); }
+  45% { transform: rotate(6deg) translateX(1px); }
+  60% { transform: rotate(-3deg) translateX(-0.5px); }
+  75% { transform: rotate(2deg) translateX(0.3px); }
+  90% { transform: rotate(-1deg) translateX(-0.1px); }
+  100% { transform: rotate(0deg) translateX(0px); }
+}
+
+.animate-ticker-spring {
+  animation: tickerSpring 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ================= Page entry animations ================= */
+@keyframes flyInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fly-in-left  { animation: flyInLeft 900ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.fly-in-right { animation: flyInRight 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.fly-in-down  { animation: flyInDown 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+/* Off-screen slide-in animation for right panels */
+@keyframes flyInRightOffscreen {
+  from { opacity: 0; transform: translateX(150vw); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right-offscreen {
+  animation: flyInRightOffscreen 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  overflow-anchor: none;
+  contain: layout paint;
+  position: relative;
+  z-index: 0;
+}
+
+/* Off-screen slide-in animation for left panels */
+@keyframes flyInLeftOffscreen {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-left-offscreen {
+  animation: flyInLeftOffscreen 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  overflow-anchor: none;
+  contain: layout paint;
+  position: relative;
+  z-index: 0;
+}
+
+/* Off-screen slide-out animation for right panels */
+@keyframes flyOutRightOffscreen {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+.fly-out-right-offscreen {
+  animation: flyOutRightOffscreen 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  overflow-anchor: none;
+  contain: layout paint;
+  position: relative;
+  z-index: 0;
+}
+
+/* Off-screen slide-out animation for left panels */
+@keyframes flyOutLeftOffscreen {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-left-offscreen {
+  animation: flyOutLeftOffscreen 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  overflow-anchor: none;
+  contain: layout paint;
+  position: relative;
+  z-index: 0;
+}
+
+/* Tailwind-compatible animation classes */
+.animate-slide-in-left {
+  animation: flyInLeftOffscreen 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-slide-in-right {
+  animation: flyInRightOffscreen 900ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Exit animations (reverse of entry animations) */
+@keyframes flyOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+@keyframes flyOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+.animate-slide-out-left {
+  animation: flyOutLeft 350ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+}
+
+.animate-slide-out-right {
+  animation: flyOutRight 350ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+}
+
+/* Bottom slide-in animation */
+@keyframes flyInBottom {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in-bottom {
+  animation: flyInBottom 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Bottom slide-out animation */
+@keyframes flyOutBottom {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(100%); }
+}
+.animate-slide-out-bottom {
+  animation: flyOutBottom 500ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+}
+
+/* Fast tab transition animations */
+@keyframes tabSlideInUp {
+  from { transform: translateY(100vh); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes tabSlideOutDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100vh); }
+}
+
+.animate-tab-in {
+  animation: tabSlideInUp 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-tab-out {
+  animation: tabSlideOutDown 200ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+}
+
+/* Animation delay utilities */
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+.animation-delay-800 {
+  animation-delay: 800ms;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.animation-delay-1200 {
+  animation-delay: 1200ms;
+}
+
+/* Small animation delay utilities for gentle staggering */
+.anim-delay-50 { animation-delay: 50ms; }
+.anim-delay-100 { animation-delay: 100ms; }
+
+/* ================= Tron theme refinements ================= */
+.theme-tron .theme-button:hover,
+.theme-tron button:hover {
+  color: #ffffff !important;
+}
+.theme-tron .theme-button,
+.theme-tron button {
+  border-radius: 6px !important; /* slightly rounded corners */
+}
+.theme-tron .theme-button {
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.28), inset 0 0 10px rgba(0,255,255,0.15);
+}
+.theme-tron .theme-button::after {
+  box-shadow: 0 0 14px rgba(0,255,255,0.25);
+}
+
+/* ===================== VHS Overlay ===================== */
+.vhs-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10; /* above content, below toasts/menus */
+}
+.vhs-layer {
+  position: absolute;
+  inset: 0;
+}
+/* Horizontal scanlines */
+.vhs-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.25;
+}
+/* Global flicker */
+@keyframes vhsFlicker {
+  0%, 100% { opacity: 0.06; filter: none; }
+  50% { opacity: 0.12; filter: saturate(1.1) contrast(1.03); }
+}
+.vhs-flicker {
+  background: linear-gradient(0deg, transparent, transparent);
+  animation: vhsFlicker 2.8s ease-in-out infinite;
+}
+/* Random glitch bars */
+@keyframes vhsBars {
+  0%   { background-position: 0 0; opacity: 0; }
+  5%   { background-position: 0 20%; opacity: 0.18; }
+  10%  { background-position: 0 40%; opacity: 0.08; }
+  15%  { background-position: 0 60%; opacity: 0.2; }
+  20%  { background-position: 0 80%; opacity: 0.05; }
+  25%  { background-position: 0 30%; opacity: 0.16; }
+  30%  { background-position: 0 50%; opacity: 0.09; }
+  35%  { background-position: 0 70%; opacity: 0.14; }
+  40%  { background-position: 0 10%; opacity: 0.05; }
+  100% { background-position: 0 100%; opacity: 0; }
+}
+.vhs-glitchbars {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 255, 255, 0.12) 0 3px,
+      transparent 3px 6px
+    );
+  mix-blend-mode: screen;
+  opacity: 0.08;
+  animation: vhsBars 7s linear infinite;
+}
+/* stylelint-disable-next-line unknownAtRules */
+@tailwind base;
+/* stylelint-disable-next-line unknownAtRules */
+@tailwind components;
+/* stylelint-disable-next-line unknownAtRules */
+@tailwind utilities;
+
+/* Shadcn/ui CSS Variables - Dark Theme */
+:root {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 84% 4.9%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --radius: 0.5rem;
+}
+
+/* Custom line clamping utilities for game cards */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* React DatePicker - Match Site Theme */
+.react-datepicker {
+  background-color: #111827 !important; /* bg-gray-900 */
+  border: 1px solid rgba(0, 255, 255, 0.2) !important; /* border-cyan-400/20 */
+  border-radius: 6px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  font-family: inherit !important;
+}
+
+.react-datepicker__header {
+  background-color: rgba(0, 0, 0, 0.5) !important; /* bg-black/50 */
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important; /* border-cyan-400/20 */
+  color: white !important;
+  border-radius: 6px 6px 0 0 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: white !important;
+}
+
+.react-datepicker__day:hover,
+.react-datepicker__month-text:hover,
+.react-datepicker__quarter-text:hover,
+.react-datepicker__year-text:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range,
+.react-datepicker__month-text--selected,
+.react-datepicker__quarter-text--selected,
+.react-datepicker__year-text--selected {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__month-text--keyboard-selected,
+.react-datepicker__quarter-text--keyboard-selected,
+.react-datepicker__year-text--keyboard-selected {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+.react-datepicker__navigation {
+  border: 0.45rem solid transparent !important;
+}
+
+.react-datepicker__navigation--previous {
+  border-right-color: #22d3ee !important;
+}
+
+.react-datepicker__navigation--next {
+  border-left-color: #22d3ee !important;
+}
+
+.react-datepicker__navigation:hover {
+  opacity: 0.7 !important;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid rgba(0, 255, 255, 0.2) !important; /* border-cyan-400/20 */
+  background-color: #111827 !important; /* bg-gray-900 */
+}
+
+.react-datepicker__time-list {
+  background-color: #111827 !important; /* bg-gray-900 */
+}
+
+.react-datepicker__time-list-item {
+  color: white !important;
+  background-color: transparent !important;
+}
+
+.react-datepicker__time-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.react-datepicker__time-list-item--selected {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--outside-month {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.react-datepicker__day--disabled {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.react-datepicker__triangle {
+  border-bottom-color: #111827 !important; /* bg-gray-900 */
+}
+
+.react-datepicker__triangle::before {
+  border-bottom-color: rgba(0, 255, 255, 0.2) !important; /* border-cyan-400/20 */
+}
+
+/* Fix any remaining white backgrounds */
+.react-datepicker__month-container,
+.react-datepicker__month,
+.react-datepicker__week {
+  background-color: transparent !important;
+}
+
+.react-datepicker__day-names {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
+}
+
+.react-datepicker__week {
+  background-color: transparent !important;
+}
+
+/* Ensure time container has proper background */
+.react-datepicker__time-container .react-datepicker__time {
+  background-color: #111827 !important; /* bg-gray-900 */
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+  background-color: #111827 !important; /* bg-gray-900 */
+}
+
+/* Remove any white backgrounds from wrapper elements */
+.react-datepicker-wrapper,
+.react-datepicker__input-container {
+  background-color: transparent !important;
+}
+
+/* Hide default navigation arrows since we use custom ones */
+.react-datepicker__navigation {
+  display: none !important;
+}
+
+/* Hide the white triangle pointer */
+.react-datepicker__triangle {
+  display: none !important;
+}
+
+.react-datepicker__triangle::before {
+  display: none !important;
+}
+
+.react-datepicker__triangle::after {
+  display: none !important;
+}
+
+/* Ensure DatePicker takes full width */
+.react-datepicker-wrapper,
+.react-datepicker__input-container,
+.react-datepicker__input-container input {
+  width: 100% !important;
+}
+
+/* Proper colors for all elements */
+.react-datepicker {
+  background-color: #111827 !important; /* bg-gray-900 */
+  /* Constrain modal width to match max-w-sm (384px) input containers */
+  max-width: 384px !important;
+  width: max-content !important;
+}
+
+.react-datepicker__header {
+  background-color: rgba(0, 0, 0, 0.5) !important; /* bg-black/50 */
+}
+
+.react-datepicker__month-container,
+.react-datepicker__month,
+.react-datepicker__week,
+.react-datepicker__day-names {
+  background-color: transparent !important;
+}
+
+.react-datepicker__time-container,
+.react-datepicker__time-list,
+.react-datepicker__time-container .react-datepicker__time,
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+  background-color: #111827 !important; /* bg-gray-900 */
+}
+
+.react-datepicker__navigation {
+  background-color: transparent !important;
+}
+
+.react-datepicker__day,
+.react-datepicker__day-name,
+.react-datepicker__time-name,
+.react-datepicker__time-list-item {
+  background-color: transparent !important;
+}
+
+.react-datepicker__current-month {
+  background-color: transparent !important;
+}
+
+/* Target any remaining white elements */
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown,
+.react-datepicker__month-read-view,
+.react-datepicker__year-read-view,
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+  background-color: transparent !important;
+}
+
+/* Nuclear approach - force all backgrounds to be dark or transparent */
+.react-datepicker div,
+.react-datepicker span,
+.react-datepicker button {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Restore only the essential backgrounds */
+.react-datepicker {
+  background-color: #111827 !important;
+  background: #111827 !important;
+}
+
+.react-datepicker__header {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Force font application */
+.font-arcade {
+  font-family: 'Press Start 2P', monospace !important;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+  text-rendering: pixelated;
+}
+
+/* Shiny animations for medals */
+@keyframes goldShine {
+  0%, 100% {
+    text-shadow: 0 0 2px rgba(255, 193, 7, 0.4),
+                 0 0 4px rgba(255, 193, 7, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow: 0 0 4px rgba(255, 193, 7, 0.6),
+                 0 0 8px rgba(255, 193, 7, 0.3);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes silverShine {
+  0%, 100% {
+    text-shadow: 0 0 2px rgba(209, 213, 219, 0.4),
+                 0 0 4px rgba(209, 213, 219, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow: 0 0 4px rgba(209, 213, 219, 0.6),
+                 0 0 8px rgba(209, 213, 219, 0.3);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes bronzeShine {
+  0%, 100% {
+    text-shadow: 0 0 2px rgba(234, 88, 12, 0.4),
+                 0 0 4px rgba(234, 88, 12, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow: 0 0 4px rgba(234, 88, 12, 0.6),
+                 0 0 8px rgba(234, 88, 12, 0.3);
+    filter: brightness(1.1);
+  }
+}
+
+/* Animation classes */
+.animate-gold-shine {
+  animation: goldShine 3s ease-in-out infinite;
+}
+
+.animate-silver-shine {
+  animation: silverShine 3s ease-in-out infinite;
+}
+
+.animate-bronze-shine {
+  animation: bronzeShine 3s ease-in-out infinite;
+}
+
+/* Animated gradient for header */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient {
+  background: linear-gradient(45deg, 
+    #ff00ff, 
+    #00ffff, 
+    #ffff00, 
+    #ff00ff, 
+    #00ffff, 
+    #ffff00
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 4s ease-in-out infinite;
+}
+
+/* Disable animated gradient text in Tron theme */
+body.theme-tron .animated-gradient {
+  animation: none !important;
+  background: none !important;
+  -webkit-text-fill-color: inherit !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Override arcade font to futuristic Orbitron in Tron theme */
+body.theme-tron .font-arcade {
+  font-family: 'Orbitron', sans-serif !important;
+  letter-spacing: 0.04em;
+}
+
+/* Ensure QR/code visuals don't animate (safety net) */
+body.theme-tron canvas,
+body.theme-tron img,
+body.theme-tron svg {
+  animation: none !important;
+}
+
+/* Removed hyperspace CSS - now using Canvas-based effect */
+
+/* Gradient border animations */
+@keyframes gradientBorder1 {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes gradientBorder2 {
+  0% { background-position: 25% 75%; }
+  50% { background-position: 125% 75%; }
+  100% { background-position: 25% 75%; }
+}
+
+@keyframes gradientBorder3 {
+  0% { background-position: 50% 100%; }
+  50% { background-position: 150% 100%; }
+  100% { background-position: 50% 100%; }
+}
+
+.gradient-border-1 {
+  position: relative;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+  background-size: 300% 300%;
+  animation: gradientBorder1 4s ease-in-out infinite;
+  border-radius: 0.5rem;
+  padding: 2px;
+}
+
+.gradient-border-2 {
+  position: relative;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+  background-size: 300% 300%;
+  animation: gradientBorder2 4s ease-in-out infinite;
+  border-radius: 0.5rem;
+  padding: 2px;
+}
+
+.gradient-border-3 {
+  position: relative;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+  background-size: 300% 300%;
+  animation: gradientBorder3 4s ease-in-out infinite;
+  border-radius: 0.5rem;
+  padding: 2px;
+}
+
+.gradient-border-content {
+  background: hsl(var(--card));
+  border-radius: calc(0.5rem - 2px);
+  width: 100%;
+  height: 100%;
+}
+
+@layer base {
+  :root {
+    --background: 220 40% 10%;
+    --foreground: 210 40% 98%;
+    --card: 220 40% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 40% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 180 100% 50%;
+    --primary-foreground: 26 24% 10%;
+    /* Switch/button surfaces: shift from brown to dark blue */
+    --secondary: 220 45% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 35% 16%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 220 50% 20%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 35% 28%;
+    --input: 220 35% 28%;
+    --ring: 180 100% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ===================== THEMES ===================== */
+/* Default/current theme maps to existing palette */
+body.theme-current {
+  --page-bg: transparent;
+}
+.theme-current .theme-card {
+  background-color: rgba(0,0,0,0.45);
+  border-color: rgba(255,255,255,0.2);
+  backdrop-filter: blur(1px);
+}
+
+/* Modern Light */
+body.theme-modern-light {
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --page-bg: radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(240,242,247,0.9) 100%);
+}
+.theme-modern-light .theme-card {
+  background-color: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.08);
+  color: hsl(var(--foreground));
+  backdrop-filter: blur(1px);
+}
+
+/* Modern Dark */
+body.theme-modern-dark {
+  /* Clean, modern dark backgrounds */
+  --background: 222 47% 6%;
+  --foreground: 210 17% 98%;
+
+  /* Card styling similar to games page */
+  --card: 222 47% 8%;
+  --card-foreground: 210 17% 98%;
+
+  /* Popover and dropdown styling */
+  --popover: 222 47% 10%;
+  --popover-foreground: 210 17% 98%;
+
+  /* Vibrant primary color (blue-ish like RAWG) */
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 7%;
+
+  /* Muted secondary colors */
+  --secondary: 222 47% 13%;
+  --secondary-foreground: 210 17% 98%;
+
+  /* Muted text and backgrounds */
+  --muted: 217 33% 14%;
+  --muted-foreground: 215 20% 65%;
+
+  /* Accent colors */
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 17% 98%;
+
+  /* Alert colors */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 17% 98%;
+
+  /* Refined borders - subtle but visible */
+  --border: 217 33% 17%;
+  --input: 217 33% 18%;
+  --ring: 217 91% 60%;
+
+  /* Smooth gradient background like games page */
+  --page-bg: linear-gradient(to bottom, hsl(222 47% 5%) 0%, hsl(222 47% 7%) 100%);
+
+  /* Clean, modern font stack */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Modern card styles with subtle depth */
+.theme-modern-dark .theme-card {
+  background: hsl(222 47% 8%);
+  border: 1px solid hsl(217 33% 17% / 0.6);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.theme-modern-dark .theme-card:hover {
+  border-color: hsl(217 33% 20%);
+  box-shadow: 0 4px 12px 0 hsl(0 0% 0% / 0.1);
+}
+
+/* Button refinements for modern dark */
+.theme-modern-dark button {
+  transition: all 0.2s ease;
+}
+
+.theme-modern-dark button:hover {
+  transform: translateY(-1px);
+}
+
+/* Smooth transitions for interactive elements */
+.theme-modern-dark * {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 200ms;
+}
+
+/* Badge and tag styling similar to games page */
+.theme-modern-dark [role="badge"],
+.theme-modern-dark .badge {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* TRON Futuristic */
+body.theme-tron {
+  --background: 215 100% 3%;
+  --foreground: 180 100% 90%;
+  --card: 215 100% 6%;
+  --card-foreground: 180 100% 90%;
+  --primary: 180 100% 50%; /* neon cyan */
+  --primary-foreground: 215 100% 3%;
+  --secondary: 205 100% 12%;
+  --secondary-foreground: 180 100% 90%;
+  --muted: 205 90% 10%;
+  --muted-foreground: 180 50% 70%;
+  --accent: 290 100% 50%; /* neon magenta */
+  --accent-foreground: 215 100% 3%;
+  --border: 180 100% 35%;
+  --input: 180 100% 35%;
+  --ring: 180 100% 50%;
+  /* Make inner page background transparent so the grid overlay is visible */
+  --page-bg: transparent;
+  font-family: 'Orbitron', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Holographic grid overlay */
+body.theme-tron::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(transparent 0%, rgba(0,255,255,0.12) 2%, transparent 2%) 0 0 / 100% 24px,
+    linear-gradient(90deg, transparent 0%, rgba(0,255,255,0.12) 2%, transparent 2%) 0 0 / 24px 100%;
+  pointer-events: none;
+  z-index: 0;
+  transform: perspective(1200px) rotateX(58deg) scale(1.2);
+  transform-origin: center top;
+  opacity: 0.9;
+}
+.theme-tron .theme-card {
+  background: linear-gradient(180deg, rgba(0,10,20,0.85), rgba(0,20,30,0.85));
+  border: 2px solid rgba(0, 255, 255, 0.85);
+  box-shadow: 0 0 24px rgba(0, 255, 255, 0.35), inset 0 0 18px rgba(0,255,255,0.2);
+  border-radius: 0; /* Tron is sharp */
+  /* Square corners */
+  clip-path: none;
+  border-radius: 0;
+  position: relative;
+  /* Seamless dual-scan gradients for smooth loop */
+  background-image:
+    linear-gradient(90deg, rgba(0,255,255,0) 0%, rgba(0,255,255,0.08) 40%, rgba(0,255,255,0.16) 50%, rgba(0,255,255,0.08) 60%, rgba(0,255,255,0) 100%),
+    linear-gradient(90deg, rgba(0,255,255,0) 0%, rgba(0,255,255,0.08) 40%, rgba(0,255,255,0.16) 50%, rgba(0,255,255,0.08) 60%, rgba(0,255,255,0) 100%);
+  background-size: 200% 100%, 200% 100%;
+  background-position: 0% 0, 100% 0;
+  animation: tronScan 6s linear infinite;
+  /* Left inset glow rail */
+  box-shadow: inset 6px 0 18px rgba(0,255,255,0.25), 0 0 24px rgba(0,255,255,0.2);
+  backdrop-filter: blur(1px);
+}
+.theme-tron .theme-card::before { content: none; }
+.theme-tron .theme-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  /* Square corners for outline as well */
+  clip-path: none;
+  border-radius: 0;
+  box-shadow: 0 0 18px rgba(0,255,255,0.2);
+  animation: tronGlow 4s ease-in-out infinite;
+}
+.theme-tron .theme-card:hover {
+  box-shadow: 0 0 18px rgba(0, 255, 255, 0.3), inset 0 0 14px rgba(0,255,255,0.16);
+  transform: translateY(-1px);
+  /* Preserve the background animation on hover */
+  background-image:
+    linear-gradient(90deg, rgba(0,255,255,0) 0%, rgba(0,255,255,0.08) 40%, rgba(0,255,255,0.16) 50%, rgba(0,255,255,0.08) 60%, rgba(0,255,255,0) 100%),
+    linear-gradient(90deg, rgba(0,255,255,0) 0%, rgba(0,255,255,0.08) 40%, rgba(0,255,255,0.16) 50%, rgba(0,255,255,0.08) 60%, rgba(0,255,255,0) 100%);
+  background-size: 200% 100%, 200% 100%;
+  background-position: 0% 0, 100% 0;
+  animation: tronScan 6s linear infinite;
+}
+
+/* Tron Buttons */
+.theme-tron .theme-button {
+  position: relative;
+  background: linear-gradient(180deg, rgba(0, 25, 35, 0.98), rgba(0, 18, 28, 0.98));
+  color: #b7ffff;
+  border: 1px solid rgba(0, 255, 255, 0.9) !important; /* thinner border */
+  border-radius: 0 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  clip-path: none;
+  box-shadow: 0 0 22px rgba(0, 255, 255, 0.45), inset 0 0 14px rgba(0,255,255,0.2);
+}
+.theme-tron .theme-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(0,255,255,0.75);
+  clip-path: none;
+  border-radius: 0;
+  pointer-events: none;
+  box-shadow: 0 0 18px rgba(0,255,255,0.35);
+  animation: tronGlowBtn 3.6s ease-in-out infinite;
+}
+.theme-tron .theme-button::before { content: none; }
+.theme-tron .theme-button:hover {
+  background: linear-gradient(180deg, rgba(0, 35, 50, 0.98), rgba(0, 22, 34, 0.98));
+  box-shadow: 0 0 28px rgba(0, 255, 255, 0.55), inset 0 0 16px rgba(0, 255, 255, 0.25);
+}
+.theme-tron .theme-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,255,255,0.55), 0 0 28px rgba(0,255,255,0.5);
+}
+
+/* Select popover and options */
+body.theme-tron [role="listbox"] {
+  background: rgba(0, 15, 25, 0.95);
+  border: 1.5px solid rgba(0,255,255,0.45);
+  box-shadow: 0 0 14px rgba(0,255,255,0.25), inset 0 0 8px rgba(0,255,255,0.12);
+}
+body.theme-tron [role="option"] {
+  color: #b7ffff;
+}
+body.theme-tron [role="option"][data-highlighted],
+body.theme-tron [role="option"]:hover {
+  background: rgba(0, 255, 255, 0.12);
+}
+
+/* Scan animation */
+@keyframes tronScan {
+  0%   { background-position: 0% 0, 100% 0; }
+  100% { background-position: 100% 0, 0% 0; }
+}
+
+/* Pulsing border glow */
+@keyframes tronGlow {
+  0%   { box-shadow: 0 0 12px rgba(0,255,255,0.18), inset 0 0 10px rgba(0,255,255,0.12); border-color: rgba(0,255,255,0.35); }
+  50%  { box-shadow: 0 0 26px rgba(0,255,255,0.45), inset 0 0 14px rgba(0,255,255,0.2);  border-color: rgba(0,255,255,0.65); }
+  100% { box-shadow: 0 0 12px rgba(0,255,255,0.18), inset 0 0 10px rgba(0,255,255,0.12); border-color: rgba(0,255,255,0.35); }
+}
+
+/* Tabs (Radix) */
+.theme-tron [role="tablist"] {
+  border-bottom: 1px solid rgba(0,255,255,0.5);
+  box-shadow: 0 6px 12px -6px rgba(0,255,255,0.25);
+}
+.theme-tron [role="tab"] {
+  color: #9ff;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.theme-tron [role="tab"][data-state="active"] {
+  color: #fff;
+  border-bottom: 2px solid rgba(0,255,255,0.9);
+  text-shadow: 0 0 8px rgba(0,255,255,0.7);
+}
+
+/* Tables */
+.theme-tron table {
+  border: 1.5px solid rgba(0,255,255,0.35);
+  box-shadow: 0 0 12px rgba(0,255,255,0.2);
+}
+.theme-tron th {
+  background: rgba(0, 25, 35, 0.85);
+  color: #b7ffff;
+}
+.theme-tron td {
+  border-top: 1px solid rgba(0,255,255,0.15);
+}
+
+/* Recharts (axes/grid/labels) */
+.theme-tron .recharts-cartesian-grid line { stroke: rgba(0,255,255,0.25); }
+.theme-tron .recharts-cartesian-axis line { stroke: rgba(0,255,255,0.6); }
+.theme-tron .recharts-cartesian-axis-tick-value tspan { fill: #b7ffff; }
+.theme-tron .recharts-legend-item-text { fill: #b7ffff; }
+
+/* Tron MAGENTA accent (togglable) */
+body.tron-magenta .theme-card {
+  border-color: rgba(255, 0, 170, 0.9);
+  box-shadow: 0 0 26px rgba(255, 0, 170, 0.45), inset 0 0 18px rgba(255,0,170,0.22);
+  background-image:
+    linear-gradient(90deg, rgba(255,0,170,0) 0%, rgba(255,0,170,0.1) 40%, rgba(255,0,170,0.2) 50%, rgba(255,0,170,0.1) 60%, rgba(255,0,170,0) 100%),
+    linear-gradient(90deg, rgba(255,0,170,0) 0%, rgba(255,0,170,0.1) 40%, rgba(255,0,170,0.2) 50%, rgba(255,0,170,0.1) 60%, rgba(255,0,170,0) 100%);
+  background-size: 200% 100%, 200% 100%;
+  background-position: 0% 0, 100% 0;
+}
+body.tron-magenta .theme-card::after { box-shadow: 0 0 18px rgba(255,0,170,0.22); border-color: rgba(255,0,170,0.4); animation: tronGlowMag 4s ease-in-out infinite; }
+body.tron-magenta .theme-card::before { background: rgba(255,0,170,0.95); box-shadow: 0 0 12px rgba(255,0,170,0.9), 0 0 22px rgba(255,0,170,0.6); }
+body.tron-magenta .theme-button { border-color: rgba(255,0,170,0.95) !important; box-shadow: 0 0 26px rgba(255,0,170,0.55), inset 0 0 14px rgba(255,0,170,0.25); }
+body.tron-magenta .theme-button::after { border-color: rgba(255,0,170,0.8); box-shadow: 0 0 22px rgba(255,0,170,0.45); animation: tronGlowBtnMag 3.6s ease-in-out infinite; }
+@keyframes tronGlowMag {
+  0%   { box-shadow: 0 0 12px rgba(255,0,170,0.2), inset 0 0 10px rgba(255,0,170,0.12); border-color: rgba(255,0,170,0.4); }
+  50%  { box-shadow: 0 0 26px rgba(255,0,170,0.5), inset 0 0 14px rgba(255,0,170,0.2); border-color: rgba(255,0,170,0.8); }
+  100% { box-shadow: 0 0 12px rgba(255,0,170,0.2), inset 0 0 10px rgba(255,0,170,0.12); border-color: rgba(255,0,170,0.4); }
+}
+@keyframes tronGlowBtnMag {
+  0%   { box-shadow: 0 0 16px rgba(255,0,170,0.35), inset 0 0 10px rgba(255,0,170,0.2); border-color: rgba(255,0,170,0.8); }
+  50%  { box-shadow: 0 0 30px rgba(255,0,170,0.6), inset 0 0 14px rgba(255,0,170,0.28); border-color: rgba(255,0,170,0.95); }
+  100% { box-shadow: 0 0 16px rgba(255,0,170,0.35), inset 0 0 10px rgba(255,0,170,0.2); border-color: rgba(255,0,170,0.8); }
+}
+body.tron-magenta .theme-button::before { content: none; }
+body.tron-magenta [role="tablist"] { border-bottom-color: rgba(255,0,170,0.55); box-shadow: 0 6px 12px -6px rgba(255,0,170,0.35); }
+body.tron-magenta table { border-color: rgba(255,0,170,0.35); box-shadow: 0 0 12px rgba(255,0,170,0.25); }
+body.tron-magenta .recharts-cartesian-grid line { stroke: rgba(255,0,170,0.25); }
+body.tron-magenta .recharts-cartesian-axis line { stroke: rgba(255,0,170,0.6); }
+
+/* Vertical animated gradient for unified player name effect */
+@property --grad-pos {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+@keyframes unifiedGradientY {
+  0% { --grad-pos: 0%; }
+  50% { --grad-pos: 100%; }
+  100% { --grad-pos: 0%; }
+}
+.leaderboard-gradient-scope {
+  /* Container no longer animates - individual elements handle their own wave timing */
+}
+
+/* Wave effect keyframes */
+@keyframes gradientWave {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+.animated-gradient-vertical {
+  /* Mobile-first: solid white text */
+  color: white;
+}
+
+/* Desktop: gradient text animation with wave effect */
+@media (min-width: 768px) {
+  .animated-gradient-vertical {
+    background: linear-gradient(0deg,
+      #ff00ff,
+      #00ffff,
+      #ffff00,
+      #ff00ff,
+      #00ffff,
+      #ffff00
+    );
+    background-size: 100% 300%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-position: 50% var(--grad-pos);
+    will-change: background-position;
+    animation: gradientWave 6s ease-in-out infinite;
+    animation-delay: var(--wave-delay, 0s);
+  }
+}
+
+/* Vertical unified background gradient (no text clip) */
+.animated-bg-vertical {
+  background: linear-gradient(0deg,
+    #ff00ff,
+    #00ffff,
+    #ffff00,
+    #ff00ff,
+    #00ffff,
+    #ffff00
+  );
+  background-size: 100% 300%;
+  background-position: 50% var(--grad-pos);
+  background-repeat: no-repeat;
+  will-change: background-position;
+}
+
+/* Fallback for browsers without CSS Properties & Values API */
+@keyframes gradientShiftYFallback {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+@supports not (property: --grad-pos) {
+  .leaderboard-gradient-scope { animation: none; }
+  @media (min-width: 768px) {
+    .animated-gradient-vertical {
+      animation: gradientShiftYFallback 10s ease-in-out infinite;
+      animation-delay: var(--wave-delay, 0s);
+    }
+  }
+}
+
+/* Custom Styles */
+@keyframes neonGlow {
+  0%, 100% {
+    text-shadow: 0 0 7px #fff,
+                0 0 10px #fff,
+                0 0 21px #fff,
+                0 0 42px #0fa,
+                0 0 82px #0fa,
+                0 0 92px #0fa,
+                0 0 102px #0fa,
+                0 0 151px #0fa;
+  }
+  50% {
+    text-shadow: 0 0 4px #fff,
+                0 0 7px #fff,
+                0 0 18px #fff,
+                0 0 38px #0fa,
+                0 0 73px #0fa,
+                0 0 80px #0fa,
+                0 0 94px #0fa,
+                0 0 140px #0fa;
+  }
+}
+
+/* Global layout stability */
+html, body {
+  overflow-x: hidden; /* prevent horizontal scroll during offscreen transforms */
+  scrollbar-gutter: stable both-edges; /* reserve scrollbar space to avoid content shift */
+  background: hsl(var(--background)); /* Use CSS variable */
+  color: hsl(var(--foreground)); /* Use CSS variable */
+}
+
+/* Hide scrollbars globally while maintaining scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Apply scrollbar gutter to all scrollable containers to prevent layout jumping */
+.overflow-y-auto, .overflow-auto {
+  scrollbar-gutter: stable;
+}
+
+/* Temporary override for wave animations - allow overflow during page load */
+body.loading-animations {
+  overflow-x: visible !important;
+  scrollbar-gutter: stable both-edges; /* Maintain scrollbar stability during animations */
+}
+
+/* Force overflow visibility for wave animations */
+.animate-wave-in-right,
+.animate-wave-out-right {
+  /* Force hardware acceleration and ensure visibility */
+  will-change: transform, opacity, visibility !important;
+  transform-style: preserve-3d !important;
+}
+
+/* Status bar stability during animations */
+.status-bar-stable {
+  /* Prevent the status bar from flickering during page animations */
+  will-change: auto; /* Reset will-change to prevent unnecessary optimizations */
+  transform: translateZ(0); /* Force hardware acceleration for stability */
+  backface-visibility: hidden; /* Prevent flickering during 3D transforms */
+  contain: layout style; /* Contain layout and style changes */
+}
+
+/* Fade and bounce-in animation for new brackets */
+@keyframes fadeBounceIn {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.1); 
+  }
+  20% { 
+    opacity: 0.4; 
+    transform: scale(1.15); 
+  }
+  40% { 
+    opacity: 0.8; 
+    transform: scale(0.85); 
+  }
+  60% { 
+    opacity: 0.9; 
+    transform: scale(1.05); 
+  }
+  80% { 
+    opacity: 1; 
+    transform: scale(0.95); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+.fade-bounce-in-3d {
+  animation: fadeBounceIn 1200ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transform-origin: center center;
+}
+
+
+/* Wave motion exit animation */
+@keyframes waveOutToRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(100vw + 100px)) scale(0.8);
+  }
+}
+.animate-wave-out-right {
+  animation: waveOutToRight 350ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  position: relative;
+  z-index: 0;
+}
+
+/* Bracket winner zoom animation with elastic rubberband effect */
+@keyframes bracketWinnerZoom {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.3);
+  }
+  30% {
+    transform: scale(0.9);
+  }
+  45% {
+    transform: scale(1.2);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+  90% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.bracket-winner-zoom {
+  animation: bracketWinnerZoom 2000ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transform-origin: center center;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Elastic rubberband bounce animation for winner modals */
+@keyframes elasticBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.1) rotate(-12deg);
+  }
+  20% {
+    opacity: 0.8;
+    transform: scale(1.4) rotate(8deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(0.7) rotate(-5deg);
+  }
+  55% {
+    transform: scale(1.25) rotate(3deg);
+  }
+  65% {
+    transform: scale(0.85) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.15) rotate(1deg);
+  }
+  85% {
+    transform: scale(0.93) rotate(-0.5deg);
+  }
+  92% {
+    transform: scale(1.08) rotate(0.3deg);
+  }
+  96% {
+    transform: scale(0.97) rotate(-0.1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes elasticBounceOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    opacity: 0.9;
+    transform: scale(1.1) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-5deg);
+  }
+}
+
+.elastic-bounce-in {
+  animation: elasticBounce 1200ms cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.elastic-bounce-out {
+  animation: elasticBounceOut 400ms cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Ensure proper emoji rendering */
+.font-emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif;
+  font-variant: normal;
+  line-height: 1;
+}
+
+/* Left/right sway animation for score entries */
+@keyframes swayLeftRight {
+  0% {
+    transform: translateX(0px);
+  }
+  20% {
+    transform: translateX(3px);
+  }
+  40% {
+    transform: translateX(-2px);
+  }
+  60% {
+    transform: translateX(2px);
+  }
+  80% {
+    transform: translateX(-1px);
+  }
+  100% {
+    transform: translateX(0px);
+  }
+}
+
+.animate-swing {
+  animation: swayLeftRight 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  will-change: transform;
+}
+
+/* Heart pulse animation */
+@keyframes heartPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.heart-pulse {
+  animation: heartPulse 0.6s ease-out forwards;
+}
+
+/* Skeleton pulse animation from CodePen */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  height: 100% !important;
+  width: 100% !important;
+  background: linear-gradient(-90deg, #efefef 0%, #fcfcfc 50%, #efefef 100%) !important;
+  background-size: 400% 400% !important;
+  animation: shimmer 2.0s ease-in-out infinite !important;
+}

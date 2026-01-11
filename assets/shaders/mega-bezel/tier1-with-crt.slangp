@@ -1,0 +1,44 @@
+shaders = 4
+
+# Progressive build: derez → cache-info → CRT → stock
+# Adding Guest CRT shader between cache-info and output
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info - OFF-SCREEN DATA (coordinates)
+shader1 = shaders/base/cache-info-potato-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Guest CRT Advanced (potato version) - CRT effects
+shader2 = shaders/guest/hsm-crt-guest-advanced-potato.slang
+filter_linear2 = true
+scale_type2 = viewport
+scale2 = 1.0
+float_framebuffer2 = true
+alias2 = "CRTPass"
+
+# Pass 3: Stock - Final output to screen
+shader3 = shaders/base/stock.slang
+filter_linear3 = false
+scale_type3 = viewport
+scale3 = 1.0
+
+# Textures (LUTs for CRT shader)
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true

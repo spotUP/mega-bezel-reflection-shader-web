@@ -1,0 +1,51 @@
+shaders = 4
+
+# Simple game with bezel frame
+# Shows the game with a decorative monitor frame around it
+
+# Pass 0: Derez (downscaling if needed)
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type_x0 = viewport
+scale_x0 = 1.0
+scale_type_y0 = viewport
+scale_y0 = 1.0
+wrap_mode0 = "clamp_to_edge"
+alias0 = "DerezedPass"
+
+# Pass 1: Fetch derez output (becomes the CRT image)
+shader1 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear1 = false
+srgb_framebuffer1 = true
+scale_type1 = source
+scale_x1 = 1
+scale_y1 = 1
+alias1 = "CRTPass"
+
+# Pass 2: Cache Info for coordinate calculations (off-screen)
+shader2 = shaders/base/cache-info-all-params.slang
+filter_linear2 = false
+scale_type2 = source
+scale2 = 1.0
+alias2 = "InfoCachePass"
+
+# Pass 3: Bezel frame overlay on top of CRT
+shader3 = shaders/base/bezel-images-over-crt.slang
+filter_linear3 = true
+scale_type3 = viewport
+scale3 = 1.0
+
+# Bezel frame textures - using actual frame images
+textures = "FrameTextureImage;BackgroundImage"
+
+FrameTextureImage = shaders/textures/FrameTexture_2800x2120.png
+FrameTextureImage_linear = true
+FrameTextureImage_mipmap = 1
+
+BackgroundImage = shaders/textures/Baked_Frame_Carbonfiber_Background.png
+BackgroundImage_linear = true
+BackgroundImage_mipmap = 1
+
+# Parameters
+HSM_CRT_CURVATURE_SCALE = 0
+HSM_ASPECT_RATIO_MODE = 1

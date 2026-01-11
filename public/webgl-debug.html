@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebGL2Canvas Debug</title>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: monospace;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid #0f0;
+      display: block;
+      margin: 10px 0;
+    }
+    .error {
+      color: #f00;
+      font-weight: bold;
+    }
+    .success {
+      color: #0f0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebGL2Canvas Direct Test</h1>
+  <div id="log"></div>
+
+  <h2>Canvas2D (Reference)</h2>
+  <canvas id="canvas2d" width="400" height="300"></canvas>
+
+  <h2>WebGL2 (Direct Test)</h2>
+  <canvas id="webgl" width="400" height="300"></canvas>
+
+  <script>
+    const log = (msg, isError = false) => {
+      const div = document.getElementById('log');
+      const p = document.createElement('p');
+      p.className = isError ? 'error' : 'success';
+      p.textContent = msg;
+      div.appendChild(p);
+      console.log(msg);
+    };
+
+    // Test WebGL2 availability
+    const canvas = document.getElementById('webgl');
+    const gl = canvas.getContext('webgl2', { antialias: false });
+
+    if (!gl) {
+      log('ERROR: WebGL2 not supported!', true);
+    } else {
+      log('✓ WebGL2 is supported');
+
+      // Simple WebGL2 test - draw a red rectangle
+      gl.viewport(0, 0, 400, 300);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      const vertexShaderSource = `#version 300 es
+        in vec2 a_position;
+        void main() {
+          gl_Position = vec4(a_position, 0, 1);
+        }`;
+
+      const fragmentShaderSource = `#version 300 es
+        precision highp float;
+        out vec4 outColor;
+        void main() {
+          outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }`;
+
+      const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertexShader, vertexShaderSource);
+      gl.compileShader(vertexShader);
+
+      if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        log('ERROR: Vertex shader compilation failed: ' + gl.getShaderInfoLog(vertexShader), true);
+      } else {
+        log('✓ Vertex shader compiled');
+      }
+
+      const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragmentShader, fragmentShaderSource);
+      gl.compileShader(fragmentShader);
+
+      if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        log('ERROR: Fragment shader compilation failed: ' + gl.getShaderInfoLog(fragmentShader), true);
+      } else {
+        log('✓ Fragment shader compiled');
+      }
+
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        log('ERROR: Program link failed: ' + gl.getProgramInfoLog(program), true);
+      } else {
+        log('✓ Program linked');
+      }
+
+      gl.useProgram(program);
+
+      const vertices = new Float32Array([
+        -0.5, -0.5,
+         0.5, -0.5,
+        -0.5,  0.5,
+        -0.5,  0.5,
+         0.5, -0.5,
+         0.5,  0.5,
+      ]);
+
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+      const positionLoc = gl.getAttribLocation(program, 'a_position');
+      gl.enableVertexAttribArray(positionLoc);
+      gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      log('✓ Red rectangle drawn to WebGL canvas');
+    }
+
+    // Draw to Canvas2D for reference
+    const canvas2d = document.getElementById('canvas2d');
+    const ctx = canvas2d.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 400, 300);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(100, 75, 200, 150);
+    log('✓ Red rectangle drawn to Canvas2D');
+  </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+# Working 6-pass Potato Preset (without cache-info to test if that's causing issues)
+shaders = 6
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Fetch derez output (skip cache-info entirely)
+shader1 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear1 = false
+srgb_framebuffer1 = true
+scale_type1 = source
+scale1 = 1.0
+
+# Pass 2: FXAA
+shader2 = shaders/fxaa/fxaa.slang
+filter_linear2 = true
+float_framebuffer2 = true
+scale_type2 = source
+scale2 = 1.0
+alias2 = "DeditherPass"
+
+# Pass 3: Color grading
+shader3 = shaders/dogway/hsm-grade.slang
+filter_linear3 = false
+scale_type3 = source
+scale3 = 1.0
+alias3 = "ColorCorrectPass"
+
+# Pass 4: Sharpening
+shader4 = shaders/guest/hsm-custom-fast-sharpen.slang
+filter_linear4 = true
+scale_type4 = source
+scale4 = 1.0
+
+# Pass 5: Simple screen scaling (FINAL PASS - to viewport)
+shader5 = shaders/guest/extras/hsm-screen-scale-g-sharp_resampler-simple.slang
+filter_linear5 = false
+scale_type5 = viewport
+scale5 = 1.0
+float_framebuffer5 = true
+alias5 = "CRTPass"
+
+# Textures
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true
+
+# Parameters
+HSM_ASPECT_RATIO_MODE = 1
+HSM_FXAA_ON = 0

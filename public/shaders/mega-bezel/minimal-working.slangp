@@ -1,0 +1,21 @@
+shaders = 2
+
+# Minimal working preset - just game passthrough with derez
+
+# Pass 0: Derez - Downscales if needed
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+srgb_framebuffer0 = true
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info (required by many Mega Bezel shaders)
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# No textures needed for this minimal preset

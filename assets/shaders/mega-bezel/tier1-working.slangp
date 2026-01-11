@@ -1,0 +1,27 @@
+shaders = 3
+
+# TIER 1 - Minimal Working Bezel
+# Shows game with bezel frame around it
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+srgb_framebuffer0 = true
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Simple passthrough for now (bezel shader is too complex)
+# TODO: Replace with actual bezel rendering once we fix the compositing
+shader2 = shaders/base/do-nothing.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0

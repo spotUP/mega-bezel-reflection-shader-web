@@ -1,0 +1,9 @@
+shaders = 1
+
+# Simple game passthrough - just show the game without any processing
+# This is the absolute minimal preset that should just work
+
+shader0 = shaders/base/stock.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0

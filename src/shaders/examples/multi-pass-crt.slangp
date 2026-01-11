@@ -1,0 +1,58 @@
+# Multi-Pass CRT Shader Preset
+# Bloom + Scanlines + Curvature + Bezel
+
+shaders = 5
+
+# Pass 0: Linearize for proper bloom
+shader0 = shaders/linearize.slang
+filter_linear0 = true
+scale_type0 = source
+scale0 = 1.0
+alias0 = "LinearizedSource"
+
+# Pass 1: Horizontal bloom blur
+shader1 = shaders/blur-h.slang
+filter_linear1 = true
+scale_type1 = source
+scale1 = 1.0
+float_framebuffer1 = true
+
+# Pass 2: Vertical bloom blur
+shader2 = shaders/blur-v.slang
+filter_linear2 = true
+scale_type2 = source
+scale2 = 1.0
+float_framebuffer2 = true
+alias2 = "BloomPass"
+
+# Pass 3: CRT effect (scanlines + curvature)
+shader3 = shaders/crt-guest.slang
+filter_linear3 = false
+scale_type3 = source
+scale3 = 1.0
+
+# Pass 4: Bezel composite
+shader4 = shaders/bezel.slang
+filter_linear4 = true
+scale_type4 = viewport
+
+# External textures
+textures = "BezelImage;ColorLUT"
+
+BezelImage = textures/bezel-generic.png
+BezelImage_linear = true
+BezelImage_wrap_mode = clamp_to_edge
+BezelImage_mipmap = false
+
+ColorLUT = textures/color-grade-lut.png
+ColorLUT_linear = true
+ColorLUT_wrap_mode = clamp_to_edge
+ColorLUT_mipmap = true
+
+# Parameter overrides
+parameters = "bloomAmount;scanlineIntensity;curvature;bezelOpacity"
+
+bloomAmount = 0.15
+scanlineIntensity = 0.25
+curvature = 0.05
+bezelOpacity = 0.85

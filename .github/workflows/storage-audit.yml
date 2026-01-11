@@ -1,0 +1,28 @@
+name: Storage Policies Audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * *'
+
+jobs:
+  audit-storage:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Audit storage RLS and policies
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::warning::STAGING_DATABASE_URL not set; skipping storage audit."
+            exit 0
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/sql/verify-storage-policies.sql | sed -n '1,400p'

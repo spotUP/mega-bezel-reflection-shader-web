@@ -1,0 +1,56 @@
+shaders = 4
+
+# Simple Bezel - Game with decorative frame overlay
+# Minimal working configuration to show bezel around game
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type_x0 = viewport
+scale_x0 = 1.0
+scale_type_y0 = viewport
+scale_y0 = 1.0
+wrap_mode0 = "clamp_to_edge"
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info for coordinate calculations (render to texture)
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Pass through the game (this becomes the CRT image)
+shader2 = shaders/base/do-nothing.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0
+alias2 = "CRTPass"
+
+# Pass 3: Bezel images overlaid on CRT
+shader3 = shaders/base/bezel-images-over-crt.slang
+filter_linear3 = true
+scale_type3 = viewport
+scale3 = 1.0
+
+# Required textures - using simple placeholders
+textures = "BackgroundImage;BackgroundVertImage;FrameTextureImage;DeviceImage;TopLayerImage"
+
+BackgroundImage = shaders/textures/Placeholder_Transparent_16x16.png
+BackgroundImage_linear = true
+
+BackgroundVertImage = shaders/textures/Placeholder_Transparent_16x16.png
+BackgroundVertImage_linear = true
+
+FrameTextureImage = shaders/textures/Placeholder_Transparent_16x16.png
+FrameTextureImage_linear = true
+
+DeviceImage = shaders/textures/Placeholder_Transparent_16x16.png
+DeviceImage_linear = true
+
+TopLayerImage = shaders/textures/Placeholder_Transparent_16x16.png
+TopLayerImage_linear = true
+
+# Parameters - disable curvature for now
+HSM_CRT_CURVATURE_SCALE = 0
+HSM_ASPECT_RATIO_MODE = 1

@@ -1,0 +1,13 @@
+shaders = 1
+
+# Single pass: Composite game with frame
+shader0 = shaders/custom/simple-bezel.slang
+filter_linear0 = true
+scale_type0 = viewport
+
+# Texture: Frame/bezel background
+textures = "BackgroundImage"
+
+BackgroundImage = shaders/textures/Baked_Frame_Carbonfiber_Background.png
+BackgroundImage_linear = true
+BackgroundImage_mipmap = 1

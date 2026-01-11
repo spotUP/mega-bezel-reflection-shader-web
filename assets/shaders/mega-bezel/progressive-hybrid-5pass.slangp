@@ -1,0 +1,57 @@
+# Progressive Hybrid - 5 Passes
+# Adding: Stock prepass (for mipmapping)
+
+shaders = 5
+
+# Pass 0: FXAA anti-aliasing
+shader0 = shaders/fxaa/fxaa.slang
+filter_linear0 = true
+float_framebuffer0 = true
+scale_type0 = source
+scale0 = 1.0
+alias0 = "AntiAliasPass"
+
+# Pass 1: Color grading
+shader1 = shaders/dogway/hsm-grade.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "ColorCorrectPass"
+
+# Pass 2: Sharpening
+shader2 = shaders/guest/hsm-custom-fast-sharpen.slang
+filter_linear2 = true
+scale_type2 = source
+scale2 = 1.0
+alias2 = "SharpenPass"
+
+# NEW Pass 3: Stock prepass (for mipmapping)
+shader3 = shaders/base/stock.slang
+filter_linear3 = true
+scale_type3 = source
+scale3 = 1.0
+alias3 = "PrePass"
+mipmap_input3 = true
+
+# Pass 4: Simple CRT effects (FINAL)
+shader4 = ../simple-crt.slang
+filter_linear4 = true
+scale_type4 = viewport
+scale4 = 1.0
+
+# Textures
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true
+
+# Parameters
+HSM_FXAA_ON = 1
+SHARPEN_ON = 1
+CSHARPEN = 0.7
+GRADE_ON = 1

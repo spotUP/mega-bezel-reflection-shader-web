@@ -1,0 +1,90 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.8.0)'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  release:
+    if: >
+      (github.event_name == 'workflow_dispatch' || 
+       github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) &&
+      github.repository_owner == 'spotUP' &&
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      !contains(github.event.head_commit.message, '[skip release]')
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG=${{ github.ref_name }}
+          if [ -z "$TAG" ]; then
+            TAG=${{ inputs.tag }}
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Verify all required checks have passed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha
+            });
+
+            const requiredChecks = [
+              'npm audit (high/critical)',
+              'RLS Verification',
+              'Storage Policies Audit',
+              'Build'
+            ];
+
+            const failedChecks = checks.check_runs.filter(check => 
+              requiredChecks.includes(check.name) && 
+              check.conclusion !== 'success' &&
+              check.conclusion !== 'skipped'
+            );
+
+            if (failedChecks.length > 0) {
+              core.setFailed(`Cannot release with failing checks: ${
+                failedChecks.map(c => `${c.name} (${c.conclusion})`).join(', ')
+              }`);
+            }
+
+      - name: Read changelog excerpt
+        id: changelog
+        run: |
+          TAG=${{ steps.notes.outputs.tag }}
+          if [ -f Documentation/Project/CHANGELOG.md ]; then
+            awk '/^## \['"'$TAG'"'\]/{flag=1;next}/^## \[/{flag=0}flag' Documentation/Project/CHANGELOG.md > RELEASE_NOTES.md || true
+          fi
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Release $TAG" > RELEASE_NOTES.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.notes.outputs.tag }}
+          name: ${{ steps.notes.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

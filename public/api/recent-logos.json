@@ -1,0 +1,131 @@
+{
+  "stats": {
+    "totalGames": 169556,
+    "gamesWithLogos": 25313,
+    "gamesWithoutLogos": 144243,
+    "completionPercentage": "14.9"
+  },
+  "recentLogos": [
+    {
+      "id": 377400,
+      "name": "Puzzle Ball",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:52:36"
+    },
+    {
+      "id": 377395,
+      "name": "Bitku",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:52:30"
+    },
+    {
+      "id": 377392,
+      "name": "Dinosaur Hunt",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:52:26"
+    },
+    {
+      "id": 377352,
+      "name": "Tahira: Echoes of the Astral Empire",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:51:47"
+    },
+    {
+      "id": 377353,
+      "name": "Chronicles of the Witches and Warlocks",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:51:47"
+    },
+    {
+      "id": 377351,
+      "name": "Fireflies",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:51:46"
+    },
+    {
+      "id": 377323,
+      "name": "The Dreamatorium of Dr. Magnus 2",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:51:16"
+    },
+    {
+      "id": 377316,
+      "name": "Arvale",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:51:08"
+    },
+    {
+      "id": 377287,
+      "name": "Garlock Online",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:38"
+    },
+    {
+      "id": 377285,
+      "name": "Tic-Toc-Tower",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:37"
+    },
+    {
+      "id": 377286,
+      "name": "Planet Alcatraz 2",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:37"
+    },
+    {
+      "id": 377283,
+      "name": "Shadow Ninja: Apocalypse",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:34"
+    },
+    {
+      "id": 377280,
+      "name": "Project Genom",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:31"
+    },
+    {
+      "id": 377275,
+      "name": "Big Journey to Home",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:26"
+    },
+    {
+      "id": 377274,
+      "name": "Nova Blitz",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:25"
+    },
+    {
+      "id": 377273,
+      "name": "Glow Ball: The Billiard Puzzle Game",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:24"
+    },
+    {
+      "id": 377250,
+      "name": "MiniDrivers",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:01"
+    },
+    {
+      "id": 377248,
+      "name": "Astro Lords",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:00"
+    },
+    {
+      "id": 377249,
+      "name": "Super Trench Attack 2",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:50:00"
+    },
+    {
+      "id": 377245,
+      "name": "Paint it Back",
+      "platform_name": "Windows",
+      "processed_at": "2025-09-24 04:49:56"
+    }
+  ],
+  "lastUpdate": "2025-09-24T05:46:51.892Z"
+}

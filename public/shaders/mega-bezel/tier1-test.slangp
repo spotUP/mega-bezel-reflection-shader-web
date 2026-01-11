@@ -1,0 +1,27 @@
+shaders = 3
+
+# TIER 1 - Following implementation guide
+# Pass 0: Derez
+# Pass 1: Cache-info (coordinates)
+# Pass 2: Game passthrough
+# Pass 3: Bezel frame (TIER 1 CRITICAL)
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info - OFF-SCREEN DATA (coordinates)
+shader1 = shaders/base/cache-info-potato-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Stock - Display game to screen (with CRT effects from derez)
+shader2 = shaders/base/stock.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0

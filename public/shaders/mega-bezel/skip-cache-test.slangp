@@ -1,0 +1,25 @@
+# Skip cache-info pass, test passes 0, 2, 3
+shaders = 3
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type_x0 = viewport
+scale_x0 = 1.0
+scale_type_y0 = viewport
+scale_y0 = 1.0
+wrap_mode0 = "clamp_to_edge"
+alias0 = "DerezedPass"
+
+# Pass 1: Fetch derez (instead of cache-info)
+shader1 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear1 = false
+srgb_framebuffer1 = true
+scale_type1 = source
+scale_x1 = 1
+scale_y1 = 1
+
+# Pass 2: FXAA
+shader2 = shaders/fxaa/fxaa.slang
+float_framebuffer2 = true
+alias2 = "DeditherPass"

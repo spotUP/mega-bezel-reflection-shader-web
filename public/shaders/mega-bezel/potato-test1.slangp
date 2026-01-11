@@ -1,0 +1,13 @@
+# Simple CRT test - basic scanlines
+shaders = 1
+
+shader0 = shaders/guest/extras/hsm-screen-scale-g-sharp_resampler-potato.slang
+filter_linear0 = false
+scale_type0 = viewport
+scale0 = 1.0
+# Basic scanlines
+HSM_FAKE_SCANLINE_OPACITY = 30
+HSM_SCREEN_SCALE_GSHARP_MODE = 2
+HSM_SCREEN_POSITION_X = 0
+HSM_SCREEN_POSITION_Y = 0
+HSM_NON_INTEGER_SCALE = 0.8

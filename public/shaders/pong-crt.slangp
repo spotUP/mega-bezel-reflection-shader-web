@@ -1,0 +1,17 @@
+# Pong CRT Shader Preset
+# Simple single-pass CRT effect for retro look
+
+shaders = 1
+
+shader0 = pong-crt.slang
+filter_linear0 = false
+scale_type0 = viewport
+
+# Parameter overrides
+parameters = "scanlineIntensity;scanlineCount;curvature;brightness;vignetteIntensity"
+
+scanlineIntensity = 0.25
+scanlineCount = 800.0
+curvature = 0.05
+brightness = 1.0
+vignetteIntensity = 0.3

@@ -1,0 +1,70 @@
+shaders = 3
+
+# TIER 1 - Working Bezel Implementation
+# This preset includes the minimum passes needed for a visible bezel frame
+
+# Pass 0: Derez - Resolution handling
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+srgb_framebuffer0 = true
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info - CRITICAL for bezel coordinate calculations
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Bezel Frame - The actual bezel rendering
+shader2 = shaders/base/bezel-and-image-layers.slang
+filter_linear2 = false
+scale_type2 = viewport
+scale2 = 1.0
+alias2 = "BezelPass"
+
+# Required textures - using placeholder/dummy images
+textures = "BackgroundImage;BackgroundVertImage;NightLightingImage;NightLighting2Image;LEDImage;FrameTextureImage;DeviceImage;DeviceVertImage;DeviceLEDImage;DecalImage;CabinetGlassImage;TopLayerImage;ReflectionMaskImage"
+
+# Use simple placeholder textures (these should exist in the Mega Bezel shader folder)
+BackgroundImage = shaders/textures/Placeholder_Transparent_16x16.png
+BackgroundImage_linear = true
+
+BackgroundVertImage = shaders/textures/Placeholder_Transparent_16x16.png
+BackgroundVertImage_linear = true
+
+NightLightingImage = shaders/textures/Placeholder_Transparent_16x16.png
+NightLightingImage_linear = true
+
+NightLighting2Image = shaders/textures/Placeholder_Transparent_16x16.png
+NightLighting2Image_linear = true
+
+LEDImage = shaders/textures/Placeholder_Transparent_16x16.png
+LEDImage_linear = true
+
+FrameTextureImage = shaders/textures/Placeholder_Transparent_16x16.png
+FrameTextureImage_linear = true
+
+DeviceImage = shaders/textures/Placeholder_Transparent_16x16.png
+DeviceImage_linear = true
+
+DeviceVertImage = shaders/textures/Placeholder_Transparent_16x16.png
+DeviceVertImage_linear = true
+
+DeviceLEDImage = shaders/textures/Placeholder_Transparent_16x16.png
+DeviceLEDImage_linear = true
+
+DecalImage = shaders/textures/Placeholder_Transparent_16x16.png
+DecalImage_linear = true
+
+CabinetGlassImage = shaders/textures/Placeholder_Transparent_16x16.png
+CabinetGlassImage_linear = true
+
+TopLayerImage = shaders/textures/Placeholder_Transparent_16x16.png
+TopLayerImage_linear = true
+
+ReflectionMaskImage = shaders/textures/Placeholder_Transparent_16x16.png
+ReflectionMaskImage_linear = true

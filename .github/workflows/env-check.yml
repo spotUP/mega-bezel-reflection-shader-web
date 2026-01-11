@@ -1,0 +1,22 @@
+name: Env Variables Check (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run env check (manual)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "${VITE_SUPABASE_URL}" ] || [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
+            echo "::warning::Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY (non-blocking manual check)"
+          else
+            echo "Environment secrets present."
+          fi

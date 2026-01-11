@@ -1,0 +1,122 @@
+# Ultimate Hybrid: Full Mega Bezel processing + guaranteed CRT effects
+# This combines the best of both worlds:
+# - Mega Bezel's professional image processing pipeline
+# - Simple hardcoded CRT effects for guaranteed visibility
+
+shaders = 12
+
+# ===== MEGA BEZEL POTATO PIPELINE (passes 0-10) =====
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Cache info
+shader1 = shaders/base/cache-info-potato-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Fetch derez output
+shader2 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear2 = false
+srgb_framebuffer2 = true
+scale_type2 = source
+scale2 = 1.0
+
+# Pass 3: FXAA anti-aliasing
+shader3 = shaders/fxaa/fxaa.slang
+filter_linear3 = true
+float_framebuffer3 = true
+scale_type3 = source
+scale3 = 1.0
+alias3 = "DeditherPass"
+
+# Pass 4: Color grading (Dogway's Grade)
+shader4 = shaders/dogway/hsm-grade.slang
+filter_linear4 = false
+scale_type4 = source
+scale4 = 1.0
+alias4 = "ColorCorrectPass"
+
+# Pass 5: Sharpening
+shader5 = shaders/guest/hsm-custom-fast-sharpen.slang
+filter_linear5 = true
+scale_type5 = source
+scale5 = 1.0
+
+# Pass 6: Stock prepass
+shader6 = shaders/base/stock.slang
+filter_linear6 = true
+scale_type6 = source
+scale6 = 1.0
+alias6 = "PrePass"
+mipmap_input6 = true
+
+# Pass 7: Average luminance
+shader7 = shaders/guest/hsm-avg-lum.slang
+filter_linear7 = true
+scale_type7 = source
+scale7 = 1.0
+mipmap_input7 = true
+alias7 = "AvgLumPass"
+
+# Pass 8: Interlace and linearize
+shader8 = shaders/guest/hsm-interlace-and-linearize.slang
+filter_linear8 = true
+scale_type8 = source
+scale8 = 1.0
+float_framebuffer8 = true
+alias8 = "LinearizePass"
+
+# Pass 9: Gaussian horizontal blur (for glow)
+shader9 = shaders/guest/hsm-gaussian_horizontal.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+float_framebuffer9 = true
+
+# Pass 10: Gaussian vertical blur (for glow)
+shader10 = shaders/guest/hsm-gaussian_vertical.slang
+filter_linear10 = true
+scale_type10 = source
+scale10 = 1.0
+float_framebuffer10 = true
+alias10 = "GlowPass"
+
+# ===== FINAL PASS: SIMPLE CRT EFFECTS (pass 11) =====
+# This guarantees visible CRT effects regardless of parameter issues
+
+shader11 = ../simple-crt.slang
+filter_linear11 = true
+scale_type11 = viewport
+scale11 = 1.0
+
+# Textures for Mega Bezel shaders
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true
+
+# Mega Bezel parameters - enable all processing
+HSM_ASPECT_RATIO_MODE = 1
+HSM_FXAA_ON = 1
+HSM_SCREEN_SCALE_GSHARP_MODE = 1
+
+SHARPEN_ON = 1
+CSHARPEN = 0.8
+
+GRADE_ON = 1
+
+# Glow/bloom parameters
+glow = 0.15
+bloom = 0.25

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Rainbow gradient for RR text -->
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="16.66%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="33.33%" style="stop-color:#eab308;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="66.66%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="83.33%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle with black border -->
+  <circle cx="50" cy="50" r="48" fill="#1a1a1a" stroke="#000000" stroke-width="4"/>
+
+  <!-- RR text - made as large as possible -->
+  <text x="50" y="72" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="48" font-weight="900" fill="url(#rainbow)">RR</text>
+</svg>

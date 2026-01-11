@@ -1,0 +1,50 @@
+# Minimal CRT - Just the essentials for testing
+shaders = 6
+
+# Basic resolution handling
+shader0 = shaders/base/drez-none.slang
+filter_linear0 = false
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+
+shader1 = shaders/base/fetch-drez-output.slang
+filter_linear1 = false
+scale_type1 = source
+scale_x1 = 1
+scale_y1 = 1
+
+# FXAA
+shader2 = shaders/fxaa/fxaa.slang
+filter_linear2 = true
+alias2 = "DeditherPass"
+
+# Passthrough before CRT
+shader3 = shaders/base/stock.slang
+alias3 = "PreCrtPass"
+
+# Main CRT shader with scanlines, curvature, mask
+shader4 = shaders/guest/hsm-crt-guest-advanced.slang
+filter_linear4 = true
+scale_type4 = viewport
+scale_x4 = 1.0
+scale_y4 = 1.0
+alias4 = "CRTPass"
+
+# Deconvergence
+shader5 = shaders/guest/hsm-deconvergence-with-tubefx.slang
+filter_linear5 = true
+scale_type5 = viewport
+scale_x5 = 1.0
+scale_y5 = 1.0
+
+# Textures
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true

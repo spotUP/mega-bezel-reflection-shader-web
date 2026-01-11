@@ -1,0 +1,6 @@
+# Single pass rendering directly to screen
+shaders = 1
+
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+# No scale type or alias - this makes it render to screen

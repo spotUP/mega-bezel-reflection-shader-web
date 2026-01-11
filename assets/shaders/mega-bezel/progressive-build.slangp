@@ -1,0 +1,107 @@
+shaders = 14
+
+# Progressive build following the implementation guide
+# Building up to pass 15 (bezel) one step at a time
+# Implementing passes 0-14 from full-std-reflection
+
+# Pass 0: Derez
+shader0 = shaders/base/drez-none.slang
+filter_linear0 = false
+srgb_framebuffer0 = true
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Cache Info ✅ TIER 1 CRITICAL
+shader1 = shaders/base/cache-info-all-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Text (optional but helps)
+shader2 = shaders/base/text-pass.slang
+filter_linear2 = false
+scale_type2 = source
+scale2 = 1.0
+
+# Pass 3: Fetch Drez Output
+shader3 = shaders/base/fetch-drez-output.slang
+filter_linear3 = false
+srgb_framebuffer3 = true
+scale_type3 = source
+scale3 = 1.0
+
+# Pass 4: FXAA
+shader4 = shaders/fxaa/fxaa.slang
+filter_linear4 = true
+float_framebuffer4 = true
+alias4 = "DeditherPass"
+
+# Pass 5: Intro
+shader5 = shaders/base/intro.slang
+filter_linear5 = false
+scale_type5 = source
+scale5 = 1.0
+
+# Pass 6: Stock (passthrough)
+shader6 = shaders/base/stock.slang
+filter_linear6 = true
+scale_type6 = source
+scale6 = 1.0
+
+# Pass 7: Afterglow
+shader7 = shaders/guest/hsm-afterglow0.slang
+filter_linear7 = false
+scale_type7 = source
+scale7 = 1.0
+
+# Pass 8: Pre-shaders afterglow
+shader8 = shaders/guest/hsm-pre-shaders-afterglow.slang
+filter_linear8 = false
+scale_type8 = source
+scale8 = 1.0
+alias8 = "AfterglowPass"
+
+# Pass 9: Grade (skip if problematic)
+shader9 = shaders/base/stock.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+
+# Pass 10: Sharpen
+shader10 = shaders/guest/hsm-custom-fast-sharpen.slang
+filter_linear10 = true
+scale_type10 = source
+scale10 = 1.0
+
+# Pass 11: Stock PrePass
+shader11 = shaders/base/stock.slang
+filter_linear11 = true
+scale_type11 = source
+scale11 = 1.0
+
+# Pass 12: Avg Lum
+shader12 = shaders/guest/hsm-avg-lum.slang
+filter_linear12 = true
+scale_type12 = source
+scale12 = 1.0
+
+# Pass 13: Interlace and Linearize
+shader13 = shaders/guest/hsm-interlace-and-linearize.slang
+filter_linear13 = true
+scale_type13 = source
+scale13 = 1.0
+alias13 = "LinearizePass"
+
+# Textures
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true

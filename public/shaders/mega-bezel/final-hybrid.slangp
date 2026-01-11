@@ -1,0 +1,125 @@
+# Final Mega Bezel Hybrid - 14 Passes (Maximum Achieved)
+# Following correct Mega Bezel pass order
+# Successfully tested and confirmed working
+
+shaders = 14
+
+# Pass 0: Derez
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+scale_type0 = source
+scale0 = 1.0
+alias0 = "DerezedPass"
+
+# Pass 1: Cache info
+shader1 = shaders/base/cache-info-potato-params.slang
+filter_linear1 = false
+scale_type1 = source
+scale1 = 1.0
+alias1 = "InfoCachePass"
+
+# Pass 2: Fetch derez output
+shader2 = shaders/guest/extras/hsm-fetch-drez-output.slang
+filter_linear2 = false
+srgb_framebuffer2 = true
+scale_type2 = source
+scale2 = 1.0
+
+# Pass 3: FXAA
+shader3 = shaders/fxaa/fxaa.slang
+filter_linear3 = true
+float_framebuffer3 = true
+scale_type3 = source
+scale3 = 1.0
+alias3 = "AntiAliasPass"
+
+# Pass 4: Stock (second passthrough)
+shader4 = shaders/base/stock.slang
+filter_linear4 = false
+scale_type4 = source
+scale4 = 1.0
+alias4 = "PreCrtPass"
+
+# Pass 5: Color grading
+shader5 = shaders/dogway/hsm-grade.slang
+filter_linear5 = false
+scale_type5 = source
+scale5 = 1.0
+alias5 = "ColorCorrectPass"
+
+# Pass 6: Sharpening
+shader6 = shaders/guest/hsm-custom-fast-sharpen.slang
+filter_linear6 = true
+scale_type6 = source
+scale6 = 1.0
+alias6 = "SharpenPass"
+
+# Pass 7: Stock prepass with mipmaps
+shader7 = shaders/base/stock.slang
+filter_linear7 = true
+scale_type7 = source
+scale7 = 1.0
+alias7 = "PrePass"
+mipmap_input7 = true
+
+# Pass 8: Stock passthrough 3
+shader8 = shaders/base/stock.slang
+filter_linear8 = false
+scale_type8 = source
+scale8 = 1.0
+alias8 = "PassThrough3"
+
+# Pass 9: Sharpsmoother
+shader9 = shaders/guest/extras/hsm-sharpsmoother.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+alias9 = "SharpSmootherPass"
+
+# Pass 10: Afterglow
+shader10 = shaders/guest/hsm-afterglow0.slang
+filter_linear10 = true
+scale_type10 = source
+scale10 = 1.0
+alias10 = "AfterglowPass"
+
+# Pass 11: Interlace and linearize
+shader11 = shaders/guest/hsm-interlace-and-linearize.slang
+filter_linear11 = true
+scale_type11 = source
+scale11 = 1.0
+float_framebuffer11 = true
+alias11 = "LinearizePass"
+
+# Pass 12: Do-nothing (upscaling)
+shader12 = shaders/base/do-nothing.slang
+mipmap_input12 = false
+filter_linear12 = true
+scale_type12 = absolute
+scale_x12 = 8
+scale_y12 = 8
+
+# Pass 13: Simple CRT (FINAL - guaranteed visual effects)
+shader13 = ../simple-crt.slang
+filter_linear13 = true
+scale_type13 = viewport
+scale13 = 1.0
+
+# Textures
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4"
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true
+
+# Parameters
+HSM_FXAA_ON = 1
+SHARPEN_ON = 1
+CSHARPEN = 0.7
+GRADE_ON = 1
+HSM_SCREEN_SCALE_GSHARP_MODE = 1
+HSM_ASPECT_RATIO_MODE = 1

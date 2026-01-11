@@ -1,0 +1,9 @@
+shaders = 1
+
+# Simple passthrough - just show the game with derez
+
+shader0 = shaders/guest/extras/hsm-drez-g-sharp_resampler.slang
+filter_linear0 = false
+srgb_framebuffer0 = false
+scale_type0 = viewport
+scale0 = 1.0

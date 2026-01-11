@@ -1,0 +1,12 @@
+# Simple Guest CRT - No Mega Bezel wrappers
+shaders = 1
+
+shader0 = shaders/guest/crt-guest-advanced-2023-10-07-release1/crt-guest-advanced.slang
+filter_linear0 = true
+scale_type0 = viewport
+scale_x0 = 1.0
+scale_y0 = 1.0
+
+# Parameters for visible effects
+geom_corner_size = "0.01"
+geom_corner_smooth = "200.0"

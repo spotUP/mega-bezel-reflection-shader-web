@@ -1,0 +1,26 @@
+name: npm audit (high/critical)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm ci || npm i
+      - name: Audit
+        run: |
+          set -e
+          npm audit --audit-level=high || {
+            echo '::error::High/Critical vulnerabilities found by npm audit.'
+            exit 1
+          }

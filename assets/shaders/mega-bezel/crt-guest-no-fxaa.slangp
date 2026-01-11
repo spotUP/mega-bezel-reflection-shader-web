@@ -1,0 +1,259 @@
+# CRT GUEST ONLY - NO FXAA (20 passes)
+# Full CRT Guest Advanced with cache-info pass for proper screen geometry
+# DEBUG: Testing 17 passes (up to CRT shader)
+
+shaders = 17
+
+# Pass 0: DerezedPass - captures input
+shader0 = shaders/base/drez-none.slang
+filter_linear0 = false
+scale_type0 = source
+scale_x0 = 1
+scale_y0 = 1
+
+# Pass 1: Simple passthrough (cache-stub was causing flashing)
+shader1 = shaders/base/stock.slang
+filter_linear1 = true
+scale_type1 = source
+scale_x1 = 1
+scale_y1 = 1
+alias1 = "CacheInfoPass"
+
+# Pass 2: Simple fetch drez - no feedback buffer to avoid flashing
+shader2 = shaders/base/fetch-drez-simple.slang
+filter_linear2 = false
+srgb_framebuffer2 = true
+scale_type2 = source
+scale_x2 = 1
+scale_y2 = 1
+alias2 = "DeditherPass"
+
+HSM_NON_USER_INFO_PRE_CRT_CHAIN = 1
+
+shader3 = shaders/base/stock.slang
+alias3 = "PreCRTPass"
+
+# Using simple afterglow to avoid feedback buffer flashing in WebGL2
+shader4 = shaders/guest/hsm-afterglow-simple.slang
+filter_linear4 = true
+scale_type4 = source
+scale4 = 1.0
+alias4 = "AfterglowPass"
+
+# SIMPLIFIED: Using stock instead of hsm-pre-shaders-afterglow (too many LUT dependencies)
+shader5 = shaders/base/stock.slang
+filter_linear5 = true
+scale_type5 = source
+scale5 = 1.0
+
+# DISABLED: hsm-grade.slang has issues with complex color transformations causing white output
+# Using simple passthrough instead
+shader6 = shaders/base/stock.slang
+# shader6 = shaders/dogway/hsm-grade.slang
+filter_linear6 = false
+scale_type6 = source
+scale6 = 1.0
+alias6 = "ColorCorrectPass"
+
+# SIMPLIFIED: Using stock instead of hsm-custom-fast-sharpen (DerezedPassSize issues)
+shader7 = shaders/base/stock.slang
+filter_linear7 = true
+scale_type7 = source
+scale_x7 = 1.0
+scale_y7 = 1.0
+
+shader8 = shaders/base/stock.slang
+filter_linear8 = true
+scale_type8 = source
+scale_x8 = 1.0
+scale_y8 = 1.0
+alias8 = "PrePass"
+mipmap_input8 = true
+
+# Using simple passthrough - original avg-lum has issues with textureLod/SourceSize
+shader9 = shaders/guest/hsm-avg-lum-simple.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+mipmap_input9 = true
+alias9 = "AvgLumPass"
+
+# SIMPLIFIED: Using stock passthrough instead of complex linearize shader
+shader10 = shaders/base/stock.slang
+filter_linear10 = true
+scale_type10 = source
+scale10 = 1.0
+float_framebuffer10 = true
+alias10 = "LinearizePass"
+
+shader11 = shaders/base/do-nothing.slang
+mipmap_input11 = false
+filter_linear11 = true
+scale_type11 = absolute
+scale_x11 = 8
+scale_y11 = 8
+
+# SIMPLIFIED: Skip glow passes - use stock passthroughs
+shader12 = shaders/base/stock.slang
+filter_linear12 = true
+scale_type12 = source
+scale12 = 1.0
+float_framebuffer12 = true
+
+shader13 = shaders/base/stock.slang
+filter_linear13 = true
+scale_type13 = source
+scale13 = 1.0
+float_framebuffer13 = true
+alias13 = GlowPass
+
+# SIMPLIFIED: Skip bloom passes - use stock passthroughs
+shader14 = shaders/base/stock.slang
+filter_linear14 = true
+scale_type14 = source
+scale14 = 1.0
+float_framebuffer14 = true
+
+shader15 = shaders/base/stock.slang
+filter_linear15 = true
+scale_type15 = source
+scale15 = 1.0
+float_framebuffer15 = true
+alias15 = BloomPass
+
+# Main CRT shader - THIS IS WHERE SCANLINES AND PHOSPHOR MASK HAPPEN
+shader16 = shaders/guest/hsm-crt-guest-advanced.slang
+filter_linear16 = true
+scale_type16 = source
+scale_x16 = 1.0
+scale_y16 = 1.0
+float_framebuffer16 = true
+alias16 = "CrtAdvancedPass"
+
+# TubeFxPass - simplified tube effects for WebGL2
+shader17 = shaders/base/tubefx-simple.slang
+filter_linear17 = true
+scale_type17 = viewport
+scale_x17 = 1.0
+scale_y17 = 1.0
+alias17 = "TubeFxPass"
+
+# Deconvergence with tube effects
+shader18 = shaders/guest/hsm-deconvergence-with-tubefx.slang
+filter_linear18 = true
+scale_type18 = viewport
+scale_x18 = 1.0
+scale_y18 = 1.0
+alias18 = "CrtPass"
+
+# Final pass - simple passthrough
+shader19 = shaders/base/stock.slang
+filter_linear19 = true
+scale_type19 = viewport
+scale_x19 = 1.0
+scale_y19 = 1.0
+alias19 = "FinalPass"
+
+# Textures - LUTs and Tube Effects
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3;SamplerLUT4;DitherNoise;TubeDiffuseImage;TubeColoredGelImage;TubeShadowImage;TubeStaticReflectionImage;NightLightingImage;NightLighting2Image"
+
+SamplerLUT1 = shaders/guest/lut/trinitron-lut.png
+SamplerLUT1_linear = true
+SamplerLUT2 = shaders/guest/lut/inv-trinitron-lut.png
+SamplerLUT2_linear = true
+SamplerLUT3 = shaders/guest/lut/nec-lut.png
+SamplerLUT3_linear = true
+SamplerLUT4 = shaders/guest/lut/ntsc-lut.png
+SamplerLUT4_linear = true
+
+# Tube effect textures
+DitherNoise = shaders/textures/128x128-blue-noise-texture.png
+DitherNoise_linear = false
+DitherNoise_mipmap = false
+DitherNoise_wrap_mode = "repeat"
+
+TubeDiffuseImage = shaders/textures/Tube_Diffuse_2390x1792.png
+TubeDiffuseImage_linear = true
+TubeDiffuseImage_mipmap = 1
+
+TubeColoredGelImage = shaders/textures/Colored_Gel_Rainbow.png
+TubeColoredGelImage_linear = true
+TubeColoredGelImage_mipmap = 1
+
+TubeShadowImage = shaders/textures/Tube_Shadow_1600x1200.png
+TubeShadowImage_linear = true
+TubeShadowImage_mipmap = 1
+
+TubeStaticReflectionImage = shaders/textures/TubeGlassOverlayImageCropped_1440x1080.png
+TubeStaticReflectionImage_linear = true
+TubeStaticReflectionImage_mipmap = 1
+
+NightLightingImage = shaders/textures/NightLightingClose_1920x1080.png
+NightLightingImage_linear = true
+NightLightingImage_mipmap = 1
+
+NightLighting2Image = shaders/textures/NightLightingFar_1920x1080.png
+NightLighting2Image_linear = true
+NightLighting2Image_mipmap = 1
+
+# CRITICAL HSM Default Parameters
+# Flip/rotation (1.0 = normal, -1.0 = flipped)
+HSM_FLIP_VIEWPORT_VERTICAL = 1.0
+HSM_FLIP_VIEWPORT_HORIZONTAL = 1.0
+HSM_FLIP_CORE_VERTICAL = 1.0
+HSM_FLIP_CORE_HORIZONTAL = 1.0
+HSM_ROTATE_CORE_IMAGE = 0.0
+
+# Screen scaling
+HSM_NON_INTEGER_SCALE = 1.0
+HSM_ASPECT_RATIO_MODE = 0.0
+HSM_ASPECT_RATIO_ORIENTATION = 0.0
+HSM_VIEWPORT_ZOOM = 1.0
+HSM_VIEWPORT_POSITION_X = 0.0
+HSM_VIEWPORT_POSITION_Y = 0.0
+
+# Cropping (no crop by default)
+HSM_CROP_MODE = 0.0
+HSM_CROP_PERCENT_ZOOM = 0.0
+HSM_CROP_PERCENT_TOP = 0.0
+HSM_CROP_PERCENT_BOTTOM = 0.0
+HSM_CROP_PERCENT_LEFT = 0.0
+HSM_CROP_PERCENT_RIGHT = 0.0
+
+# Tube/Bezel
+HSM_TUBE_EMPTY_THICKNESS = 0.0
+HSM_TUBE_BLACK_EDGE_THICKNESS = 0.0
+HSM_BZL_USE_INDEPENDENT_SCALE = 0.0
+
+# Tube Effects - ENABLE THESE
+HSM_TUBE_DIFFUSE_MODE = 1.0
+HSM_TUBE_DIFFUSE_IMAGE_AMOUNT = 100.0
+HSM_TUBE_STATIC_REFLECTION_IMAGE_ON = 1.0
+HSM_TUBE_STATIC_REFLECTION_IMAGE_OPACITY = 30.0
+HSM_TUBE_SHADOW_IMAGE_ON = 1.0
+HSM_TUBE_SHADOW_IMAGE_OPACITY = 50.0
+HSM_TUBE_COLORED_GEL_IMAGE_ON = 0.0
+
+# Cache
+HSM_CACHE_GRAPHICS_ON = 0.0
+HSM_CACHE_UPDATE_INDICATOR_MODE = 0.0
+
+# Resolution debug off
+HSM_RESOLUTION_DEBUG_ON = 0.0
+
+# Dual screen off
+HSM_DUALSCREEN_MODE = 0.0
+
+# CRT Guest Parameters (Critical for proper brightness)
+gamma_out = 2.4
+GAMMA_INPUT = 2.4
+post_br = 2.5
+post_br_affect_black_level = 100.0
+brightboost = 2.0
+brightboost1 = 1.5
+gamma_c = 1.0
+shadowMask = 0.0
+maskstr = 0.3
+glow = 0.08
+bloom = 0.0
+halation = 0.0

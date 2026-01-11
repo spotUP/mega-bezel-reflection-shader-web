@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shader Test</title>
+    <style>
+        body { margin: 0; background: #000; color: #0f0; font-family: monospace; }
+        #status { 
+            position: fixed; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(0,0,0,0.8); 
+            padding: 10px; 
+            border: 2px solid #0f0;
+            z-index: 1000;
+        }
+        .good { color: #0f0; }
+        .bad { color: #f00; }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <div>Shader Status: <span id="shader-status" class="good">CHECKING...</span></div>
+        <div>Frame Count: <span id="frame-count">0</span></div>
+        <div>Time Elapsed: <span id="time-elapsed">0s</span></div>
+        <div>Last Log: <span id="last-log" style="font-size: 10px;">...</span></div>
+    </div>
+    <iframe src="http://localhost:8080/404" style="width:100%;height:100%;border:none;"></iframe>
+    
+    <script>
+        const startTime = Date.now();
+        setInterval(() => {
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('time-elapsed').textContent = elapsed + 's';
+        }, 100);
+        
+        // Monitor console messages from iframe (won't work due to CORS, but shows concept)
+        console.log('Monitoring shader status...');
+        console.log('Watch the browser console for "shadersEnabled" messages');
+        console.log('If you see "shadersEnabled=false" after a few seconds, that means shaders died');
+        console.log('If you see "shadersEnabled=true" continuously, shaders are working!');
+    </script>
+</body>
+</html>
