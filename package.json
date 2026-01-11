@@ -27,7 +27,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "build:lib": "tsc -p tsconfig.build.json",
-    "copy-assets": "node scripts/copy-shader-assets.js"
+    "copy-assets": "node scripts/copy-shader-assets.js",
+    "prepare": "npm run build:lib"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -43,16 +44,16 @@
     "typescript": "^5.9.2",
     "vite": "^5.4.1"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
   "files": [
     "dist",
     "assets/shaders"
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.js"
     }
   }
 }
