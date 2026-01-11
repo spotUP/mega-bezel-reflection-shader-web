@@ -5,7 +5,7 @@
  * Tracks compilation attempts and suggests escalation when needed.
  */
 
-import { ShaderDiagnosticTool, DiagnosticResult, ShaderError } from './ShaderDiagnosticTool';
+import { ShaderDiagnosticTool, type DiagnosticResult, type ShaderError } from './ShaderDiagnosticTool';
 
 export interface CompilationAttempt {
   timestamp: number;

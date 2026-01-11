@@ -996,7 +996,9 @@ export class SlangShaderCompiler {
     // CRITICAL FIX: Extract specific lines from global section that must be preserved
     // Only extract: #version, #pragma parameter, standalone uniform declarations
     // Everything else (functions, defines, globals) gets extracted and injected separately
-    let firstStageIndex = -1;
+    let firstStageIndex = lines.length; // Default to end if no stage found
+    
+    // Find first #pragma stage
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().startsWith('#pragma stage')) {
         firstStageIndex = i;
@@ -1011,7 +1013,7 @@ export class SlangShaderCompiler {
     // - standalone uniform declarations (like "uniform float PARAM_PR;")
     // NOTE: Exclude #version - convertToWebGL() will add it at the correct position
     const globalSection: string[] = [];
-    if (firstStageIndex !== -1) {
+    if (firstStageIndex > 0) {
       for (let i = 0; i < firstStageIndex; i++) {
         const line = lines[i];
         const trimmed = line.trim();
@@ -1028,19 +1030,20 @@ export class SlangShaderCompiler {
         }
       }
     }
-    console.log(`[splitStages] Extracted ${globalSection.length} critical lines from global section (pragma params, defines, uniforms, conditionals)`);
+    console.log(`[splitStages] Extracted ${globalSection.length} critical lines from global section`);
 
     let currentStage: 'vertex' | 'fragment' | null = null;
     let currentSource: string[] = [];
     let inStage = false;
 
-    for (let i = 0; i < lines.length; i++) {
+    // Iterate through all lines to find stages
+    for (let i = firstStageIndex; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
 
       // Detect #pragma stage
       if (trimmed.startsWith('#pragma stage')) {
-        // Save previous stage
+        // Save previous stage if one exists
         if (currentStage && currentSource.length > 0) {
           // Prepend global section to stage source
           const stageWithGlobals = [...globalSection, ...currentSource];
@@ -1048,6 +1051,7 @@ export class SlangShaderCompiler {
             type: currentStage,
             source: stageWithGlobals.join('\n')
           });
+          console.log(`[splitStages] Found ${currentStage} stage with ${currentSource.length} lines`);
         }
 
         // Start new stage
@@ -1062,7 +1066,7 @@ export class SlangShaderCompiler {
         continue;
       }
 
-      // Skip pragma lines in stage
+      // Skip pragma lines within stage
       if (trimmed.startsWith('#pragma')) {
         continue;
       }
@@ -1073,13 +1077,14 @@ export class SlangShaderCompiler {
       }
     }
 
-    // Save last stage (with global section prepended)
+    // Save the last stage
     if (currentStage && currentSource.length > 0) {
       const stageWithGlobals = [...globalSection, ...currentSource];
       stages.push({
         type: currentStage,
         source: stageWithGlobals.join('\n')
       });
+      console.log(`[splitStages] Found ${currentStage} stage with ${currentSource.length} lines`);
     }
 
     return stages;
@@ -5430,14 +5435,51 @@ ${!hasMPI ? `#ifndef M_PI
     parameterOverrides?: Record<string, number>
   ): Promise<CompiledShader> {
     if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] loadFromURL called for: ${url}`);
-    // Add cache busting for development
-    const cacheBuster = `?t=${Date.now()}`;
-    const response = await fetch(url + cacheBuster);
-    if (!response.ok) {
-      throw new Error(`Failed to load shader: ${response.statusText}`);
+    
+    let source: string;
+
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+      // Add cache busting for development
+      const cacheBuster = `?t=${Date.now()}`;
+      const response = await fetch(url + cacheBuster);
+      if (!response.ok) {
+        throw new Error(`Failed to load shader: ${response.statusText}`);
+      }
+      source = await response.text();
+    } else {
+      // Node.js environment - read from filesystem
+      const fs = await import('fs');
+      const path = await import('path');
+
+      // Convert web path to filesystem path
+      let filePath = url;
+      if (filePath.startsWith('/')) {
+        // Remove leading slash and assume it's relative to public directory
+        // Check if public directory exists, otherwise check assets
+        const publicPath = path.join(process.cwd(), 'public', filePath.substring(1));
+        const assetsPath = path.join(process.cwd(), 'assets', filePath.substring(1));
+        
+        if (fs.existsSync(publicPath)) {
+            filePath = publicPath;
+        } else if (fs.existsSync(assetsPath)) {
+            filePath = assetsPath;
+        } else {
+            // Default to public if neither found (will likely fail, but consistent)
+            filePath = publicPath;
+        }
+      } else {
+        // Assume it's relative to the current working directory
+        filePath = path.join(process.cwd(), filePath);
+      }
+
+      try {
+        source = fs.readFileSync(filePath, 'utf8');
+      } catch (error) {
+        throw new Error(`Failed to read shader file ${filePath}: ${error}`);
+      }
     }
 
-    let source = await response.text();
     if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Fetched ${source.length} chars from ${url.split('/').pop()}`);
 
     // Preprocess includes

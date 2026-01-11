@@ -10,8 +10,8 @@ import puppeteer from 'puppeteer';
     logs.push(msg.text());
   });
 
-  console.log('Loading http://localhost:8081/shader-test...');
-  await page.goto('http://localhost:8081/shader-test', { waitUntil: 'networkidle0', timeout: 30000 });
+  console.log('Loading http://localhost:8084/shader-test...');
+  await page.goto('http://localhost:8084/shader-test', { waitUntil: 'networkidle0', timeout: 30000 });
   
   const title = await page.title();
   console.log(`Page Title: ${title}`);

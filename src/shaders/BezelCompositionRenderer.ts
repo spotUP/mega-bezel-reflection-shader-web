@@ -133,7 +133,9 @@ export class BezelCompositionRenderer {
           vec4 screenColor = vec4(0.0);
           if (screenCoord.x >= 0.0 && screenCoord.x <= 1.0 &&
               screenCoord.y >= 0.0 && screenCoord.y <= 1.0) {
-            screenColor = texture2D(screenTexture, screenCoord) * screenOpacity;
+            screenColor = texture2D(screenTexture, screenCoord);
+            screenColor.a = 1.0; // Force opaque to ensure visibility
+            screenColor *= screenOpacity;
           }
 
           // Apply lighting, specular, and reflections to frame and background
@@ -279,7 +281,8 @@ export class BezelCompositionRenderer {
     this.updateCompositionUniforms(screenTexture, lightingTexture, specularTexture, finalReflectionTexture);
 
     // Set render target
-    const target = outputTarget || this.compositionTarget;
+    // If outputTarget is undefined, render to screen (null).
+    const target = outputTarget !== undefined ? outputTarget : null;
     this.renderer.setRenderTarget(target);
 
     // Clear

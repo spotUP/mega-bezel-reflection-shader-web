@@ -192,7 +192,11 @@ export class MegaBezelPresetLoader {
     this.multiPassRenderer.renderPipeline(context);
 
     // Get the final output from the multi-pass renderer
-    const processedTexture = this.multiPassRenderer.getRenderTarget()?.texture;
+    // Prioritize CrtPass or PostCrtPass if available
+    let processedTexture = this.multiPassRenderer.getTextureByAlias('CrtPass') || 
+                          this.multiPassRenderer.getTextureByAlias('PostCrtPass') ||
+                          this.multiPassRenderer.getRenderTarget()?.texture;
+                          
     if (!processedTexture) {
       console.warn('[MegaBezelLoader] No processed texture from multi-pass renderer');
       return;

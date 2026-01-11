@@ -1,20 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { MegaBezelPresetLoader } from '../shaders/MegaBezelPresetLoader';
+import { PureWebGL2MultiPassRenderer } from '../shaders/PureWebGL2MultiPassRenderer';
 
 /**
  * Shader Test Page
- * Tests the 18-pass CRT Guest Only shader
+ * Tests the 18-pass CRT Guest Only shader using Pure WebGL2 Renderer (No Three.js)
  */
 export default function ShaderTest() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<string>('Initializing...');
   const [passInfo, setPassInfo] = useState<string[]>([]);
-  const loaderRef = useRef<MegaBezelPresetLoader | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const inputTextureRef = useRef<THREE.Texture | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const rendererRef = useRef<PureWebGL2MultiPassRenderer | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -23,21 +18,16 @@ export default function ShaderTest() {
     const width = 800;
     const height = 600;
 
-    // Initialize Three.js renderer
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: false,
-      alpha: false
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(1);
-    rendererRef.current = renderer;
+    // Get WebGL2 context
+    const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
+    if (!gl) {
+      setStatus('❌ WebGL2 not supported by your browser');
+      return;
+    }
 
-    // Create a simple test scene with colored quad as input
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    sceneRef.current = scene;
-    cameraRef.current = camera;
+    // Initialize Pure WebGL2 renderer
+    const renderer = new PureWebGL2MultiPassRenderer(gl, width, height);
+    rendererRef.current = renderer;
 
     // Create test input texture (colorful gradient)
     const canvas2d = document.createElement('canvas');
@@ -71,32 +61,33 @@ export default function ShaderTest() {
       ctx.stroke();
     }
 
-    const inputTexture = new THREE.CanvasTexture(canvas2d);
-    inputTexture.minFilter = THREE.LinearFilter;
-    inputTexture.magFilter = THREE.LinearFilter;
-    inputTextureRef.current = inputTexture;
+    // Create and register input texture
+    const inputTexture = gl.createTexture();
+    if (inputTexture) {
+      gl.bindTexture(gl.TEXTURE_2D, inputTexture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      
+      renderer.registerTexture('InputTexture', inputTexture);
+    } else {
+      setStatus('❌ Failed to create input texture');
+      return;
+    }
 
-    // Initialize Mega Bezel loader
-    const loader = new MegaBezelPresetLoader(renderer, {
-      webgl2: true,
-      debug: true,
-      maxPasses: 25, // Increase to allow all passes
-      viewportWidth: width,
-      viewportHeight: height
-    });
-    loaderRef.current = loader;
+    // Load the shader preset
+    setStatus('Loading shader preset (MBZ__3__STD__GDV)...');
 
-    // Load the 18-pass shader
-    setStatus('Loading 18-pass CRT Guest shader...');
-
-    loader.loadPreset('/shaders/mega-bezel/test-remove-last.slangp') // Use full standard preset (fixed paths)
-      .then(result => {
-        console.log('[ShaderTest] Preset load result:', result);
-        if (result.success && result.preset) {
-          setStatus(`✅ Shader loaded successfully! ${result.preset.passes.length} passes`);
-          setPassInfo(result.preset.passes.map((pass, i) =>
-            `Pass ${i}: ${pass.name} (${pass.alias || 'no alias'})`
-          ));
+    renderer.loadPreset('/shaders/mega-bezel/MBZ__3__STD__GDV.slangp')
+      .then(success => {
+        if (success) {
+          const passCount = renderer.getPassCount();
+          setStatus(`✅ Shader loaded successfully! ${passCount} passes`);
+          
+          const info = renderer.getPassInfo();
+          setPassInfo(info.map(p => `Pass ${p.index}: ${p.name} ${p.alias ? `(${p.alias})` : ''}`));
 
           // Start render loop
           let frameCount = 0;
@@ -104,11 +95,11 @@ export default function ShaderTest() {
             frameCount++;
 
             try {
-              loader.render(inputTexture);
+              renderer.render('InputTexture');
 
               // Update status every 60 frames
               if (frameCount % 60 === 0) {
-                setStatus(`✅ Rendering... Frame ${frameCount}`);
+                setStatus(`✅ Rendering... Frame ${frameCount} (Gradient is a synthetic test pattern)`);
               }
             } catch (error) {
               console.error('[ShaderTest] Render error:', error);
@@ -121,21 +112,16 @@ export default function ShaderTest() {
 
           animate();
         } else {
-          console.error('[ShaderTest] Load failed:', result.error);
-          setStatus(`❌ Failed to load shader: ${result.error}`);
+          setStatus(`❌ Failed to load shader preset`);
         }
       })
       .catch(error => {
-        console.error('[ShaderTest] Load error (catch):', error);
-        console.error('[ShaderTest] Error stack:', error instanceof Error ? error.stack : 'no stack');
+        console.error('[ShaderTest] Load error:', error);
         setStatus(`❌ Load error: ${error instanceof Error ? error.message : String(error)}`);
       });
 
     // Cleanup
     return () => {
-      if (loaderRef.current) {
-        loaderRef.current.dispose();
-      }
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
@@ -155,7 +141,7 @@ export default function ShaderTest() {
       fontFamily: 'monospace',
       padding: '20px'
     }}>
-      <h1 style={{ marginBottom: '20px' }}>Mega Bezel 18-Pass Shader Test</h1>
+      <h1 style={{ marginBottom: '20px' }}>Mega Bezel 18-Pass Shader Test (Pure WebGL2)</h1>
 
       <div style={{ marginBottom: '20px', padding: '10px', background: '#222', borderRadius: '5px' }}>
         <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>{status}</div>
@@ -166,7 +152,11 @@ export default function ShaderTest() {
 
       <canvas
         ref={canvasRef}
+        width={800}
+        height={600}
         style={{
+          width: '800px',
+          height: '600px',
           border: '2px solid #444',
           boxShadow: '0 0 20px rgba(255,255,255,0.1)'
         }}

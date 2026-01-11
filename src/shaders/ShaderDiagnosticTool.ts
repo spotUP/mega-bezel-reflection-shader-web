@@ -5,7 +5,7 @@
  * Provides comprehensive diagnostics for Mega Bezel shader issues.
  */
 
-import { SlangShaderCompiler, CompiledShader } from './SlangShaderCompiler';
+import { SlangShaderCompiler, type CompiledShader } from './SlangShaderCompiler';
 
 export interface DiagnosticResult {
   success: boolean;
@@ -114,8 +114,8 @@ export class ShaderDiagnosticTool {
       result.stats.includesCount = metadata.includes.length;
       result.stats.definesCount = metadata.defines.length;
 
-      // Test individual file compilation if requested
-      if (opts.testIndividualFiles) {
+      // Test individual file compilation if requested - skip for .inc files
+      if (opts.testIndividualFiles && !shaderPath.endsWith('.inc')) {
         const individualResult = await this.testIndividualCompilation(source, shaderPath);
         result.errors.push(...individualResult.errors);
         result.warnings.push(...individualResult.warnings);
@@ -133,31 +133,33 @@ export class ShaderDiagnosticTool {
         result.errors.push(...dependencyErrors);
       }
 
-      // Full compilation test
-      const compileResult = await this.testFullCompilation(shaderPath, opts.timeout);
-      if (compileResult.success && compileResult.compiledShader) {
-        result.stats.compileTime = performance.now() - startTime;
-        result.stats.uniformsCount = compileResult.compiledShader.uniforms.length;
-        result.stats.samplersCount = compileResult.compiledShader.samplers.length;
-        result.stats.parametersCount = compileResult.compiledShader.parameters.length;
+      // Full compilation test - skip for .inc files as they are not full shaders
+      if (!shaderPath.endsWith('.inc')) {
+        const compileResult = await this.testFullCompilation(shaderPath, opts.timeout);
+        if (compileResult.success && compileResult.compiledShader) {
+          result.stats.compileTime = performance.now() - startTime;
+          result.stats.uniformsCount = compileResult.compiledShader.uniforms.length;
+          result.stats.samplersCount = compileResult.compiledShader.samplers.length;
+          result.stats.parametersCount = compileResult.compiledShader.parameters.length;
 
-        // Performance analysis
-        if (opts.performanceAnalysis) {
-          const perfWarnings = this.analyzePerformance(compileResult.compiledShader);
-          result.warnings.push(...perfWarnings);
-        }
+          // Performance analysis
+          if (opts.performanceAnalysis) {
+            const perfWarnings = this.analyzePerformance(compileResult.compiledShader);
+            result.warnings.push(...perfWarnings);
+          }
 
-        // Compatibility check
-        if (opts.compatibilityCheck) {
-          const compatWarnings = this.checkCompatibility(compileResult.compiledShader);
-          result.warnings.push(...compatWarnings);
+          // Compatibility check
+          if (opts.compatibilityCheck) {
+            const compatWarnings = this.checkCompatibility(compileResult.compiledShader);
+            result.warnings.push(...compatWarnings);
+          }
+        } else {
+          result.errors.push({
+            type: 'linking',
+            message: compileResult.error || 'Compilation failed',
+            severity: 'error'
+          });
         }
-      } else {
-        result.errors.push({
-          type: 'linking',
-          message: compileResult.error || 'Compilation failed',
-          severity: 'error'
-        });
       }
 
       // Generate recommendations
@@ -262,6 +264,7 @@ export class ShaderDiagnosticTool {
       const match = func.match(/^\s*(?:\w+\s+)*(\w+)\s*\(/);
       if (match) {
         const name = match[1];
+        if (name === 'main') continue; // Skip main as it appears in multiple stages
         if (seenFunctions.has(name)) {
           errors.push({
             type: 'redefinition',
@@ -387,7 +390,7 @@ export class ShaderDiagnosticTool {
     }
 
     // Check for expensive operations in fragment shader
-    const expensiveOps = ['sin(', 'cos(', 'tan(', 'sqrt(', 'pow(', 'exp(', 'log('];
+    const expensiveOps = ['sin\\(', 'cos\\(', 'tan\\(', 'sqrt\\(', 'pow\\(', 'exp\\(', 'log\\('];
     let expensiveOpCount = 0;
     for (const op of expensiveOps) {
       expensiveOpCount += (compiledShader.fragment.match(new RegExp(op, 'g')) || []).length;
@@ -500,7 +503,13 @@ export class ShaderDiagnosticTool {
       }
 
       // Functions (basic detection)
-      if (trimmed.match(/^\w+\s+\w+\s*\(/) && !trimmed.includes('#define')) {
+      const isFunction = trimmed.match(/^\w+\s+\w+\s*\(/) && 
+                         !trimmed.startsWith('return') && 
+                         !trimmed.startsWith('if') && 
+                         !trimmed.startsWith('while') && 
+                         !trimmed.startsWith('for') && 
+                         !trimmed.includes('#define');
+      if (isFunction) {
         functions.push(trimmed);
       }
 

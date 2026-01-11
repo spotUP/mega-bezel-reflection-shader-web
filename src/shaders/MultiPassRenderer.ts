@@ -610,6 +610,20 @@ export class MultiPassRenderer {
   }
 
   /**
+   * Get texture by pass alias
+   */
+  getTextureByAlias(alias: string): THREE.Texture | null {
+    if (!this.preset) return null;
+
+    const pass = this.preset.passes.find(p => p.alias === alias);
+    if (pass && pass.renderTarget) {
+      return pass.renderTarget.texture;
+    }
+
+    return null;
+  }
+
+  /**
    * Dispose resources
    */
   dispose(): void {

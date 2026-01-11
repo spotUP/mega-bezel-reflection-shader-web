@@ -5,10 +5,10 @@
  * Provides structured logging, error categorization, and integration with browser dev tools.
  */
 
-import { DiagnosticResult, ShaderError, ShaderWarning } from './ShaderDiagnosticTool';
-import { LoopDetectionResult } from './LoopPreventionSystem';
-import { DebugSession } from './DebugShaderMode';
-import { ValidationResult } from './AutomatedShaderValidation';
+import { type DiagnosticResult, type ShaderError, type ShaderWarning } from './ShaderDiagnosticTool';
+import { type LoopDetectionResult } from './LoopPreventionSystem';
+import { type DebugSession } from './DebugShaderMode';
+import { type ValidationResult } from './AutomatedShaderValidation';
 
 export interface LogEntry {
   id: string;

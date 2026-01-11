@@ -6,8 +6,8 @@
  */
 
 import * as THREE from 'three';
-import { SlangShaderCompiler, CompiledShader } from './SlangShaderCompiler';
-import { ShaderDiagnosticTool, DiagnosticResult } from './ShaderDiagnosticTool';
+import { SlangShaderCompiler, type CompiledShader } from './SlangShaderCompiler';
+import { ShaderDiagnosticTool, type DiagnosticResult } from './ShaderDiagnosticTool';
 import { LoopPreventionSystem } from './LoopPreventionSystem';
 
 export interface DebugSession {

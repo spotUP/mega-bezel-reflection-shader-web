@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { ShaderDiagnosticTool, DiagnosticResult } from './ShaderDiagnosticTool';
+import { ShaderDiagnosticTool, type DiagnosticResult } from './ShaderDiagnosticTool';
 import { LoopPreventionSystem } from './LoopPreventionSystem';
 
 export interface ValidationConfig {
@@ -64,12 +64,12 @@ export class AutomatedShaderValidation {
     this.config = {
       shaderDirectories: ['public/shaders'],
       criticalPresets: [
-        'mega-bezel/potato.slangp',
-        'mega-bezel/test-remove-last.slangp'
+        'shaders/mega-bezel/potato.slangp',
+        'shaders/mega-bezel/test-remove-last.slangp'
       ],
       requiredShaders: [
-        'mega-bezel/shaders/base/common/params-0-screen-scale.inc',
-        'mega-bezel/shaders/dogway/hsm-grade.slang'
+        'shaders/mega-bezel/shaders/base/common/params-0-screen-scale.inc',
+        'shaders/mega-bezel/shaders/dogway/hsm-grade.slang'
       ],
       excludePatterns: ['*.bak', '*.tmp', '*/node_modules/*'],
       timeout: 30000,
@@ -410,8 +410,8 @@ export class AutomatedShaderValidation {
     // For now, return known shader files
     // In production, this would recursively list files from the server
     const knownShaders = [
-      'mega-bezel/shaders/base/common/params-0-screen-scale.inc',
-      'mega-bezel/shaders/dogway/hsm-grade.slang',
+      'shaders/mega-bezel/shaders/base/common/params-0-screen-scale.inc',
+      'shaders/mega-bezel/shaders/dogway/hsm-grade.slang',
       // Add more as discovered
     ];
 

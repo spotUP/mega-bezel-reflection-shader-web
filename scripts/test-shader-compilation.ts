@@ -2,13 +2,13 @@ import { MegaBezelCompiler } from '../src/shaders/MegaBezelCompiler';
 
 async function testShaderCompilation() {
   console.log('Testing shader compilation...');
+  const compiler = new MegaBezelCompiler();
+  const presetPath = '/shaders/mega-bezel/test-remove-last.slangp';
 
   try {
-    const compiler = new MegaBezelCompiler();
-    const preset = await compiler.compilePreset('/shaders/mega-bezel/test-remove-last.slangp', {
+    const preset = await compiler.compilePreset(presetPath, {
       webgl2: true,
-      debug: true,
-      maxPasses: 16
+      maxPasses: 40 // Check full chain
     });
 
     console.log('✅ Compilation successful!');

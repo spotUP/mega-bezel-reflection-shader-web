@@ -1,27 +1,7 @@
-#!/usr/bin/env node
-
-/**
- * Shader Validation Script for CI/CD
- *
- * Runs comprehensive shader validation and reports results.
- * Designed for automated environments like GitHub Actions, Jenkins, etc.
- *
- * Usage:
- *   node scripts/validate-shaders.js [options]
- *
- * Options:
- *   --preset <path>     Validate specific preset
- *   --all               Validate all shaders
- *   --strict            Fail on warnings
- *   --json              Output JSON report
- *   --junit             Output JUnit XML report
- *   --threshold <n>     Minimum acceptable success rate (0-100)
- *   --timeout <ms>      Validation timeout per shader
- */
-
-const fs = require('fs');
-const path = require('path');
-const { JSDOM } = require('jsdom');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { JSDOM } from 'jsdom';
 
 // Setup JSDOM for browser-like environment
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
@@ -30,11 +10,80 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   resources: 'usable'
 });
 
-global.window = dom.window;
-global.document = dom.window.document;
-global.navigator = dom.window.navigator;
-global.HTMLCanvasElement = dom.window.HTMLCanvasElement;
-global.HTMLDivElement = dom.window.HTMLDivElement;
+// Helper to safely define globals
+const defineGlobal = (name, value) => {
+  try {
+    global[name] = value;
+  } catch (e) {
+    Object.defineProperty(global, name, {
+      value: value,
+      writable: true,
+      configurable: true
+    });
+  }
+};
+
+defineGlobal('window', dom.window);
+defineGlobal('document', dom.window.document);
+defineGlobal('navigator', dom.window.navigator);
+defineGlobal('HTMLCanvasElement', dom.window.HTMLCanvasElement);
+defineGlobal('HTMLDivElement', dom.window.HTMLDivElement);
+
+// Mock global.fetch for local file access
+const originalFetch = global.fetch;
+defineGlobal('fetch', async (input, init) => {
+  let url = input.toString();
+
+  // Handle local relative URLs
+  if (url.startsWith('/') || url.startsWith('http://localhost')) {
+    // Strip domain if present
+    if (url.startsWith('http://localhost')) {
+      url = url.replace('http://localhost', '');
+    }
+
+    // Strip query parameters
+    url = url.split('?')[0];
+
+    // Attempt to find the file in public or assets folders
+    const tryPaths = [
+      path.join(process.cwd(), 'public', url),
+      path.join(process.cwd(), 'assets', url),
+      path.join(process.cwd(), 'public', 'shaders', url),
+      path.join(process.cwd(), url) // Try absolute path relative to cwd
+    ];
+
+    for (const tryPath of tryPaths) {
+      if (fs.existsSync(tryPath) && fs.statSync(tryPath).isFile()) {
+        const content = fs.readFileSync(tryPath, 'utf8');
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          text: async () => content,
+          json: async () => JSON.parse(content),
+          headers: new Map()
+        };
+      }
+    }
+
+    return {
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      text: async () => 'File not found',
+      json: async () => ({ error: 'File not found' }),
+      headers: new Map()
+    };
+  }
+
+  // Fallback to original fetch for remote URLs (if needed/available)
+  if (originalFetch) {
+    return originalFetch(input, init);
+  }
+
+  throw new Error(`Fetch not implemented for URL: ${url}`);
+});
+
 
 // Mock WebGL context for headless validation
 const mockWebGLContext = {
@@ -330,25 +379,34 @@ class ShaderValidator {
       : 0;
 
     // Output results
-    console.log(`\n📊 Validation Results:`);
+    console.log(`
+📊 Validation Results:`);
     console.log(`   Total shaders: ${this.results.totalShaders}`);
     console.log(`   Validated: ${this.results.validatedShaders}`);
     console.log(`   Failed: ${this.results.failedShaders}`);
     console.log(`   Success rate: ${this.results.successRate.toFixed(1)}%`);
 
+    if (validationResult.shaderResults) {
+        const failed = validationResult.shaderResults.filter(r => !r.success);
+        if (failed.length > 0) {
+            console.log(`
+🔍 Failed Shader Details:`);
+            failed.forEach(f => {
+                console.log(`
+   ❌ ${f.path}`);
+                if (f.error) console.log(`      Error: ${f.error}`);
+                
+                if (f.diagnosticResult && f.diagnosticResult.errors && f.diagnosticResult.errors.length > 0) {
+                    f.diagnosticResult.errors.forEach(e => console.log(`      - [${e.type}] ${e.message} ${e.line ? `(Line ${e.line})` : ''}`));
+                }
+            });
+        }
+    }
+
     if (this.results.errors.length > 0) {
-      console.log(`\n❌ Critical Errors:`);
+      console.log(`
+❌ Critical Errors:`);
       this.results.errors.forEach(error => console.log(`   - ${error}`));
-    }
-
-    if (this.results.warnings.length > 0) {
-      console.log(`\n⚠️  Warnings:`);
-      this.results.warnings.forEach(warning => console.log(`   - ${warning}`));
-    }
-
-    if (validationResult.summary.recommendations.length > 0) {
-      console.log(`\n💡 Recommendations:`);
-      validationResult.summary.recommendations.forEach(rec => console.log(`   - ${rec}`));
     }
   }
 
@@ -453,7 +511,7 @@ function parseArgs() {
 }
 
 // Main execution
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const options = parseArgs();
   const validator = new ShaderValidator(options);
   validator.run().catch(error => {
@@ -462,4 +520,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { ShaderValidator };
+export { ShaderValidator };
