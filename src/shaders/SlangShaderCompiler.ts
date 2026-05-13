@@ -3843,17 +3843,11 @@ ${batch.map(g => `  ${g.name} = ${g.init};`).join('\n')}
     console.log('[convertIntLiteralsInComparisons] START - bindings:', bindings.length);
 
     // CRITICAL FIX: Protect lines with int() casts by replacing with placeholders
-    // This prevents subsequent regex patterns from converting their integer literals.
-    //
-    // Also protect for-loop headers that declare an int/uint counter — without
-    // this, `for (int i = 0; i < 12; i++)` becomes `for (int i = 0; i < 12.0; ...)`
-    // which fails to compile because `i` is int and `12.0` is float.
+    // This prevents subsequent regex patterns from converting their integer literals
     const protectedLines: Map<string, string> = new Map();
     const lines = source.split('\n');
-    const forLoopIntCounter = /\bfor\s*\(\s*(int|uint)\s+\w/;
     const processedLines = lines.map((line, index) => {
-      if (line.includes('int(') || line.includes('uint(') || line.includes('ivec') || line.includes('uvec')
-          || forLoopIntCounter.test(line)) {
+      if (line.includes('int(') || line.includes('uint(') || line.includes('ivec') || line.includes('uvec')) {
         const placeholder = `__PROTECTED_INT_LINE_${index}__`;
         protectedLines.set(placeholder, line);
         return placeholder;
@@ -3907,7 +3901,22 @@ ${batch.map(g => `  ${g.name} = ${g.init};`).join('\n')}
       console.log(`[convertIntsToFloats] Found int/uint uniform in source: ${match[2]}`);
     }
 
-    console.log(`[convertIntsToFloats] Total int/uint uniforms found: ${intUniforms.size}`, Array.from(intUniforms).slice(0, 20).join(', '));
+    // Also collect LOCAL int/uint declarations so we know their names are int-typed
+    // here, before any conversion. Without this, `for (int i = 0; i < 12; i++)`
+    // matches the EXPR op INT regex below with expr="i", and since "i" isn't a
+    // known int uniform, the literal "12" is converted to "12.0" — producing
+    // `i < 12.0` which is a type-mismatch (int < float) compile error.
+    //
+    // Captured patterns:
+    //   - local declaration: `int x = ...`, `int x;`, `uint x = ...`
+    //   - function parameter: `(int x, ...`, `(... , int x)`
+    //   - for-loop counter:   `for (int x = ...; ...; ...)`
+    const localIntPattern = /\b(int|uint)\s+(\w+)\s*(?:=|;|,|\))/g;
+    while ((match = localIntPattern.exec(source)) !== null) {
+      intUniforms.add(match[2]);
+    }
+
+    console.log(`[convertIntsToFloats] Total int/uint names (uniforms + locals): ${intUniforms.size}`, Array.from(intUniforms).slice(0, 20).join(', '));
 
     // Lookbehind/lookahead explanation:
     // (?<![.\deE\w]) - Not after period, digit, e/E, or word char (prevents matching in floats/identifiers/scientific notation)
