@@ -9,7 +9,7 @@
  */
 
 // GLOBAL DEBUG FLAG - Set to false to silence verbose compilation logs
-const VERBOSE_SHADER_LOGS = false;
+const VERBOSE_SHADER_LOGS = true;
 
 import { IncludePreprocessor } from './IncludePreprocessor';
 import { GlobalToVaryingConverter } from './GlobalToVaryingConverter';
@@ -242,6 +242,9 @@ export class SlangShaderCompiler {
    * Compile a Slang shader to WebGL-compatible GLSL
    */
   public static compile(slangSource: string, webgl2 = true): CompiledShader {
+    console.log(`[SlangCompiler] compile() called. Source length: ${slangSource.length}`);
+    console.log(`[SlangCompiler] First 20 lines of source:\n${slangSource.split('\n').slice(0, 20).join('\n')}`);
+
     if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Starting compilation of shader, webgl2:', webgl2);
 
     // STEP 1: Run C preprocessor to resolve all conditional compilation
@@ -596,6 +599,13 @@ export class SlangShaderCompiler {
     const consts: string[] = [];
     const globals: string[] = [];
 
+    const globalDefs: GlobalDefinitions = {
+      defines: [],
+      consts: [],
+      globals: [],
+      functions: []
+    };
+
     const lines = source.split('\n');
 
     // Find the first #pragma stage directive
@@ -609,11 +619,13 @@ export class SlangShaderCompiler {
 
     // If no stage found, return empty
     if (firstStageIndex === -1) {
+      console.log(`[extractGlobalDefinitions] No #pragma stage found in source. Returning empty definitions.`);
       return { functions, defines, consts, globals };
     }
 
     // Extract everything before first #pragma stage
     const globalSection = lines.slice(0, firstStageIndex).join('\n');
+    console.log(`[extractGlobalDefinitions] Processing global section of ${firstStageIndex} lines`);
 
     // Debug: Check if HRG_MAX_POINT_CLOUD_SIZE is in global section
     if (globalSection.includes('HRG_MAX_POINT_CLOUD_SIZE')) {
@@ -765,25 +777,30 @@ export class SlangShaderCompiler {
 
     if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Total functions extracted from global section: ${extractedCount}`);
 
-    // Track UBO/push constant block ranges to avoid extracting members as globals
+    // Track UBO/push constant/struct block ranges to avoid extracting members as globals
     const uboBlockRanges: Array<{start: number, end: number}> = [];
-    const uboPattern = /layout\s*\([^)]*\)\s*uniform\s+\w+\s*\{/g;
+    const uboPattern = /(?:layout\s*\([^)]*\)\s*uniform\s+\w+|struct\s+\w+)\s*\{/g;
     let uboMatch;
     while ((uboMatch = uboPattern.exec(globalSection)) !== null) {
       const startPos = uboMatch.index;
       let pos = startPos + uboMatch[0].length;
       let braceCount = 1;
 
-      // Find closing brace
+      // Find matching closing brace
       while (pos < globalSection.length && braceCount > 0) {
-        if (globalSection[pos] === '{') braceCount++;
-        if (globalSection[pos] === '}') braceCount--;
+        const char = globalSection[pos];
+        if (char === '{') braceCount++;
+        else if (char === '}') braceCount--;
         pos++;
       }
 
       if (braceCount === 0) {
+        // Blocks can end with }; or just }
+        if (pos < globalSection.length && globalSection[pos] === ';') {
+          pos++;
+        }
         uboBlockRanges.push({ start: startPos, end: pos });
-        if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Tracked UBO block range: ${startPos}-${pos}`);
+        if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Tracked block range: ${startPos}-${pos} (${globalSection.substring(startPos, startPos + 30).replace(/\n/g, ' ')}...)`);
       }
     }
 
@@ -949,18 +966,13 @@ export class SlangShaderCompiler {
           continue;
         }
 
-        // SOLUTION A (DUAL DECLARATION): Extract ALL uninitialized globals, including pragma parameters
-        // For pragma parameters:
-        // - We create BOTH a global declaration AND a PARAM_-prefixed uniform
-        // - Assignment code will be injected in main() to copy from uniform to global
-        // For non-pragma parameters:
-        // - Just extract as normal global
+        if (excludeNames.has(name)) {
+          // Pragma parameters become uniforms; don't redeclare as globals.
+          continue;
+        }
+
         globals.push(`${type} ${name};`);
         extractedGlobalNames.add(name);
-
-        if (excludeNames.has(name)) {
-          if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] SOLUTION A: Extracted pragma parameter '${name}' as global (will also create PARAM_${name} uniform)`);
-        }
       }
     }
 
@@ -1017,15 +1029,10 @@ export class SlangShaderCompiler {
       for (let i = 0; i < firstStageIndex; i++) {
         const line = lines[i];
         const trimmed = line.trim();
-        if (trimmed.startsWith('#pragma parameter') ||
-            trimmed.startsWith('#define ') ||
-            trimmed.startsWith('#if ') ||
-            trimmed.startsWith('#ifdef ') ||
-            trimmed.startsWith('#ifndef ') ||
-            trimmed.startsWith('#elif ') ||
-            trimmed.startsWith('#else') ||
-            trimmed.startsWith('#endif') ||
-            trimmed.startsWith('uniform ')) {
+        
+        // Only preserve #pragma parameter directives in the global section.
+        // Everything else (UBOs, functions, defines) is handled by extractors and injectors.
+        if (trimmed.startsWith('#pragma parameter')) {
           globalSection.push(line);
         }
       }
@@ -1043,6 +1050,8 @@ export class SlangShaderCompiler {
 
       // Detect #pragma stage
       if (trimmed.startsWith('#pragma stage')) {
+        console.log(`[splitStages] Found #pragma stage at line ${i}: ${trimmed}`);
+        
         // Save previous stage if one exists
         if (currentStage && currentSource.length > 0) {
           // Prepend global section to stage source
@@ -1057,8 +1066,10 @@ export class SlangShaderCompiler {
         // Start new stage
         if (trimmed.includes('vertex')) {
           currentStage = 'vertex';
+          console.log(`[splitStages] Starting vertex stage`);
         } else if (trimmed.includes('fragment')) {
           currentStage = 'fragment';
+          console.log(`[splitStages] Starting fragment stage`);
         }
 
         currentSource = [];
@@ -1288,7 +1299,12 @@ export class SlangShaderCompiler {
           const macroName = macroMatch[1];
           // Use multiline flag and anchors to ensure it's not a comment
           const macroPattern = new RegExp(`^[ \\t]*#define\\s+${macroName}\\b`, 'm');
-          return macroPattern.test(source);
+          if (macroPattern.test(source)) {
+            return true;
+          }
+          // Also treat const declarations as existing definitions to avoid macro collisions
+          const constPattern = new RegExp(`\\bconst\\s+\\w+\\s+${macroName}\\b`);
+          return constPattern.test(source);
         }
       }
       return false;
@@ -1337,6 +1353,24 @@ export class SlangShaderCompiler {
       helperConstantNames.some(name => g.includes(name))
     );
 
+    const helperConstantValues: Record<string, string> = {
+      SOURCE_MATTE_PREMULTIPLIED: '0.0',
+      SOURCE_MATTE_WHITE: '1.0',
+      SOURCE_MATTE_NONE: '2.0',
+      BLEND_MODE_OFF: '0.0',
+      BLEND_MODE_NORMAL: '1.0',
+      BLEND_MODE_ADD: '2.0',
+      BLEND_MODE_MULTIPLY: '3.0'
+    };
+
+    const pushHelperConstantDefines = () => {
+      for (const [name, value] of Object.entries(helperConstantValues)) {
+        stubDefines.push(`#ifndef ${name}`);
+        stubDefines.push(`#define ${name} ${value}`);
+        stubDefines.push('#endif');
+      }
+    };
+
     if (hasHelperFunctions) {
       // Remove these constants from globals (they have initializers which cause syntax errors)
       globalDefs.globals = globalDefs.globals.filter(g =>
@@ -1344,26 +1378,11 @@ export class SlangShaderCompiler {
       );
 
       // Add them as #defines instead
-      stubDefines.push(
-        '#define SOURCE_MATTE_PREMULTIPLIED 0.0',
-        '#define SOURCE_MATTE_WHITE 1.0',
-        '#define SOURCE_MATTE_NONE 2.0',
-        '#define BLEND_MODE_OFF 0.0',
-        '#define BLEND_MODE_NORMAL 1.0',
-        '#define BLEND_MODE_ADD 2.0',
-        '#define BLEND_MODE_MULTIPLY 3.0'
-      );
+      pushHelperConstantDefines();
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] helper-functions.inc detected - converting float constants to #defines');
     } else {
       // Fallback #defines for shaders that don't include helper-functions.inc
-      stubDefines.push(
-        '#define SOURCE_MATTE_WHITE 0',
-        '#define SOURCE_MATTE_NONE 1',
-        '#define BLEND_MODE_OFF 0',
-        '#define BLEND_MODE_NORMAL 1',
-        '#define BLEND_MODE_ADD 2',
-        '#define BLEND_MODE_MULTIPLY 3'
-      );
+      pushHelperConstantDefines();
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] helper-functions.inc NOT detected - adding SOURCE_MATTE_*/BLEND_MODE_* stubs');
     }
 
@@ -1396,6 +1415,17 @@ export class SlangShaderCompiler {
         '#define SHOW_ON_DUALSCREEN_MODE_BOTH 0',
         '#define SHOW_ON_DUALSCREEN_MODE_SCREEN_1 1',
         '#define SHOW_ON_DUALSCREEN_MODE_SCREEN_2 2'
+        ,
+        // 3D shading fallbacks (used by height-and-normals.inc)
+        '#define HSM_3DSHADING_NORMAL_SOURCE 0',
+        '#define HSM_3DSHADING_NORMAL_STRENGTH 1.0',
+        '#define HSM_HSHADOW_BG_CONTRAST_CENTER 0.5',
+        '#define HSM_HSHADOW_BG_CONTRAST 1.0',
+        '#define HSM_HSHADOW_BG_OFFSET_Z 0.0',
+        '#define HSM_HSHADOW_DEVICE_CONTRAST_CENTER 0.5',
+        '#define HSM_HSHADOW_DEVICE_CONTRAST 1.0',
+        '#define HSM_HSHADOW_DEVICE_OFFSET_Z 0.0',
+        '#define HSM_HSHADOW_BEZEL_OFFSET_Z 0.0'
       );
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] globals.inc NOT detected - adding DEFAULT_*, TEXTURE_ASPECT_MODE_*, SHOW_ON_DUALSCREEN_MODE_* stubs');
     } else {
@@ -1438,6 +1468,19 @@ export class SlangShaderCompiler {
     } else {
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Bezel constants already present in defines - skipping stubs');
     }
+
+    // Height/normal shading fallbacks (not present in globals.inc in this repo)
+    stubDefines.push(
+      '#define HSM_3DSHADING_NORMAL_SOURCE 0',
+      '#define HSM_3DSHADING_NORMAL_STRENGTH 1.0',
+      '#define HSM_HSHADOW_BG_CONTRAST_CENTER 0.5',
+      '#define HSM_HSHADOW_BG_CONTRAST 1.0',
+      '#define HSM_HSHADOW_BG_OFFSET_Z 0.0',
+      '#define HSM_HSHADOW_DEVICE_CONTRAST_CENTER 0.5',
+      '#define HSM_HSHADOW_DEVICE_CONTRAST 1.0',
+      '#define HSM_HSHADOW_DEVICE_OFFSET_Z 0.0',
+      '#define HSM_HSHADOW_BEZEL_OFFSET_Z 0.0'
+    );
 
     if (isVertex) {
       // Vertex-specific stubs (if any)
@@ -1496,24 +1539,38 @@ export class SlangShaderCompiler {
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Mega Bezel globals found - they will be included from globalDefs');
     }
 
+    const currentCode = parts.join('\n');
+
+    if (!currentCode.includes('VIEWPORT_FLIPPED_UNZOOMED_COORD')) {
+      parts.push('vec2 VIEWPORT_FLIPPED_UNZOOMED_COORD = vec2(0.5);');
+    }
+    if (!currentCode.includes('OUTSIDE_TUBE_MASK')) {
+      parts.push('float OUTSIDE_TUBE_MASK = 0.0;');
+    }
+
     // Add helper-functions.inc constants ONLY if not already defined
     // These are needed by linearize.slang but may not be extracted from includes
     // We check the current compiled parts to avoid duplicates
-    const currentCode = parts.join('\n');
-    const needsHelperConstants = !currentCode.includes('SOURCE_MATTE_') && !currentCode.includes('BLEND_MODE_');
+    const helperConstants = [
+      { name: 'SOURCE_MATTE_PREMULTIPLIED', value: '0.0' },
+      { name: 'SOURCE_MATTE_WHITE', value: '1.0' },
+      { name: 'SOURCE_MATTE_NONE', value: '2.0' },
+      { name: 'BLEND_MODE_OFF', value: '0.0' },
+      { name: 'BLEND_MODE_NORMAL', value: '1.0' },
+      { name: 'BLEND_MODE_ADD', value: '2.0' },
+      { name: 'BLEND_MODE_MULTIPLY', value: '3.0' },
+    ];
+    const helperCheckCode = parts.join('\n');
+    const missingHelperConstants = helperConstants.filter(constant => !helperCheckCode.includes(constant.name));
 
-    if (needsHelperConstants) {
-      if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Adding helper-functions.inc constants (not found in compiled code yet)');
+    if (missingHelperConstants.length) {
+      if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Adding helper-functions.inc constants (some missing in compiled code)');
       parts.push('// Constants from helper-functions.inc');
-      parts.push('#ifndef SOURCE_MATTE_PREMULTIPLIED');
-      parts.push('#define SOURCE_MATTE_PREMULTIPLIED 0.0');
-      parts.push('#define SOURCE_MATTE_WHITE 1.0');
-      parts.push('#define SOURCE_MATTE_NONE 2.0');
-      parts.push('#define BLEND_MODE_OFF 0.0');
-      parts.push('#define BLEND_MODE_NORMAL 1.0');
-      parts.push('#define BLEND_MODE_ADD 2.0');
-      parts.push('#define BLEND_MODE_MULTIPLY 3.0');
-      parts.push('#endif');
+      for (const constant of missingHelperConstants) {
+        parts.push(`#ifndef ${constant.name}`);
+        parts.push(`#define ${constant.name} ${constant.value}`);
+        parts.push('#endif');
+      }
     } else {
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] Helper constants already present in compiled code - skipping');
     }
@@ -1553,12 +1610,111 @@ export class SlangShaderCompiler {
       parts.push('}');
     }
 
+    const hasFunction = (name: string) =>
+      globalDefs.functions.some(fn => new RegExp(`\\b${name}\\s*\\(`).test(fn));
+
+    if (!currentCode.includes('HSM_UpdateBezelAndTubeGlobalValuesAndMasks') && !hasFunction('HSM_UpdateBezelAndTubeGlobalValuesAndMasks')) {
+      parts.push('// Stub for bezel/tube globals update (WebGL fallback)');
+      parts.push('void HSM_UpdateBezelAndTubeGlobalValuesAndMasks(');
+      parts.push('  inout vec2 tube_diffuse_coord,');
+      parts.push('  inout vec2 tube_diffuse_scale,');
+      parts.push('  inout vec2 tube_scale,');
+      parts.push('  inout float tube_diffuse_aspect,');
+      parts.push('  inout vec2 bezel_outside_scale,');
+      parts.push('  inout vec2 bezel_outside_coord,');
+      parts.push('  inout vec2 bezel_outside_curved_coord,');
+      parts.push('  inout vec2 frame_outside_curved_coord,');
+      parts.push('  inout float outside_bezel_mask,');
+      parts.push('  inout float outside_frame_mask,');
+      parts.push('  inout float inside_bezel_mask,');
+      parts.push('  inout float bezel_mask,');
+      parts.push('  inout float frame_mask,');
+      parts.push('  inout float outside_tube_mask');
+      parts.push(') {}');
+    }
+
+    if (!currentCode.includes('HSM_GetScaledCoord') && !hasFunction('HSM_GetScaledCoord')) {
+      parts.push('// Stub for scaled coord helper (WebGL fallback)');
+      parts.push('vec2 HSM_GetScaledCoord(');
+      parts.push('  vec2 in_viewport_coord,');
+      parts.push('  vec2 in_viewport_coord_unscaled,');
+      parts.push('  float texture_aspect_mode,');
+      parts.push('  float explicit_texture_aspect,');
+      parts.push('  vec2 offset_pos,');
+      parts.push('  vec2 offset_scale,');
+      parts.push('  float layer_to_follow,');
+      parts.push('  float follow_mode,');
+      parts.push('  float scale_full_with_zoom,');
+      parts.push('  float image_fill_mode,');
+      parts.push('  float split_preserve_center,');
+      parts.push('  float split_repeat_width,');
+      parts.push('  bool apply_default_scale_offset,');
+      parts.push('  inout vec2 out_placement_coord,');
+      parts.push('  inout vec2 out_placement_scale');
+      parts.push(') {');
+      parts.push('  out_placement_coord = in_viewport_coord;');
+      parts.push('  out_placement_scale = vec2(1.0);');
+      parts.push('  return in_viewport_coord;');
+      parts.push('}');
+    }
+
+    if (!currentCode.includes('HSM_GenerateBezelLayer') && !hasFunction('HSM_GenerateBezelLayer')) {
+      parts.push('// Stub for bezel layer generation (WebGL fallback)');
+      parts.push('void HSM_GenerateBezelLayer(');
+      parts.push('  bool generate_normals_and_height,');
+      parts.push('  float bezel_outer_edge_height,');
+      parts.push('  vec4 frame_highlight_color,');
+      parts.push('  float static_shadow_multiply,');
+      parts.push('  inout vec4 bezel_color_layer,');
+      parts.push('  inout vec4 bezel_normals_layer,');
+      parts.push('  inout vec4 bezel_height_layer,');
+      parts.push('  inout vec4 tube_bg_layer');
+      parts.push(') {}');
+    }
+
     parts.push('');
 
-    // NO STUBS - All functions should come from globalDefs extracted from .inc files
-    // Track which functions would have been stubs (for filtering globalDefs)
-    const stubFunctionNames = new Set<string>();
+    // Filter functions and globals: only include those actually used by the shader stage
+    // (Recursively check dependencies)
+    const usedGlobals = new Set<string>();
+    const usedFunctions = new Set<string>();
+    const checkQueue = [source];
+    
+    // Track seen names to avoid infinite recursion
+    const seen = new Set<string>();
 
+    while (checkQueue.length > 0) {
+      const current = checkQueue.shift()!;
+      
+      // Check for global variable usage
+      for (const globalDecl of globalDefs.globals) {
+        const match = globalDecl.match(/^\s*(?:float|int|uint|vec[2-4]|mat[2-4]x[2-4]|mat[2-4]|ivec[2-4]|uvec[2-4]|bvec[2-4]|bool)\s+(\w+)/);
+        if (match) {
+          const name = match[1];
+          if (!seen.has(name) && new RegExp(`\\b${name}\\b`).test(current)) {
+            usedGlobals.add(globalDecl);
+            seen.add(name);
+            // Don't add to queue, declarations don't have code bodies
+          }
+        }
+      }
+
+      // Check for function usage
+      for (const funcCode of globalDefs.functions) {
+        const match = funcCode.match(/^\s*(?:\w+\s+)*(\w+)\s*\(/);
+        if (match) {
+          const name = match[1];
+          if (!seen.has(name) && new RegExp(`\\b${name}\\b`).test(current)) {
+            usedFunctions.add(funcCode);
+            seen.add(name);
+            checkQueue.push(funcCode); // Functions can depend on other functions
+          }
+        }
+      }
+    }
+
+    if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Filtered ${globalDefs.functions.length} functions down to ${usedFunctions.size} used`);
+    if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Filtered ${globalDefs.globals.length} globals down to ${usedGlobals.size} used`);
 
     if (globalDefs.defines.length > 0) {
       // Deduplicate #defines by macro name (keep first occurrence)
@@ -1578,16 +1734,31 @@ export class SlangShaderCompiler {
       seenDefines.add('FXAA_SUBPIX_CAP');
       seenDefines.add('FXAA_SEARCH_STEPS');
       seenDefines.add('FXAA_SEARCH_THRESHOLD');
+      seenDefines.add('SOURCE_MATTE_PREMULTIPLIED');
+      seenDefines.add('SOURCE_MATTE_WHITE');
+      seenDefines.add('SOURCE_MATTE_NONE');
+      seenDefines.add('BLEND_MODE_OFF');
+      seenDefines.add('BLEND_MODE_NORMAL');
+      seenDefines.add('BLEND_MODE_ADD');
+      seenDefines.add('BLEND_MODE_MULTIPLY');
 
-      // CRITICAL FIX: Skip #defines that conflict with uniform bindings (UBO/push constant members)
-      // Example: push constant has "float lsmooth;" AND shader has "#define lsmooth 0.7"
-      // This would create: uniform float PARAM_lsmooth; + float lsmooth; + #define lsmooth 0.7 -> conflict!
-      // Solution: Skip the #define, keep the uniform+global (they provide dynamic value)
-      //
-      // IMPORTANT: Check global variable names, NOT bindings, because by this point push constants
-      // have already been converted to individual uniforms + globals (Solution A)
+      // Filter defines: only include those actually used
+      const usedDefinesSet = new Set<string>();
+      // Definitions can be referenced inside extracted functions that we always inject,
+      // so scan all extracted functions to avoid missing required #defines.
+      const checkQueueForDefines = [source, ...globalDefs.functions];
+      while (checkQueueForDefines.length > 0) {
+        const current = checkQueueForDefines.shift()!;
+        for (const define of globalDefs.defines) {
+          const macroName = define.match(/#define\s+(\w+)/)?.[1];
+          if (macroName && !usedDefinesSet.has(macroName) && new RegExp(`\\b${macroName}\\b`).test(current)) {
+            usedDefinesSet.add(macroName);
+          }
+        }
+      }
+
       const globalVarNames = new Set<string>();
-      globalDefs.globals.forEach(g => {
+      usedGlobals.forEach(g => {
         // Extract variable name from declarations like "float lsmooth;" or "vec2 SCREEN_COORD;"
         const match = g.match(/^\s*(?:float|int|uint|vec[2-4]|mat[2-4]|bool)\s+(\w+)\s*[;=]/);
         if (match) globalVarNames.add(match[1]);
@@ -1600,46 +1771,36 @@ export class SlangShaderCompiler {
         }
       }
 
-      if (globalVarNames.size > 0) {
-        if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Found ${globalVarNames.size} global/binding names to check against #defines`);
-      }
-
       for (const define of globalDefs.defines) {
         const macroName = define.match(/#define\s+(\w+)/)?.[1];
+        if (!macroName || !usedDefinesSet.has(macroName)) continue;
 
-        // Skip if this #define conflicts with a global variable name (from UBO/push constant)
+        // Skip if this #define conflicts with a global variable name (from UBO/push constant),
+        // unless it's explicitly mapping to a PARAM_ uniform (e.g., "#define PR PARAM_PR").
         if (macroName && globalVarNames.has(macroName)) {
-          if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] SKIPPING #define ${macroName} (conflicts with global variable)`);
-          continue;
+          const value = define.replace(`#define ${macroName}`, '').trim();
+          const isUniformMapping = value.startsWith('PARAM_') || value.startsWith('uniform');
+          if (!isUniformMapping) {
+            continue;
+          }
         }
 
         if (macroName && !seenDefines.has(macroName)) {
           seenDefines.add(macroName);
           uniqueDefines.push(define);
-
-          // Debug: Log important defines
-          if (macroName.startsWith('DEFAULT_') || macroName === 'HRG_MAX_POINT_CLOUD_SIZE') {
-            if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Adding define to shader:`, macroName);
-          }
-        } else if (macroName && macroName.startsWith('DEFAULT_')) {
-          if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] SKIPPING define (already seen):`, macroName);
         }
       }
-
-      // Debug: Check if DEFAULT defines are in uniqueDefines
-      const defaultDefines = uniqueDefines.filter(d => d.includes('DEFAULT_'));
-      if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Total DEFAULT_* defines in shader: ${defaultDefines.length}`);
 
       parts.push('// Global #define macros');
       parts.push(...uniqueDefines);
       parts.push('');
+    }
 
       // Debug: Check if HRG define is in parts
       const hasHrgInParts = parts.some(p => p.includes('HRG_MAX_POINT_CLOUD_SIZE'));
       if (globalDefs.defines.some(d => d.includes('HRG_MAX_POINT_CLOUD_SIZE')) && !hasHrgInParts) {
         if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] ERROR: HRG define was in globalDefs.defines but NOT added to parts!');
       }
-    }
 
     if (globalDefs.consts.length > 0) {
       // Deduplicate consts by name (keep first occurrence)
@@ -2278,9 +2439,41 @@ uniform float FrameDirection;
       if (VERBOSE_SHADER_LOGS) console.log(`[SlangCompiler] Creating uniforms for ${pushConstantParams.length} push constant parameters (after params. replacement):`, pushConstantParams.map(p => p.name).slice(0, 20).join(', '));
     }
 
-    const paramUniforms = filtered
+    const baseParamUniforms = filtered
+      .filter(param => {
+        const baseUniformRegex = new RegExp(`\\buniform\\s+\\w+\\s+${param.name}\\b`);
+        return !baseUniformRegex.test(output);
+      })
       .map(param => `uniform float ${param.name};`)
       .join('\n');
+
+    const paramAliasUniforms = filtered
+      .filter(param => output.includes(`PARAM_${param.name}`))
+      .filter(param => {
+        const paramUniformRegex = new RegExp(`\\buniform\\s+\\w+\\s+PARAM_${param.name}\\b`);
+        return !paramUniformRegex.test(output);
+      })
+      .map(param => `uniform float PARAM_${param.name};`)
+      .join('\n');
+
+    const paramUniforms = [baseParamUniforms, paramAliasUniforms]
+      .filter(Boolean)
+      .join('\n');
+
+    if (paramUniforms) {
+      const criticalUniformsStart = output.indexOf('// Critical RetroArch uniforms');
+      if (criticalUniformsStart !== -1) {
+        const nextDoubleNewline = output.indexOf('\n\n', criticalUniformsStart);
+        if (nextDoubleNewline !== -1) {
+          const insertPos = nextDoubleNewline + 2;
+          output = output.substring(0, insertPos) + paramUniforms + '\n\n' + output.substring(insertPos);
+        } else {
+          output = output + '\n' + paramUniforms + '\n';
+        }
+      } else {
+        output = paramUniforms + '\n' + output;
+      }
+    }
 
     // Mega Bezel parameters - injected as mutable variables, not uniforms
     // Most HSM parameters need to be assignable variables, not read-only uniforms
@@ -3304,7 +3497,7 @@ uniform float hiscan;
 
     // Remove layout qualorms and convert to uniforms FIRST
     // This ensures int uniforms are in their final form before int/float conversion
-    output = this.convertBindingsToUniforms(output, bindings, webgl2, globalDefs);
+    output = this.convertBindingsToUniforms(output, bindings, webgl2, globalDefs, parameters);
 
     // SOLUTION A (DUAL DECLARATION): Inject assignments from PARAM_ uniforms to global variables
     // This allows shader code to use plain variable names while receiving values from uniforms
@@ -3603,18 +3796,44 @@ uniform float hiscan;
       output = output.replace(globalInit.declaration, `${globalInit.type} ${globalInit.name};`);
     }
 
-    // Create initialization function
-    const initFunction = `
-// Global variable initialization (moved from global scope)
-void initGlobalVars() {
-${globalInits.map(g => `  ${g.name} = ${g.init};`).join('\n')}
+    const BATCH_SIZE = 25;
+    const numBatches = Math.ceil(globalInits.length / BATCH_SIZE);
+    let initFunctions = '';
+    const initCalls: string[] = [];
+
+    for (let i = 0; i < numBatches; i++) {
+      const batchStart = i * BATCH_SIZE;
+      const batchEnd = Math.min((i + 1) * BATCH_SIZE, globalInits.length);
+      const batch = globalInits.slice(batchStart, batchEnd);
+      const functionName = `initGlobalVars${i}`;
+
+      initFunctions += `
+// Global variable initialization (batch ${i + 1}/${numBatches})
+void ${functionName}() {
+${batch.map(g => `  ${g.name} = ${g.init};`).join('\n')}
 }
 `;
+      initCalls.push(`  ${functionName}();`);
+    }
 
-    // Insert before main()
-    output = output.replace(/void\s+main\s*\(\s*\)\s*{/, initFunction + '\nvoid main() {\n  initGlobalVars();');
+    // Insert before main() and call the init functions at the start of main()
+    const mainMatch = output.match(/void\s+main\s*\(\s*\)\s*{/);
+    if (!mainMatch) {
+      return output;
+    }
 
-    return output;
+    const mainStart = output.indexOf(mainMatch[0]);
+    const mainBodyStart = mainStart + mainMatch[0].length;
+    const mainCallsCode = '\n' + initCalls.join('\n') + '\n';
+
+    return (
+      output.substring(0, mainStart) +
+      initFunctions +
+      '\n' +
+      output.substring(mainStart, mainBodyStart) +
+      mainCallsCode +
+      output.substring(mainBodyStart)
+    );
   }
 
   /**
@@ -3624,11 +3843,17 @@ ${globalInits.map(g => `  ${g.name} = ${g.init};`).join('\n')}
     console.log('[convertIntLiteralsInComparisons] START - bindings:', bindings.length);
 
     // CRITICAL FIX: Protect lines with int() casts by replacing with placeholders
-    // This prevents subsequent regex patterns from converting their integer literals
+    // This prevents subsequent regex patterns from converting their integer literals.
+    //
+    // Also protect for-loop headers that declare an int/uint counter — without
+    // this, `for (int i = 0; i < 12; i++)` becomes `for (int i = 0; i < 12.0; ...)`
+    // which fails to compile because `i` is int and `12.0` is float.
     const protectedLines: Map<string, string> = new Map();
     const lines = source.split('\n');
+    const forLoopIntCounter = /\bfor\s*\(\s*(int|uint)\s+\w/;
     const processedLines = lines.map((line, index) => {
-      if (line.includes('int(') || line.includes('uint(') || line.includes('ivec') || line.includes('uvec')) {
+      if (line.includes('int(') || line.includes('uint(') || line.includes('ivec') || line.includes('uvec')
+          || forLoopIntCounter.test(line)) {
         const placeholder = `__PROTECTED_INT_LINE_${index}__`;
         protectedLines.set(placeholder, line);
         return placeholder;
@@ -4142,13 +4367,24 @@ ${globalInits.map(g => `  ${g.name} = ${g.init};`).join('\n')}
       output = output.replace(marker, original);
     });
 
+    // Safety: restore any leftover markers missed by single replacements.
+    output = output.replace(/___PROTECTED_\d+___/g, (marker) => {
+      return protectedContexts.get(marker) || marker;
+    });
+
     if (false) console.log('[convertIntsToFloats] Restored', protectedContexts.size, 'protected contexts');
 
     // Step 7: Wrap int loop variables (i, iter) with float() casts when used in arithmetic
     // This prevents int * float and int / float errors
     // Exclude increment/decrement operators (++, --) using negative lookahead
-    const loopVarPattern = /\b(i|iter|j|k|idx|index)\b(?!\s*(?:\+\+|--))(?=\s*[*/%+\-])/g;
+    const loopVarPattern = /\b(i|iter|j|k|idx|index)\b(?!\s*(?:\+\+|--|[*/%+\-]=))(?=\s*[*/%+\-])/g;
     output = output.replace(loopVarPattern, 'float($1)');
+
+    // Fix int loop bounds that use float math (common in blur kernels).
+    output = output.replace(
+      /for\s*\(\s*int\s+(\w+)\s*=\s*-(\w+)\s*\/\s*2\.0\s*;\s*\1\s*<\s*\2\s*\/\s*2\.0\s*;\s*\+\+\1\s*\)/g,
+      'for (int $1 = -int($2 / 2.0); $1 < int($2 / 2.0); ++$1)'
+    );
 
     // Restore protected textureSize calls
     textureSizeMap.forEach((original, placeholder) => {
@@ -4323,8 +4559,10 @@ ${batchAssignments.join('\n')}
     source: string,
     bindings: SlangUniformBinding[],
     webgl2: boolean,
-    globalDefs: GlobalDefinitions = { functions: [], defines: [], consts: [], globals: [] }
+    globalDefs: GlobalDefinitions = { functions: [], defines: [], consts: [], globals: [] },
+    parameters: ShaderParameter[] = []
   ): string {
+    const parameterNames = new Set(parameters.map(param => param.name));
     let output = source;
     const declaredUniforms = new Set<string>(); // Track which uniforms/variables we've already declared
 
@@ -4491,7 +4729,7 @@ ${batchAssignments.join('\n')}
 
             // Check if this push constant member is also a global variable
             // Check for both declarations (float X;) and initializations (float X = value;)
-            const isAlsoGlobal = globalDefs.globals.some(g => {
+            const isAlsoGlobal = parameterNames.has(member.name) || globalDefs.globals.some(g => {
               const match = g.match(/^\s*(?:float|int|uint|vec[2-4]|mat[2-4]|bool)\s+(\w+)\s*[;=]/);
               return match && match[1] === member.name;
             });
@@ -4540,7 +4778,7 @@ ${batchAssignments.join('\n')}
         if (binding.instanceName) {
           binding.members.forEach(member => {
             // Check if this member is also a global (pragma parameter)
-            const isAlsoGlobal = globalDefs.globals.some(g => {
+            const isAlsoGlobal = parameterNames.has(member.name) || globalDefs.globals.some(g => {
               const match = g.match(/^\s*(?:float|int|uint|vec[2-4]|mat[2-4]|bool)\s+(\w+)\s*;/);
               return match && match[1] === member.name;
             });
@@ -5240,6 +5478,7 @@ void main() {
     // sampler2D cannot be output parameters, they are opaque types
     fixed = fixed.replace(/\bout\s+sampler2D\b/g, 'sampler2D');
     fixed = fixed.replace(/\binout\s+sampler2D\b/g, 'sampler2D');
+    fixed = fixed.replace(/\bin\s+sampler2D\b/g, 'sampler2D');
 
     // Fix out/in qualifiers based on WebGL version
     // WebGL2/GLSL ES 3.0 uses 'in'/'out'
@@ -5291,12 +5530,46 @@ void main() {
       if (VERBOSE_SHADER_LOGS) console.log('[SlangCompiler] M_PI already defined, skipping injection');
     }
 
+    const hasNamedDefine = (name: string) => {
+      const definePattern = new RegExp(`(^|\\n)\\s*#define\\s+${name}\\b`);
+      const constPattern = new RegExp(`\\bconst\\s+\\w+\\s+${name}\\b`);
+      return definePattern.test(glslCode) || constPattern.test(glslCode);
+    };
+    const hasSourceMattePremultiplied = hasNamedDefine('SOURCE_MATTE_PREMULTIPLIED');
+    const hasSourceMatteWhite = hasNamedDefine('SOURCE_MATTE_WHITE');
+    const hasSourceMatteNone = hasNamedDefine('SOURCE_MATTE_NONE');
+    const hasBlendModeOff = hasNamedDefine('BLEND_MODE_OFF');
+    const hasBlendModeNormal = hasNamedDefine('BLEND_MODE_NORMAL');
+    const hasBlendModeAdd = hasNamedDefine('BLEND_MODE_ADD');
+    const hasBlendModeMultiply = hasNamedDefine('BLEND_MODE_MULTIPLY');
+
     // These constants are often missing from Mega Bezel shaders due to conditional compilation
     // Add them with default values to prevent "undeclared identifier" errors
     const missingConstants = `
 // Missing constants with default values
 ${!hasMPI ? `#ifndef M_PI
 #define M_PI 3.14159265358979323846
+#endif` : ''}
+${!hasSourceMattePremultiplied ? `#ifndef SOURCE_MATTE_PREMULTIPLIED
+#define SOURCE_MATTE_PREMULTIPLIED 0.0
+#endif` : ''}
+${!hasSourceMatteWhite ? `#ifndef SOURCE_MATTE_WHITE
+#define SOURCE_MATTE_WHITE 1.0
+#endif` : ''}
+${!hasSourceMatteNone ? `#ifndef SOURCE_MATTE_NONE
+#define SOURCE_MATTE_NONE 2.0
+#endif` : ''}
+${!hasBlendModeOff ? `#ifndef BLEND_MODE_OFF
+#define BLEND_MODE_OFF 0.0
+#endif` : ''}
+${!hasBlendModeNormal ? `#ifndef BLEND_MODE_NORMAL
+#define BLEND_MODE_NORMAL 1.0
+#endif` : ''}
+${!hasBlendModeAdd ? `#ifndef BLEND_MODE_ADD
+#define BLEND_MODE_ADD 2.0
+#endif` : ''}
+${!hasBlendModeMultiply ? `#ifndef BLEND_MODE_MULTIPLY
+#define BLEND_MODE_MULTIPLY 3.0
 #endif` : ''}
 
 // REMOVED: CSHARPEN, CCONTR, CDETAILS #defines - these are shader parameters
@@ -5447,6 +5720,11 @@ ${!hasMPI ? `#ifndef M_PI
         throw new Error(`Failed to load shader: ${response.statusText}`);
       }
       source = await response.text();
+      
+      // Check if we got HTML back (e.g. 404 page from SPA router)
+      if (source.trim().startsWith('<')) {
+        throw new Error(`Failed to load shader: Received HTML content instead of shader source (likely 404). URL: ${url}`);
+      }
     } else {
       // Node.js environment - read from filesystem
       const fs = await import('fs');
