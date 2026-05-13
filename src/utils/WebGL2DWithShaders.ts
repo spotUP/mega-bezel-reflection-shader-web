@@ -226,17 +226,10 @@ export class WebGL2DWithShaders {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
       }
 
-      // DEBUG: Track why shader was skipped
+      // DEBUG: Track why shader was skipped — counter kept for inspection
+      // but no console output (60Hz/300Hz logging tanks Chrome with DevTools open).
       if (!this._noShaderFrames) this._noShaderFrames = 0;
       this._noShaderFrames++;
-      if (this._noShaderFrames % 60 === 1) {
-        console.warn(`[WebGL2DWithShaders] Shader skipped at frame ${this.frameCount}: renderer=${!!this.shaderRenderer}, texture=${!!this.framebufferTexture}, enabled=${this.shadersEnabled}`);
-      }
-    }
-
-    // DEBUG: Log ratio every 5 seconds (300 frames at 60fps)
-    if (this.frameCount % 300 === 0) {
-      console.log(`[WebGL2DWithShaders] Frame ${this.frameCount}: shader=${this._shaderFrames || 0}, noShader=${this._noShaderFrames || 0}, skipped=${this._skipCount || 0}`);
     }
   }
 

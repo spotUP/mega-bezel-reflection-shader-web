@@ -1008,7 +1008,7 @@ void main() {
 
     // Execute passthrough
     this.renderer.executePass('__passthrough__', { Source: inputTextureName }, null, {});
-    console.log(`[Passthrough] Rendered ${inputTextureName} directly to screen`);
+    // Removed per-frame console.log — DevTools-open + 60Hz logging tanks Chrome performance.
   }
 
   /**
