@@ -65,6 +65,7 @@ C_SOURCES = \
 
 # C++ sources (shader compiler)
 CXX_SOURCES = \
+	$(NATIVE_DIR)/bridge_compiler.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/glslang.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/glslang_util_cxx.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/slang_process.cpp \
