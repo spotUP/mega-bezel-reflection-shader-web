@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mega-bezel-wasm demo</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
+    #status { padding: 1rem; background: #16213e; border-radius: 4px; margin-top: 1rem; }
+    .ok { color: #0f0; }
+    .err { color: #f44; }
+  </style>
+</head>
+<body>
+  <h1>mega-bezel-wasm</h1>
+  <div id="status">Loading WASM module...</div>
+  <script src="../dist/wasm/mega-bezel.js"></script>
+  <script>
+    (async function () {
+      const el = document.getElementById('status');
+      try {
+        const Module = await MegaBezelModule();
+        const mbz_init = Module.cwrap('mbz_init', 'number', []);
+        const mbz_version = Module.cwrap('mbz_version', 'number', []);
+        const result = mbz_init();
+        const version = mbz_version();
+        el.innerHTML = `<span class="ok">[OK]</span> mbz_init() = ${result}, mbz_version() = ${version}`;
+      } catch (e) {
+        el.innerHTML = `<span class="err">[ERROR]</span> ${e.message}`;
+      }
+    })();
+  </script>
+</body>
+</html>
