@@ -37,6 +37,9 @@ public/clear-logos.db
 *progress*.json
 scraper-pids.txt
 
+# Build artifacts
+*.o
+
 # Development artifacts
 corrected-logos.db
 final-corrected-logos.db
