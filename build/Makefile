@@ -21,7 +21,7 @@ INCLUDES = \
 	-I$(GLSLANG_DIR) \
 	-I$(SPIRV_CROSS_DIR)
 
-COMMON_FLAGS = -O2 \
+COMMON_FLAGS = -O2 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 	-DRARCH_INTERNAL \
 	-DHAVE_CONFIGFILE \
 	-DMBZ_STANDALONE \
@@ -35,6 +35,8 @@ CFLAGS = $(COMMON_FLAGS)
 CXXFLAGS = $(COMMON_FLAGS) -std=c++14 -fno-exceptions -DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 
 LDFLAGS = -s WASM=1 \
+	-s USE_WEBGL2=1 \
+	-s FULL_ES3=1 \
 	-s EXPORTED_RUNTIME_METHODS='["cwrap","ccall","UTF8ToString","FS"]' \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s MODULARIZE=1 \
@@ -45,6 +47,7 @@ LDFLAGS = -s WASM=1 \
 C_SOURCES = \
 	$(NATIVE_DIR)/bridge.c \
 	$(NATIVE_DIR)/shims/configuration.c \
+	$(NATIVE_DIR)/shims/image_shim.c \
 	$(NATIVE_DIR)/gfx/video_shader_parse.c \
 	$(NATIVE_DIR)/gfx/drivers_shader/glslang_util.c \
 	$(LRC_DIR)/file/config_file.c \
@@ -66,6 +69,7 @@ C_SOURCES = \
 # C++ sources (shader compiler)
 CXX_SOURCES = \
 	$(NATIVE_DIR)/bridge_compiler.cpp \
+	$(NATIVE_DIR)/gfx/drivers_shader/shader_gl3.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/glslang.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/glslang_util_cxx.cpp \
 	$(NATIVE_DIR)/gfx/drivers_shader/slang_process.cpp \
