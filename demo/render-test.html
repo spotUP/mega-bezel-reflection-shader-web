@@ -3,82 +3,141 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mega-bezel-wasm: render test</title>
+  <title>Mega Bezel WASM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #111; color: #e0e0e0; padding: 2rem; margin: 0; }
-    h1 { margin: 1rem 2rem; font-weight: 500; font-size: 18px; letter-spacing: -0.01em; }
-    #canvas-wrap {
-      position: relative;
-      width: 800px; height: 600px;
-      margin: 1rem 2rem;
-    }
-    canvas {
-      display: block;
-      width: 100%; height: 100%;
-      background: #000;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0a; color: #ccc; }
+    #app { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 24px; }
+    h1 { font-weight: 500; font-size: 16px; color: #888; margin-bottom: 16px; letter-spacing: -0.01em; }
+
+    #canvas-wrap { position: relative; }
+    canvas { display: block; background: #000; }
+
+    /* Loading overlay */
     #overlay {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.92);
       transition: opacity 0.5s ease;
       z-index: 10;
     }
     #overlay.hidden { opacity: 0; pointer-events: none; }
-    #overlay-status { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: #999; }
-    #overlay-detail { font-size: 11px; color: #444; margin-top: 10px; max-width: 70%; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    #bar-track {
-      width: 240px; height: 2px;
-      background: #222;
+    #overlay-status { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: #777; }
+    #overlay-detail { font-size: 11px; color: #333; margin-top: 10px; max-width: 70%; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    #bar-track { width: 240px; height: 2px; background: #1a1a1a; }
+    #bar-fill { height: 100%; width: 0%; background: #555; transition: width 0.15s ease; }
+
+    /* FPS counter */
+    #fps {
+      position: absolute; top: 8px; right: 10px;
+      font-size: 11px; font-weight: 500; color: #555;
+      z-index: 5; pointer-events: none;
+      font-variant-numeric: tabular-nums;
     }
-    #bar-fill {
-      height: 100%; width: 0%;
-      background: #666;
-      transition: width 0.15s ease;
+
+    /* Controls */
+    #controls {
+      display: flex; gap: 20px; margin-top: 16px;
+      font-size: 12px; color: #555;
     }
-    #log { padding: 1rem; margin: 0 2rem; background: #0a0a0a; border: 1px solid #1a1a1a; white-space: pre-wrap; max-height: 300px; overflow-y: auto; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 11px; }
-    .ok { color: #7a7; } .err { color: #a55; } .info { color: #888; }
+    #controls label { display: flex; align-items: center; gap: 6px; }
+    #controls select, #controls input[type="range"] { accent-color: #555; }
+    #controls select {
+      background: #151515; color: #999; border: 1px solid #222;
+      padding: 3px 6px; font-family: inherit; font-size: 11px;
+      border-radius: 2px;
+    }
+    #controls input[type="range"] { width: 100px; }
+    #controls .val { color: #666; min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Log */
+    #log {
+      margin-top: 16px; padding: 12px; width: 800px;
+      background: #0d0d0d; border: 1px solid #181818;
+      white-space: pre-wrap; max-height: 200px; overflow-y: auto;
+      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 10px; line-height: 1.5; color: #444;
+    }
+    .ok { color: #6a6; } .err { color: #a55; } .info { color: #666; }
   </style>
 </head>
 <body>
-  <h1>mega-bezel-wasm: render test</h1>
+<div id="app">
+  <h1>Mega Bezel Reflection Shader</h1>
   <div id="canvas-wrap">
     <canvas id="output" width="800" height="600"></canvas>
+    <div id="fps"></div>
     <div id="overlay">
       <div id="overlay-status">Initializing...</div>
       <div id="bar-track"><div id="bar-fill"></div></div>
       <div id="overlay-detail"></div>
     </div>
   </div>
+  <div id="controls">
+    <label>Preset
+      <select id="ctl-preset">
+        <option value="MBZ__3__STD__GDV-local">Full 36-pass</option>
+        <option value="crt-with-frame">CRT + frame (3)</option>
+        <option value="crt-simple">CRT simple (2)</option>
+        <option value="ultra-simple-bezel">Bezel only (1)</option>
+      </select>
+    </label>
+    <label>Pass
+      <select id="ctl-pass">
+        <option value="0">Final</option>
+        <option value="1">Reflection</option>
+        <option value="2">Tube</option>
+        <option value="3">CRT</option>
+        <option value="4">Interlace</option>
+        <option value="5">Color</option>
+        <option value="6">Dedither</option>
+        <option value="7">Drez</option>
+        <option value="8">Core</option>
+      </select>
+    </label>
+  </div>
   <div id="log"></div>
-  <script src="../dist/wasm/mega-bezel.js"></script>
-  <script>
+</div>
+
+<script src="../dist/wasm/mega-bezel.js"></script>
+<script>
 const SHADER_ROOT = '../public/shaders';
 const SHADER_BASE = SHADER_ROOT + '/mega-bezel';
-const PRESET_NAME = 'MBZ__3__STD__GDV-local';
 
-const el = document.getElementById('log');
-const log = (cls, msg) => { el.innerHTML += `<span class="${cls}">${msg}</span>\n`; el.scrollTop = el.scrollHeight; };
+const logEl = document.getElementById('log');
+const log = (cls, msg) => { logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`; logEl.scrollTop = logEl.scrollHeight; };
 
-const overlayEl     = document.getElementById('overlay');
-const statusEl      = document.getElementById('overlay-status');
-const detailEl      = document.getElementById('overlay-detail');
-const barFillEl     = document.getElementById('bar-fill');
+const overlayEl = document.getElementById('overlay');
+const statusEl  = document.getElementById('overlay-status');
+const detailEl  = document.getElementById('overlay-detail');
+const barFillEl = document.getElementById('bar-fill');
+const fpsEl     = document.getElementById('fps');
 
 function progress(pct, status, detail) {
   barFillEl.style.width = Math.min(100, Math.max(0, pct)) + '%';
   if (status) statusEl.textContent = status;
   if (detail !== undefined) detailEl.textContent = detail;
 }
+function showOverlay() { overlayEl.classList.remove('hidden'); }
+function hideOverlay() { overlayEl.classList.add('hidden'); }
 
-function hideOverlay() {
-  overlayEl.classList.add('hidden');
+// --- FPS ---
+let frameCount = 0, lastFpsTime = performance.now();
+function updateFps() {
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsTime >= 1000) {
+    fpsEl.textContent = frameCount + ' fps';
+    frameCount = 0;
+    lastFpsTime = now;
+  }
 }
 
+// --- Asset loading helpers ---
 async function fetchText(url) {
   const r = await fetch(url + '?t=' + Date.now());
   if (!r.ok) throw new Error(`fetch ${url}: ${r.status}`);
@@ -88,81 +147,59 @@ async function fetchText(url) {
 function mkdirp(FS, path) {
   const parts = path.split('/').filter(Boolean);
   let cur = '';
-  for (const p of parts) {
-    cur += '/' + p;
-    try { FS.mkdir(cur); } catch (e) { /* exists */ }
-  }
+  for (const p of parts) { cur += '/' + p; try { FS.mkdir(cur); } catch(e) {} }
 }
 
 async function resolveIncludes(Module, shaderText, shaderDir, loaded = new Set()) {
-  const includeRe = /^\s*#include\s+"([^"]+)"/gm;
-  let match;
-  while ((match = includeRe.exec(shaderText)) !== null) {
-    const relPath = match[1];
-    const parts = (shaderDir + '/' + relPath).split('/');
+  const re = /^\s*#include\s+"([^"]+)"/gm;
+  let m;
+  while ((m = re.exec(shaderText)) !== null) {
+    const parts = (shaderDir + '/' + m[1]).split('/');
     const resolved = [];
     for (const p of parts) {
       if (p === '..') { if (resolved.length) resolved.pop(); }
       else if (p !== '.' && p !== '') resolved.push(p);
     }
-    const includePath = resolved.join('/');
-    if (loaded.has(includePath)) continue;
-    loaded.add(includePath);
+    const inc = resolved.join('/');
+    if (loaded.has(inc)) continue;
+    loaded.add(inc);
 
-    let url;
-    if (includePath.startsWith('shaders/')) {
-      url = `${SHADER_BASE}/${includePath}`;
-    } else {
-      url = `../public/${includePath}`;
-    }
-
+    const url = inc.startsWith('shaders/') ? `${SHADER_BASE}/${inc}` : `../public/${inc}`;
     let text;
-    try { text = await fetchText(url); } catch (e) { continue; }
+    try { text = await fetchText(url); } catch(e) { continue; }
 
-    const memfsPath = includePath.startsWith('shaders/')
-      ? `/preset/${includePath}`
-      : `/${includePath}`;
-    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
-    Module.FS.writeFile(memfsPath, text);
-
-    const includeDir = includePath.substring(0, includePath.lastIndexOf('/'));
-    await resolveIncludes(Module, text, includeDir, loaded);
+    const mp = inc.startsWith('shaders/') ? `/preset/${inc}` : `/${inc}`;
+    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
+    Module.FS.writeFile(mp, text);
+    await resolveIncludes(Module, text, inc.substring(0, inc.lastIndexOf('/')), loaded);
   }
 }
 
 async function decodeImageToRaw(url) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = reject;
-    img.src = url + '?t=' + Date.now();
-  });
+  await new Promise((ok, err) => { img.onload = ok; img.onerror = err; img.src = url + '?t=' + Date.now(); });
   const c = document.createElement('canvas');
   c.width = img.width; c.height = img.height;
   const ctx = c.getContext('2d');
   ctx.drawImage(img, 0, 0);
   const rgba = ctx.getImageData(0, 0, img.width, img.height).data;
-  const header = new Uint32Array([img.width, img.height]);
+  const hdr = new Uint32Array([img.width, img.height]);
   const raw = new Uint8Array(8 + rgba.length);
-  raw.set(new Uint8Array(header.buffer), 0);
+  raw.set(new Uint8Array(hdr.buffer), 0);
   raw.set(rgba, 8);
   return raw;
 }
 
-function resolveUrl(base, relPath) {
-  const parts = (base + '/' + relPath).split('/');
-  const resolved = [];
-  for (const p of parts) {
-    if (p === '..') resolved.pop();
-    else if (p !== '.' && p !== '') resolved.push(p);
-  }
-  return resolved.join('/');
+function resolveUrl(base, rel) {
+  const parts = (base + '/' + rel).split('/');
+  const r = [];
+  for (const p of parts) { if (p === '..') r.pop(); else if (p !== '.' && p !== '') r.push(p); }
+  return r.join('/');
 }
 
-async function loadPresetToMemfs(Module, presetName) {
-  const presetUrl = `${SHADER_BASE}/${presetName}.slangp`;
-  const presetText = await fetchText(presetUrl);
+async function loadPreset(Module, presetName) {
+  const presetText = await fetchText(`${SHADER_BASE}/${presetName}.slangp`);
 
   const shaderPaths = [];
   for (const line of presetText.split('\n')) {
@@ -174,161 +211,163 @@ async function loadPresetToMemfs(Module, presetName) {
   for (const line of presetText.split('\n')) {
     const pm = line.match(/^(\w+)\s*=\s*(.+\.(png|jpg|bmp))\s*$/i);
     if (pm) {
-      let texPath = pm[2].trim();
-      if (texPath.startsWith('../') || texPath.startsWith('./')) {
-        const parts = texPath.split('/');
-        const resolved = [];
-        for (const p of parts) {
-          if (p === '..') resolved.pop();
-          else if (p !== '.') resolved.push(p);
-        }
-        texPath = resolved.join('/');
+      let tp = pm[2].trim();
+      if (tp.startsWith('../') || tp.startsWith('./')) {
+        const pts = tp.split('/'), res = [];
+        for (const p of pts) { if (p === '..') res.pop(); else if (p !== '.') res.push(p); }
+        tp = res.join('/');
       }
-      texturePaths[pm[1]] = texPath;
+      texturePaths[pm[1]] = tp;
     }
   }
 
-  const totalSteps = shaderPaths.length + Object.keys(texturePaths).length + 1;
+  const total = shaderPaths.length + Object.keys(texturePaths).length + 1;
   let step = 0;
 
-  // -- Shaders --
   progress(0, 'Loading shaders...', `0 / ${shaderPaths.length}`);
-  const loadedIncludes = new Set();
+  const loadedInc = new Set();
   for (const sp of shaderPaths) {
-    const resolvedPath = resolveUrl('', sp);
-    const shaderUrl = sp.startsWith('../')
-      ? `${SHADER_ROOT}/${resolvedPath}`
-      : `${SHADER_BASE}/${resolvedPath}`;
-    const shaderText = await fetchText(shaderUrl);
-    const memfsPath = `/preset/${resolvedPath}`;
-    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
-    Module.FS.writeFile(memfsPath, shaderText);
-
-    const shaderDir = sp.substring(0, sp.lastIndexOf('/'));
-    await resolveIncludes(Module, shaderText, shaderDir, loadedIncludes);
-
+    const rp = resolveUrl('', sp);
+    const url = sp.startsWith('../') ? `${SHADER_ROOT}/${rp}` : `${SHADER_BASE}/${rp}`;
+    const text = await fetchText(url);
+    const mp = `/preset/${rp}`;
+    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
+    Module.FS.writeFile(mp, text);
+    await resolveIncludes(Module, text, sp.substring(0, sp.lastIndexOf('/')), loadedInc);
     step++;
-    const name = resolvedPath.split('/').pop();
-    progress((step / totalSteps) * 80, 'Loading shaders...', `${step} / ${shaderPaths.length}: ${name}`);
-    await new Promise(r => setTimeout(r, 0)); // yield to repaint
-  }
-
-  // -- Textures --
-  const texEntries = Object.entries(texturePaths);
-  const uniqueTexPaths = [...new Set(texEntries.map(e => e[1]))];
-  const texCache = {};
-
-  progress((step / totalSteps) * 80, 'Decoding textures...', `0 / ${uniqueTexPaths.length}`);
-  for (let ti = 0; ti < uniqueTexPaths.length; ti++) {
-    const path = uniqueTexPaths[ti];
-    const imgUrl = `${SHADER_BASE}/${path}`;
-    const rawData = await decodeImageToRaw(imgUrl);
-    const memfsPath = `/preset/${path}`;
-    const rawMemfsPath = memfsPath + '.raw';
-    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
-    Module.FS.writeFile(rawMemfsPath, rawData);
-    texCache[path] = true;
-
-    const name = path.split('/').pop();
-    const w = new DataView(rawData.buffer).getUint32(0, true);
-    const h = new DataView(rawData.buffer).getUint32(4, true);
-    step++;
-    progress(
-      ((shaderPaths.length + ti + 1) / totalSteps) * 80,
-      'Decoding textures...',
-      `${ti + 1} / ${uniqueTexPaths.length}: ${name} (${w}x${h})`
-    );
+    progress((step / total) * 80, 'Loading shaders...', `${step} / ${shaderPaths.length}: ${rp.split('/').pop()}`);
     await new Promise(r => setTimeout(r, 0));
   }
 
-  // -- Write preset --
-  let memfsPreset = presetText.replace(/^(shader\d+\s*=\s*)(.+)$/gm, (_, prefix, path) => {
-    return `${prefix}/preset/${resolveUrl('', path.trim())}`;
-  });
-  for (const [id, path] of texEntries) {
-    const re = new RegExp(`^(${id}\\s*=\\s*)(.+)$`, 'gm');
-    memfsPreset = memfsPreset.replace(re, `${id} = /preset/${path}`);
+  const texEntries = Object.entries(texturePaths);
+  const uniq = [...new Set(texEntries.map(e => e[1]))];
+  progress((step / total) * 80, 'Decoding textures...', `0 / ${uniq.length}`);
+  for (let i = 0; i < uniq.length; i++) {
+    const path = uniq[i];
+    const raw = await decodeImageToRaw(`${SHADER_BASE}/${path}`);
+    const mp = `/preset/${path}`;
+    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
+    Module.FS.writeFile(mp + '.raw', raw);
+    step++;
+    const w = new DataView(raw.buffer).getUint32(0, true);
+    const h = new DataView(raw.buffer).getUint32(4, true);
+    progress(((shaderPaths.length + i + 1) / total) * 80, 'Decoding textures...', `${i+1} / ${uniq.length}: ${path.split('/').pop()} (${w}x${h})`);
+    await new Promise(r => setTimeout(r, 0));
   }
-  Module.FS.writeFile('/preset/current.slangp', memfsPreset);
 
+  let mp = presetText.replace(/^(shader\d+\s*=\s*)(.+)$/gm, (_, pfx, p) => `${pfx}/preset/${resolveUrl('', p.trim())}`);
+  for (const [id, path] of texEntries) {
+    mp = mp.replace(new RegExp(`^(${id}\\s*=\\s*)(.+)$`, 'gm'), `${id} = /preset/${path}`);
+  }
+  Module.FS.writeFile('/preset/current.slangp', mp);
   return '/preset/current.slangp';
 }
 
-(async function () {
-  try {
-    // -- WASM --
-    progress(0, 'Loading WASM module...');
-    const canvas = document.getElementById('output');
+// --- Main ---
+let Module, mbz, heapPtr, inputPixels, running = false;
 
-    const Module = await MegaBezelModule({
-      canvas: canvas,
-      locateFile: (path) => {
-        if (path.endsWith('.wasm')) return '../dist/wasm/mega-bezel.wasm';
-        return path;
+const api = {};
+function bindApi() {
+  api.initGL        = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
+  api.init          = Module.cwrap('mbz_init', 'number', []);
+  api.create        = Module.cwrap('mbz_renderer_create', 'number', ['string']);
+  api.upload        = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
+  api.render        = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
+  api.destroy       = Module.cwrap('mbz_renderer_destroy', 'void', []);
+  api.getHeap       = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
+}
+
+function createTestPattern() {
+  const w = 256, h = 224;
+  const px = new Uint8Array(w * h * 4);
+  const bars = [[255,255,255],[255,255,0],[0,255,255],[0,255,0],[255,0,255],[255,0,0],[0,0,255]];
+  const bw = Math.floor(w / bars.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (y < h / 2) {
+        const bar = bars[Math.min(Math.floor(x / bw), bars.length - 1)];
+        px[i] = bar[0]; px[i+1] = bar[1]; px[i+2] = bar[2];
+      } else {
+        const on = ((Math.floor(x / 16) + Math.floor(y / 16)) % 2) === 0;
+        const v = on ? 26 : 230;
+        px[i] = v; px[i+1] = v; px[i+2] = v;
       }
-    });
-    progress(5, 'WASM loaded');
-
-    const mbz_renderer_init_gl     = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
-    const mbz_init                 = Module.cwrap('mbz_init', 'number', []);
-    const mbz_renderer_create      = Module.cwrap('mbz_renderer_create', 'number', ['string']);
-    const mbz_renderer_upload_frame = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
-    const mbz_renderer_render      = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
-    const mbz_renderer_get_heap_ptr = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
-    const mbz_renderer_read_pixel  = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
-
-    mbz_renderer_init_gl('#output');
-    mbz_init();
-    progress(8, 'GL + bridge ready');
-
-    // -- Load preset assets --
-    const presetPath = await loadPresetToMemfs(Module, PRESET_NAME);
-
-    // -- Compile --
-    progress(82, 'Compiling 36-pass shader pipeline...');
-    await new Promise(r => setTimeout(r, 0));
-    const createOk = mbz_renderer_create(presetPath);
-    if (!createOk) {
-      progress(82, 'Compilation failed', 'Check console for details');
-      log('err', '[ERROR] Renderer creation failed');
-      return;
+      px[i+3] = 255;
     }
-    progress(95, 'Pipeline compiled');
-    log('ok', '[OK] 36-pass pipeline compiled');
-
-    // -- Upload test frame --
-    const inputW = 256, inputH = 224;
-    const inputPixels = new Uint8Array(inputW * inputH * 4);
-    for (let y = 0; y < inputH; y++) {
-      for (let x = 0; x < inputW; x++) {
-        const i = (y * inputW + x) * 4;
-        inputPixels[i + 0] = Math.floor(x / inputW * 255);
-        inputPixels[i + 1] = Math.floor(y / inputH * 255);
-        inputPixels[i + 2] = 64;
-        inputPixels[i + 3] = 255;
-      }
-    }
-    const heapPtr = mbz_renderer_get_heap_ptr(inputPixels.byteLength);
-    Module.HEAPU8.set(inputPixels, heapPtr);
-    mbz_renderer_upload_frame(heapPtr, inputW, inputH);
-
-    progress(100, 'Rendering...');
-    await new Promise(r => setTimeout(r, 200));
-    hideOverlay();
-    log('ok', '[OK] Render loop started');
-
-    // -- Render loop --
-    function loop() {
-      mbz_renderer_render(canvas.width, canvas.height);
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-
-  } catch (e) {
-    progress(0, 'Error', e.message);
-    log('err', `[ERROR] ${e.message}\n${e.stack}`);
   }
-})();
-  </script>
+  return { pixels: px, w, h };
+}
+
+async function loadAndStart(presetName) {
+  const canvas = document.getElementById('output');
+  running = false;
+  showOverlay();
+
+  if (!Module) {
+    progress(0, 'Loading WASM module...');
+    Module = await MegaBezelModule({
+      canvas,
+      locateFile: (p) => p.endsWith('.wasm') ? '../dist/wasm/mega-bezel.wasm' : p
+    });
+    bindApi();
+    api.initGL('#output');
+    api.init();
+    progress(8, 'GL ready');
+    log('ok', 'WASM + GL initialized');
+  } else {
+    api.destroy();
+    progress(8, 'Switching preset...');
+  }
+
+  const path = await loadPreset(Module, presetName);
+
+  progress(82, `Compiling shader pipeline...`);
+  await new Promise(r => setTimeout(r, 0));
+  const ok = api.create(path);
+  if (!ok) {
+    progress(82, 'Compilation failed', 'Check console');
+    log('err', 'Renderer creation failed');
+    return;
+  }
+  log('ok', `Pipeline compiled: ${presetName}`);
+
+  if (!inputPixels) {
+    const tp = createTestPattern();
+    inputPixels = tp.pixels;
+    heapPtr = api.getHeap(inputPixels.byteLength);
+    Module.HEAPU8.set(inputPixels, heapPtr);
+    api.upload(heapPtr, tp.w, tp.h);
+  }
+
+  progress(100, 'Rendering...');
+  await new Promise(r => setTimeout(r, 150));
+  hideOverlay();
+
+  running = true;
+  function loop() {
+    if (!running) return;
+    api.render(canvas.width, canvas.height);
+    updateFps();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+// --- Controls ---
+document.getElementById('ctl-preset').addEventListener('change', (e) => {
+  log('info', `Switching to ${e.target.value}...`);
+  loadAndStart(e.target.value);
+});
+
+document.getElementById('ctl-pass').addEventListener('change', (e) => {
+  // HSM_SHOW_PASS_INDEX is read from the preset parameters at render time.
+  // For now we log it -- runtime parameter injection needs a bridge function.
+  log('info', `Pass view: ${e.target.selectedOptions[0].text} (requires runtime parameter support)`);
+});
+
+// --- Boot ---
+loadAndStart(document.getElementById('ctl-preset').value);
+</script>
 </body>
 </html>
