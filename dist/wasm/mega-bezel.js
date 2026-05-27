@@ -5926,6 +5926,7 @@ var _mbz_renderer_init_gl = Module['_mbz_renderer_init_gl'] = makeInvalidEarlyAc
 var _mbz_renderer_create = Module['_mbz_renderer_create'] = makeInvalidEarlyAccess('_mbz_renderer_create');
 var _mbz_renderer_upload_frame = Module['_mbz_renderer_upload_frame'] = makeInvalidEarlyAccess('_mbz_renderer_upload_frame');
 var _mbz_renderer_render = Module['_mbz_renderer_render'] = makeInvalidEarlyAccess('_mbz_renderer_render');
+var _mbz_renderer_set_parameter = Module['_mbz_renderer_set_parameter'] = makeInvalidEarlyAccess('_mbz_renderer_set_parameter');
 var _mbz_renderer_set_frame_count = Module['_mbz_renderer_set_frame_count'] = makeInvalidEarlyAccess('_mbz_renderer_set_frame_count');
 var _mbz_renderer_destroy = Module['_mbz_renderer_destroy'] = makeInvalidEarlyAccess('_mbz_renderer_destroy');
 var _mbz_renderer_read_pixel = Module['_mbz_renderer_read_pixel'] = makeInvalidEarlyAccess('_mbz_renderer_read_pixel');
@@ -5971,6 +5972,7 @@ function assignWasmExports(wasmExports) {
   _mbz_renderer_create = Module['_mbz_renderer_create'] = createExportWrapper('mbz_renderer_create', 1);
   _mbz_renderer_upload_frame = Module['_mbz_renderer_upload_frame'] = createExportWrapper('mbz_renderer_upload_frame', 3);
   _mbz_renderer_render = Module['_mbz_renderer_render'] = createExportWrapper('mbz_renderer_render', 2);
+  _mbz_renderer_set_parameter = Module['_mbz_renderer_set_parameter'] = createExportWrapper('mbz_renderer_set_parameter', 2);
   _mbz_renderer_set_frame_count = Module['_mbz_renderer_set_frame_count'] = createExportWrapper('mbz_renderer_set_frame_count', 1);
   _mbz_renderer_destroy = Module['_mbz_renderer_destroy'] = createExportWrapper('mbz_renderer_destroy', 0);
   _mbz_renderer_read_pixel = Module['_mbz_renderer_read_pixel'] = createExportWrapper('mbz_renderer_read_pixel', 2);

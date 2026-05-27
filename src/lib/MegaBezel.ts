@@ -67,6 +67,11 @@ export class MegaBezel {
     this.bridge.rendererRender(this.canvas.width, this.canvas.height)
   }
 
+  setParameter(name: string, value: number): boolean {
+    if (!this.bridge) return false
+    return this.bridge.rendererSetParameter(name, value)
+  }
+
   getPresetInfo(): PresetInfo | null {
     return this.presetInfo
   }

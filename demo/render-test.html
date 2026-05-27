@@ -275,6 +275,7 @@ function bindApi() {
   api.render        = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
   api.destroy       = Module.cwrap('mbz_renderer_destroy', 'void', []);
   api.getHeap       = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
+  api.setParam      = Module.cwrap('mbz_renderer_set_parameter', 'number', ['string', 'number']);
 }
 
 function createTestPattern() {
@@ -361,9 +362,10 @@ document.getElementById('ctl-preset').addEventListener('change', (e) => {
 });
 
 document.getElementById('ctl-pass').addEventListener('change', (e) => {
-  // HSM_SHOW_PASS_INDEX is read from the preset parameters at render time.
-  // For now we log it -- runtime parameter injection needs a bridge function.
-  log('info', `Pass view: ${e.target.selectedOptions[0].text} (requires runtime parameter support)`);
+  if (!api.setParam) return;
+  const val = parseInt(e.target.value);
+  api.setParam('HSM_SHOW_PASS_INDEX', val);
+  log('info', `Pass view: ${e.target.selectedOptions[0].text}`);
 });
 
 // --- Boot ---

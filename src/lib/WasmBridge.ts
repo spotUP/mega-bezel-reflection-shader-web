@@ -41,6 +41,7 @@ export class WasmBridge {
 
     this.wrap('mbz_renderer_init_gl', 'number', ['string'])
     this.wrap('mbz_renderer_create', 'number', ['string'])
+    this.wrap('mbz_renderer_set_parameter', 'number', ['string', 'number'])
     this.wrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number'])
     this.wrap('mbz_renderer_render', 'void', ['number', 'number'])
     this.wrap('mbz_renderer_set_frame_count', 'void', ['number'])
@@ -103,6 +104,10 @@ export class WasmBridge {
 
   rendererInitGL(selector: string): boolean {
     return this.call('mbz_renderer_init_gl', selector) === 1
+  }
+
+  rendererSetParameter(name: string, value: number): boolean {
+    return this.call('mbz_renderer_set_parameter', name, value) === 1
   }
 
   rendererCreate(memfsPresetPath: string): boolean {

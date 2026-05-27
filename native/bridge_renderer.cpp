@@ -131,6 +131,22 @@ void mbz_renderer_render(int viewport_width, int viewport_height) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+int mbz_renderer_set_parameter(const char *name, float value) {
+    if (!g_chain || !name)
+        return 0;
+    struct video_shader *preset = gl3_filter_chain_get_preset(g_chain);
+    if (!preset)
+        return 0;
+    for (unsigned i = 0; i < preset->num_parameters; i++) {
+        if (strcmp(preset->parameters[i].id, name) == 0) {
+            preset->parameters[i].current = value;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
 void mbz_renderer_set_frame_count(uint32_t count) {
     g_frame_count = count;
 }
