@@ -10,14 +10,25 @@ CRT scanlines, phosphor mask, barrel curvature, bloom, monitor bezel frame with 
 # Install dependencies
 npm install
 
-# Build the WASM module (requires Emscripten SDK)
-cd build && emmake make -j4 && cd ..
-
-# Start the dev server
-npm run dev
+# Serve the demo (WASM binaries included -- no build step needed)
+python3 -m http.server 8095
 ```
 
-Open `http://localhost:5173` for the React app, or `http://localhost:8095/demo/render-test.html` for the standalone demo (run `python3 -m http.server 8095` from the project root).
+Open `http://localhost:8095/demo/render-test.html`. Press **Tab** to open the parameter OSD.
+
+For the React app: `npm run dev` then open `http://localhost:5173`.
+
+## Demo Controls
+
+| Key | Action |
+|-----|--------|
+| Tab | Toggle OSD parameter panel |
+| Up / Down | Navigate parameters |
+| Left / Right | Adjust value (Shift for 10x) |
+| R | Reset parameter to default |
+| PageUp / PageDown | Switch OSD tab |
+
+The HUD has a quality tier selector (Full 36-pass / Medium 3-pass / Low 2-pass) and FPS counter.
 
 ## Using in Your Project
 
@@ -244,20 +255,40 @@ The `MBZ__3__STD__GDV-local.slangp` preset is the full 36-pass Standard GDV pipe
 | `crt-simple.slangp` | 2 | Scanlines, curvature, bloom |
 | `ultra-simple-bezel.slangp` | 1 | Game + frame texture overlay |
 
-## Preset Parameters
+## Runtime Parameters
 
-The mega-bezel has hundreds of tunable parameters. Set them in the `.slangp` file:
+The mega-bezel exposes ~1000 tunable parameters. Adjust them at runtime via the OSD (press Tab in the demo) or programmatically:
+
+```typescript
+// Set a parameter by name
+mb.setParameter('HSM_CRT_CURVATURE_SCALE', 0.5)
+mb.setParameter('post_br', 1.5)  // post-CRT brightness
+mb.setParameter('HSM_GLOBAL_GRAPHICS_BRIGHTNESS', 120)
+```
+
+Or set defaults in the `.slangp` preset file:
 
 ```ini
-# Disable intro animation for instant startup
 HSM_INTRO_WHEN_TO_SHOW = 0
-
-# Show full composite output
 HSM_SHOW_PASS_INDEX = 0
-
-# CRT curvature strength (0 = flat, default ~1)
 HSM_CRT_CURVATURE_SCALE = 1.0
 ```
+
+## Performance Tiers
+
+For lower-end hardware, switch to a lighter preset:
+
+| Tier | Preset | Passes | GPU Load |
+|------|--------|--------|----------|
+| Full | `MBZ__3__STD__GDV-local` | 36 | Heavy -- dedicated GPU recommended |
+| Medium | `crt-with-frame` | 3 | Moderate -- most integrated GPUs |
+| Low | `crt-simple` | 2 | Light -- works on mobile |
+
+The demo includes a live tier switcher in the HUD. In code, just call `loadPreset()` with a different preset path.
+
+## CI
+
+GitHub Actions automatically rebuilds the WASM binaries when `native/` or `build/` files change on push to main. The built artifacts are committed back to `dist/wasm/`.
 
 ## Credits
 
