@@ -12,8 +12,30 @@ static GLuint g_input_texture = 0;
 static unsigned g_input_width = 0;
 static unsigned g_input_height = 0;
 static uint64_t g_frame_count = 0;
+static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE g_gl_context = 0;
 
 extern "C" {
+
+EMSCRIPTEN_KEEPALIVE
+int mbz_renderer_init_gl(const char *canvas_selector) {
+    EmscriptenWebGLContextAttributes attrs;
+    emscripten_webgl_init_context_attributes(&attrs);
+    attrs.majorVersion = 2;
+    attrs.minorVersion = 0;
+    attrs.alpha = 0;
+    attrs.antialias = 0;
+    attrs.premultipliedAlpha = 0;
+    attrs.preserveDrawingBuffer = 1;
+
+    g_gl_context = emscripten_webgl_create_context(canvas_selector, &attrs);
+    if (g_gl_context <= 0) {
+        fprintf(stderr, "[MBZ] Failed to create WebGL2 context on %s (err=%d)\n",
+                canvas_selector, (int)g_gl_context);
+        return 0;
+    }
+    emscripten_webgl_make_context_current(g_gl_context);
+    return 1;
+}
 
 EMSCRIPTEN_KEEPALIVE
 int mbz_renderer_create(const char *preset_path) {
@@ -89,10 +111,10 @@ void mbz_renderer_render(int viewport_width, int viewport_height) {
     gl3_filter_chain_build_offscreen_passes(g_chain, &vp);
 
     static const float identity_mvp[16] = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f,
+         2.0f,  0.0f, 0.0f, 0.0f,
+         0.0f,  2.0f, 0.0f, 0.0f,
+         0.0f,  0.0f, 2.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f, 1.0f,
     };
     gl3_filter_chain_build_viewport_pass(g_chain, &vp, identity_mvp);
     gl3_filter_chain_end_frame(g_chain);
@@ -118,6 +140,14 @@ void mbz_renderer_destroy(void) {
     g_input_width = 0;
     g_input_height = 0;
     g_frame_count = 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+uint32_t mbz_renderer_read_pixel(int x, int y) {
+    uint8_t pixel[4] = {0};
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+    return pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24);
 }
 
 EMSCRIPTEN_KEEPALIVE

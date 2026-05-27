@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mega-bezel-wasm: render test</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
+    canvas { border: 1px solid #333; display: block; margin: 1rem 0; }
+    #log { padding: 1rem; background: #16213e; border-radius: 4px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-size: 12px; }
+    .ok { color: #0f0; }
+    .err { color: #f44; }
+    .info { color: #4af; }
+  </style>
+</head>
+<body>
+  <h1>mega-bezel-wasm: render test</h1>
+  <canvas id="output" width="640" height="480"></canvas>
+  <div id="log"></div>
+  <script src="../dist/wasm/mega-bezel.js"></script>
+  <script>
+const SIMPLE_SHADER = `#version 450
+
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+	mat4 MVP;
+} global;
+
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+
+void main()
+{
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
+
+void main()
+{
+   FragColor = vec4(texture(Source, vTexCoord).rgb, 1.0);
+}
+`;
+
+const SIMPLE_PRESET = `shaders = 1
+
+shader0 = /shaders/test.slang
+filter_linear0 = true
+scale_type0 = viewport
+scale0 = 1.0
+`;
+
+const el = document.getElementById('log');
+const log = (cls, msg) => { el.innerHTML += `<span class="${cls}">${msg}</span>\n`; el.scrollTop = el.scrollHeight; };
+
+(async function () {
+  try {
+    log('info', 'Loading WASM module...');
+    const canvas = document.getElementById('output');
+
+    const Module = await MegaBezelModule({
+      locateFile: (path) => {
+        if (path.endsWith('.wasm')) return '../dist/wasm/mega-bezel.wasm';
+        return path;
+      }
+    });
+    log('ok', '[OK] WASM module loaded');
+
+    const mbz_renderer_init_gl = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
+    const glOk = mbz_renderer_init_gl('#output');
+    log(glOk ? 'ok' : 'err', `[${glOk ? 'OK' : 'FAIL'}] WebGL2 context init = ${glOk}`);
+
+    const mbz_init = Module.cwrap('mbz_init', 'number', []);
+    const mbz_load_preset = Module.cwrap('mbz_load_preset', 'number', ['string']);
+    const mbz_get_pass_count = Module.cwrap('mbz_get_pass_count', 'number', []);
+    const mbz_get_pass_source_path = Module.cwrap('mbz_get_pass_source_path', 'string', ['number']);
+    const mbz_renderer_create = Module.cwrap('mbz_renderer_create', 'number', ['string']);
+    const mbz_renderer_upload_frame = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
+    const mbz_renderer_render = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
+    const mbz_renderer_destroy = Module.cwrap('mbz_renderer_destroy', 'void', []);
+
+    mbz_init();
+    log('ok', '[OK] mbz_init()');
+
+    // Write shader and preset to MEMFS
+    Module.FS.mkdir('/shaders');
+    Module.FS.writeFile('/shaders/test.slang', SIMPLE_SHADER);
+    Module.FS.writeFile('/test.slangp', SIMPLE_PRESET);
+    log('info', '[INFO] Wrote shader + preset to MEMFS');
+
+    // Parse preset first to verify
+    const parseOk = mbz_load_preset('/test.slangp');
+    log(parseOk ? 'ok' : 'err', `[${parseOk ? 'OK' : 'FAIL'}] mbz_load_preset = ${parseOk}`);
+    log('info', `[INFO] passes=${mbz_get_pass_count()}, path[0]=${mbz_get_pass_source_path(0)}`);
+
+    // Create renderer from preset
+    log('info', '[INFO] Creating renderer...');
+    const createOk = mbz_renderer_create('/test.slangp');
+    log(createOk ? 'ok' : 'err', `[${createOk ? 'OK' : 'FAIL'}] mbz_renderer_create = ${createOk}`);
+
+    if (!createOk) {
+      log('err', '[ERROR] Renderer creation failed - check console for details');
+      return;
+    }
+
+    // Create a test input image (red/green gradient)
+    const inputW = 256;
+    const inputH = 224;
+    const inputPixels = new Uint8Array(inputW * inputH * 4);
+    for (let y = 0; y < inputH; y++) {
+      for (let x = 0; x < inputW; x++) {
+        const i = (y * inputW + x) * 4;
+        inputPixels[i + 0] = Math.floor(x / inputW * 255);  // R
+        inputPixels[i + 1] = Math.floor(y / inputH * 255);  // G
+        inputPixels[i + 2] = 64;                              // B
+        inputPixels[i + 3] = 255;                             // A
+      }
+    }
+
+    // Upload frame - allocate on WASM heap via bridge helpers
+    const mbz_renderer_get_heap_ptr = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
+    const mbz_renderer_free_ptr = Module.cwrap('mbz_renderer_free_ptr', 'void', ['number']);
+    const ptr = mbz_renderer_get_heap_ptr(inputPixels.byteLength);
+    Module.HEAPU8.set(inputPixels, ptr);
+    const uploadOk = mbz_renderer_upload_frame(ptr, inputW, inputH);
+    mbz_renderer_free_ptr(ptr);
+    log(uploadOk ? 'ok' : 'err', `[${uploadOk ? 'OK' : 'FAIL'}] upload frame ${inputW}x${inputH}`);
+
+    // Render
+    log('info', '[INFO] Rendering...');
+    mbz_renderer_render(canvas.width, canvas.height);
+    log('ok', '[OK] Render complete');
+
+    // Read back pixels via C-side GL readback
+    const mbz_renderer_read_pixel = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
+    const cx = Math.floor(canvas.width / 2);
+    const cy = Math.floor(canvas.height / 2);
+    const centerPixel = mbz_renderer_read_pixel(cx, cy);
+    const r = centerPixel & 0xFF;
+    const g = (centerPixel >> 8) & 0xFF;
+    const b = (centerPixel >> 16) & 0xFF;
+    const a = (centerPixel >> 24) & 0xFF;
+    log('info', `[INFO] Center pixel (${cx},${cy}): R=${r} G=${g} B=${b} A=${a}`);
+
+    const cornerPixel = mbz_renderer_read_pixel(10, 10);
+    const cr = cornerPixel & 0xFF;
+    const cg = (cornerPixel >> 8) & 0xFF;
+    const cb = (cornerPixel >> 16) & 0xFF;
+    log('info', `[INFO] Corner pixel (10,10): R=${cr} G=${cg} B=${cb}`);
+
+    const isBlack = r === 0 && g === 0 && b === 0 && cr === 0 && cg === 0 && cb === 0;
+    if (!isBlack) {
+      log('ok', '[PASS] Output has visible content');
+    } else {
+      log('err', '[FAIL] Output is black - rendering may have failed');
+    }
+
+  } catch (e) {
+    log('err', `[ERROR] ${e.message}\n${e.stack}`);
+  }
+})();
+  </script>
+</body>
+</html>
