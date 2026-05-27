@@ -4,7 +4,7 @@ The full [Mega Bezel Reflection Shader](https://forums.libretro.com/t/hsm-mega-b
 
 CRT scanlines, phosphor mask, barrel curvature, bloom, monitor bezel frame with textures, screen reflections, night lighting -- the whole thing.
 
-![Mega Bezel running in the browser](docs/screenshot.png)
+![Mega Bezel running in the browser](https://raw.githubusercontent.com/spotUP/mega-bezel-reflection-shader-web/main/docs/screenshot.png)
 
 ## Quick Start
 
