@@ -1,62 +1,40 @@
 {
-  "name": "@retroranks/mega-bezel-reflection-shader",
+  "name": "mega-bezel-reflection-shader-web",
   "private": false,
-  "version": "0.1.0",
-  "description": "Mega Bezel reflection shader pipeline for WebGL2 with a Vite demo.",
+  "version": "1.0.0",
+  "description": "Full Mega Bezel Reflection Shader running in the browser via WASM + WebGL2",
   "homepage": "https://github.com/spotUP/mega-bezel-reflection-shader-web",
   "repository": {
     "type": "git",
     "url": "https://github.com/spotUP/mega-bezel-reflection-shader-web"
   },
   "keywords": [
-    "arcade",
-    "games",
-    "highscore",
-    "tournament",
+    "crt",
+    "shader",
+    "mega-bezel",
+    "webgl2",
+    "wasm",
     "retro",
-    "gaming",
-    "leaderboard",
-    "competition"
+    "emulator",
+    "retroarch"
   ],
-  "author": "RetroRanks Team",
-  "license": "MIT",
+  "author": "spotUP",
+  "license": "GPL-2.0-or-later",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "build:lib": "tsc -p tsconfig.build.json",
-    "copy-assets": "node scripts/copy-shader-assets.js",
-    "prepare": "npm run build:lib"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "puppeteer": "^24.34.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "three": "^0.180.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/jsdom": "^27.0.0",
-    "@types/node": "^22.18.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/three": "^0.180.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
-    "jsdom": "^27.4.0",
     "typescript": "^5.9.2",
     "vite": "^5.4.1"
-  },
-  "main": "dist/lib/index.js",
-  "types": "dist/lib/index.d.ts",
-  "files": [
-    "dist",
-    "assets/shaders"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/lib/index.d.ts",
-      "import": "./dist/lib/index.js"
-    }
   }
 }
