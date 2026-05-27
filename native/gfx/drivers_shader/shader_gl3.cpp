@@ -283,6 +283,10 @@ GLuint gl3_cross_compile_program(
 
       auto vertex_source     = vertex_compiler.compile();
       auto fragment_source   = fragment_compiler.compile();
+#ifdef MBZ_STANDALONE
+      fprintf(stderr, "[MBZ DBG] Cross-compiled VS:\n%s\n", vertex_source.c_str());
+      fprintf(stderr, "[MBZ DBG] Cross-compiled FS:\n%s\n", fragment_source.c_str());
+#endif
       GLuint vertex_shader   = gl3_compile_shader(GL_VERTEX_SHADER, vertex_source.c_str());
       GLuint fragment_shader = gl3_compile_shader(GL_FRAGMENT_SHADER, fragment_source.c_str());
 
@@ -353,6 +357,12 @@ GLuint gl3_cross_compile_program(
          {
             loc->buffer_index_ubo_vertex   = glGetUniformBlockIndex(program, "RARCH_UBO_VERTEX");
             loc->buffer_index_ubo_fragment = glGetUniformBlockIndex(program, "RARCH_UBO_FRAGMENT");
+#ifdef MBZ_STANDALONE
+            if (loc->buffer_index_ubo_vertex != GL_INVALID_INDEX)
+               glUniformBlockBinding(program, loc->buffer_index_ubo_vertex, loc->buffer_index_ubo_vertex);
+            if (loc->buffer_index_ubo_fragment != GL_INVALID_INDEX)
+               glUniformBlockBinding(program, loc->buffer_index_ubo_fragment, loc->buffer_index_ubo_fragment);
+#endif
          }
       }
 
@@ -362,6 +372,10 @@ GLuint gl3_cross_compile_program(
          char loc_buf[64];
          snprintf(loc_buf, sizeof(loc_buf), "RARCH_TEXTURE_%d", binding);
          GLint location = glGetUniformLocation(program, loc_buf);
+#ifdef MBZ_STANDALONE
+         fprintf(stderr, "[MBZ DBG] tex fixup: %s -> loc=%d binding=%u\n",
+            loc_buf, location, binding);
+#endif
          if (location >= 0)
             glUniform1i(location, binding);
       }
@@ -1084,10 +1098,17 @@ void Pass::reflect_parameter_array(const char *name, std::vector<slang_texture_s
 
 bool Pass::init_pipeline()
 {
+#ifdef MBZ_STANDALONE
+   pipeline = gl3_cross_compile_program(
+         vertex_shader.data(),   vertex_shader.size()   * sizeof(uint32_t),
+         fragment_shader.data(), fragment_shader.size() * sizeof(uint32_t),
+         &locations, true);
+#else
    pipeline = gl3_cross_compile_program(
          vertex_shader.data(),   vertex_shader.size()   * sizeof(uint32_t),
          fragment_shader.data(), fragment_shader.size() * sizeof(uint32_t),
          &locations, false);
+#endif
 
    if (!pipeline)
       return false;
@@ -1508,9 +1529,20 @@ void Pass::add_parameter(unsigned index, const std::string &id)
 void Pass::set_semantic_texture(slang_texture_semantic semantic,
       const Texture &texture)
 {
+#ifdef MBZ_STANDALONE
+   fprintf(stderr, "[MBZ DBG] set_semantic_texture sem=%d tex=%u %ux%u reflected=%d\n",
+      semantic, texture.texture.image, texture.texture.width, texture.texture.height,
+      (int)(semantic < SLANG_NUM_TEXTURE_SEMANTICS &&
+            reflection.semantic_textures[semantic].size() > 0 ?
+            reflection.semantic_textures[semantic][0].texture : 0));
+#endif
    if (reflection.semantic_textures[semantic][0].texture)
    {
       unsigned binding = reflection.semantic_textures[semantic][0].binding;
+#ifdef MBZ_STANDALONE
+      fprintf(stderr, "[MBZ DBG] BIND tex=%u to unit=%u (sem=%d)\n",
+         texture.texture.image, binding, semantic);
+#endif
       glActiveTexture(GL_TEXTURE0 + binding);
       glBindTexture(GL_TEXTURE_2D, texture.texture.image);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, convert_filter_to_mag_gl(texture.filter));
@@ -1664,14 +1696,26 @@ void Pass::build_commands(
 
    current_framebuffer_size = size;
 
+#ifdef MBZ_STANDALONE
+   fprintf(stderr, "[MBZ DBG] build_commands: pipeline=%u final=%d src_tex=%u %ux%u\n",
+      pipeline, (int)final_pass, source.texture.image,
+      source.texture.width, source.texture.height);
+#endif
    glUseProgram(pipeline);
 
    build_semantics(uniforms.data(), mvp, original, source);
 
    if (locations.flat_ubo_vertex >= 0)
-      glUniform4fv(locations.flat_ubo_vertex,
-                   GLsizei((reflection.ubo_size + 15) / 16),
+   {
+      GLsizei count = GLsizei((reflection.ubo_size + 15) / 16);
+      glUniform4fv(locations.flat_ubo_vertex, count,
                    reinterpret_cast<const float *>(uniforms.data()));
+#ifdef MBZ_STANDALONE
+      const float *m = reinterpret_cast<const float *>(uniforms.data());
+      fprintf(stderr, "[MBZ DBG] UBO vertex loc=%d count=%d MVP=[%.1f,%.1f,%.1f,%.1f / %.1f,%.1f,%.1f,%.1f / ...]\n",
+         locations.flat_ubo_vertex, count, m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7]);
+#endif
+   }
 
    if (locations.flat_ubo_fragment >= 0)
       glUniform4fv(locations.flat_ubo_fragment,
@@ -1790,6 +1834,21 @@ void Pass::build_commands(
                          reinterpret_cast<void *>(uintptr_t(0)));
    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
                          reinterpret_cast<void *>(uintptr_t(2 * sizeof(float))));
+#ifdef MBZ_STANDALONE
+   {
+      GLenum err = glGetError();
+      if (err != GL_NO_ERROR)
+         fprintf(stderr, "[MBZ DBG] GL error before draw: 0x%04x\n", err);
+      GLint prog = 0;
+      glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+      GLint vp[4];
+      glGetIntegerv(GL_VIEWPORT, vp);
+      GLint fb = 0;
+      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fb);
+      fprintf(stderr, "[MBZ DBG] draw: prog=%d vp=%d,%d,%d,%d fbo=%d\n",
+         prog, vp[0], vp[1], vp[2], vp[3], fb);
+   }
+#endif
    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
    glDisableVertexAttribArray(0);

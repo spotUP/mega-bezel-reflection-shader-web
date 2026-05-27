@@ -52,8 +52,6 @@ const SIMPLE_PRESET = `shaders = 1
 
 shader0 = /shaders/test.slang
 filter_linear0 = true
-scale_type0 = viewport
-scale0 = 1.0
 `;
 
 const el = document.getElementById('log');
@@ -132,13 +130,37 @@ const log = (cls, msg) => { el.innerHTML += `<span class="${cls}">${msg}</span>\
     mbz_renderer_free_ptr(ptr);
     log(uploadOk ? 'ok' : 'err', `[${uploadOk ? 'OK' : 'FAIL'}] upload frame ${inputW}x${inputH}`);
 
-    // Render
-    log('info', '[INFO] Rendering...');
+    // Test direct draw
+    const mbz_renderer_test_draw = Module.cwrap('mbz_renderer_test_draw', 'void', []);
+    log('info', '[INFO] Test draw (direct quad with purple clear)...');
+    mbz_renderer_test_draw();
+
+    // Read immediately after test draw
+    const mbz_renderer_read_pixel = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
+    const testPx = mbz_renderer_read_pixel(320, 240);
+    const tr = testPx & 0xFF, tg = (testPx >> 8) & 0xFF, tb = (testPx >> 16) & 0xFF, ta = (testPx >> 24) & 0xFF;
+    log('info', `[INFO] After test draw center: R=${tr} G=${tg} B=${tb} A=${ta}`);
+    if (tr > 0 || tg > 0 || tb > 0)
+      log('ok', `[OK] Test draw produced visible output`);
+    else
+      log('err', `[WARN] Test draw output is black too - GL context issue`);
+
+    // Filter chain render
+    log('info', '[INFO] Filter chain render...');
     mbz_renderer_render(canvas.width, canvas.height);
     log('ok', '[OK] Render complete');
 
-    // Read back pixels via C-side GL readback
-    const mbz_renderer_read_pixel = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
+    // Read back input texture to verify upload
+    const mbz_renderer_read_input_pixel = Module.cwrap('mbz_renderer_read_input_pixel', 'number', ['number', 'number']);
+    const inputPx = mbz_renderer_read_input_pixel(128, 112);
+    const ir = inputPx & 0xFF, ig = (inputPx >> 8) & 0xFF, ib = (inputPx >> 16) & 0xFF;
+    log('info', `[INFO] Input tex center (128,112): R=${ir} G=${ig} B=${ib}`);
+    if (ir === 0 && ig === 0 && ib === 0)
+      log('err', '[WARN] Input texture is empty - upload may have failed');
+    else
+      log('ok', `[OK] Input texture has data`);
+
+    // Read back output pixels after filter chain
     const cx = Math.floor(canvas.width / 2);
     const cy = Math.floor(canvas.height / 2);
     const centerPixel = mbz_renderer_read_pixel(cx, cy);
