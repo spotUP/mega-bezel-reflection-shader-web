@@ -33,7 +33,7 @@ export class PresetLoader {
 
   private async loadShaderFiles(info: PresetInfo, presetDir: string) {
     const seen = new Set<string>()
-    const fetches: Promise<void>[] = []
+    const loadedIncludes = new Set<string>()
 
     for (const relPath of info.passPaths) {
       const absMemfs = this.resolveMemfsPath('/preset', relPath)
@@ -41,10 +41,52 @@ export class PresetLoader {
       seen.add(absMemfs)
 
       const url = this.resolveUrl(presetDir, relPath)
-      fetches.push(this.fetchAndWrite(url, absMemfs))
-    }
+      const text = await this.fetchText(url)
+      this.ensureDirForFile(absMemfs)
+      this.bridge.fs.writeFile(absMemfs, text)
 
-    await Promise.all(fetches)
+      const shaderDir = relPath.substring(0, relPath.lastIndexOf('/'))
+      await this.resolveIncludes(text, shaderDir, loadedIncludes)
+    }
+  }
+
+  private async resolveIncludes(
+    shaderText: string,
+    shaderDir: string,
+    loaded: Set<string>,
+  ) {
+    const includeRe = /^\s*#include\s+"([^"]+)"/gm
+    let match: RegExpExecArray | null
+
+    while ((match = includeRe.exec(shaderText)) !== null) {
+      const includePath = match[1]
+
+      // Resolve relative to shader directory
+      const resolvedParts = [...shaderDir.split('/').filter(Boolean), ...includePath.split('/')]
+      const normalized: string[] = []
+      for (const p of resolvedParts) {
+        if (p === '..') normalized.pop()
+        else if (p !== '.' && p !== '') normalized.push(p)
+      }
+      const resolvedRelPath = normalized.join('/')
+
+      // Check if the path escaped above the preset/shaders dir
+      // (e.g. ../../include/foo.inc from shaders/base/common/)
+      // We test by resolving against /preset — if it lost the prefix, write to root
+      const memfsPath = this.resolveMemfsPath('/preset', resolvedRelPath)
+
+      if (loaded.has(memfsPath)) continue
+      loaded.add(memfsPath)
+
+      const url = this.resolveUrl(this.baseUrl, resolvedRelPath)
+      const text = await this.fetchText(url)
+      this.ensureDirForFile(memfsPath)
+      this.bridge.fs.writeFile(memfsPath, text)
+
+      // Recurse into included file
+      const includeDir = resolvedRelPath.substring(0, resolvedRelPath.lastIndexOf('/'))
+      await this.resolveIncludes(text, includeDir, loaded)
+    }
   }
 
   private async loadLutFiles(info: PresetInfo, presetDir: string) {

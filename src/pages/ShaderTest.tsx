@@ -1,130 +1,111 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PureWebGL2MultiPassRenderer } from '../shaders/PureWebGL2MultiPassRenderer';
+import { MegaBezel } from '../lib/MegaBezel';
 
 /**
  * Shader Test Page
- * Tests the 18-pass CRT Guest Only shader using Pure WebGL2 Renderer (No Three.js)
+ * Tests the mega-bezel shader pipeline via WASM+WebGL2 renderer.
  */
 export default function ShaderTest() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<string>('Initializing...');
-  const [passInfo, setPassInfo] = useState<string[]>([]);
-  const rendererRef = useRef<PureWebGL2MultiPassRenderer | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const width = 800;
-    const height = 600;
+    let disposed = false;
+    let rafId: number | undefined;
 
-    // Get WebGL2 context
-    const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
-    if (!gl) {
-      setStatus('❌ WebGL2 not supported by your browser');
-      return;
-    }
+    // Create SMPTE-style test pattern (256x224)
+    const patternWidth = 256;
+    const patternHeight = 224;
+    const imageData = new ImageData(patternWidth, patternHeight);
+    const data = imageData.data;
 
-    // Initialize Pure WebGL2 renderer
-    const renderer = new PureWebGL2MultiPassRenderer(gl, width, height);
-    rendererRef.current = renderer;
+    // SMPTE color bars (top half)
+    const bars = [
+      [255, 255, 255], // white
+      [255, 255, 0],   // yellow
+      [0, 255, 255],   // cyan
+      [0, 255, 0],     // green
+      [255, 0, 255],   // magenta
+      [255, 0, 0],     // red
+      [0, 0, 255],     // blue
+    ];
+    const barWidth = Math.floor(patternWidth / bars.length);
+    const halfHeight = Math.floor(patternHeight / 2);
 
-    // Create test input texture (colorful gradient)
-    const canvas2d = document.createElement('canvas');
-    canvas2d.width = 256;
-    canvas2d.height = 240;
-    const ctx = canvas2d.getContext('2d')!;
-
-    // Draw a colorful test pattern
-    const gradient = ctx.createLinearGradient(0, 0, 256, 240);
-    gradient.addColorStop(0, '#ff0000');
-    gradient.addColorStop(0.25, '#00ff00');
-    gradient.addColorStop(0.5, '#0000ff');
-    gradient.addColorStop(0.75, '#ffff00');
-    gradient.addColorStop(1, '#ff00ff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 256, 240);
-
-    // Add some test grid lines
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 256; i += 32) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, 240);
-      ctx.stroke();
-    }
-    for (let i = 0; i < 240; i += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(256, i);
-      ctx.stroke();
-    }
-
-    // Create and register input texture
-    const inputTexture = gl.createTexture();
-    if (inputTexture) {
-      gl.bindTexture(gl.TEXTURE_2D, inputTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      
-      renderer.registerTexture('InputTexture', inputTexture);
-    } else {
-      setStatus('❌ Failed to create input texture');
-      return;
-    }
-
-    // Load the shader preset
-    setStatus('Loading shader preset (MBZ__3__STD__GDV)...');
-
-    renderer.loadPreset('/shaders/mega-bezel/MBZ__3__STD__GDV.slangp')
-      .then(success => {
-        if (success) {
-          const passCount = renderer.getPassCount();
-          setStatus(`✅ Shader loaded successfully! ${passCount} passes`);
-          
-          const info = renderer.getPassInfo();
-          setPassInfo(info.map(p => `Pass ${p.index}: ${p.name} ${p.alias ? `(${p.alias})` : ''}`));
-
-          // Start render loop
-          let frameCount = 0;
-          const animate = () => {
-            frameCount++;
-
-            try {
-              renderer.render('InputTexture');
-
-              // Update status every 60 frames
-              if (frameCount % 60 === 0) {
-                setStatus(`✅ Rendering... Frame ${frameCount} (Gradient is a synthetic test pattern)`);
-              }
-            } catch (error) {
-              console.error('[ShaderTest] Render error:', error);
-              setStatus(`❌ Render error: ${error instanceof Error ? error.message : String(error)}`);
-              return; // Stop animation loop on error
-            }
-
-            requestAnimationFrame(animate);
-          };
-
-          animate();
-        } else {
-          setStatus(`❌ Failed to load shader preset`);
-        }
-      })
-      .catch(error => {
-        console.error('[ShaderTest] Load error:', error);
-        setStatus(`❌ Load error: ${error instanceof Error ? error.message : String(error)}`);
-      });
-
-    // Cleanup
-    return () => {
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
+    for (let y = 0; y < halfHeight; y++) {
+      for (let x = 0; x < patternWidth; x++) {
+        const barIndex = Math.min(Math.floor(x / barWidth), bars.length - 1);
+        const [r, g, b] = bars[barIndex];
+        const idx = (y * patternWidth + x) * 4;
+        data[idx] = r;
+        data[idx + 1] = g;
+        data[idx + 2] = b;
+        data[idx + 3] = 255;
       }
+    }
+
+    // Checkerboard (bottom half)
+    const cell = 16;
+    for (let y = halfHeight; y < patternHeight; y++) {
+      for (let x = 0; x < patternWidth; x++) {
+        const on = (Math.floor(x / cell) + Math.floor(y / cell)) % 2 === 0;
+        const v = on ? 26 : 230;
+        const idx = (y * patternWidth + x) * 4;
+        data[idx] = v;
+        data[idx + 1] = v;
+        data[idx + 2] = v;
+        data[idx + 3] = 255;
+      }
+    }
+
+    const mb = new MegaBezel({ canvas });
+
+    async function start() {
+      try {
+        setStatus('Loading WASM module...');
+        await mb.init();
+        if (disposed) return;
+
+        setStatus('Loading preset...');
+        const info = await mb.loadPreset(
+          '/shaders/mega-bezel/MBZ__3__STD__GDV-local.slangp',
+          '/shaders/mega-bezel',
+        );
+        if (disposed) return;
+
+        setStatus(`Rendering (${info.passes} passes)...`);
+
+        let frameCount = 0;
+        const animate = () => {
+          if (disposed) return;
+          frameCount++;
+          mb.renderFrame(imageData);
+
+          if (frameCount % 60 === 0) {
+            setStatus(`Rendering (${info.passes} passes) - frame ${frameCount}`);
+          }
+
+          rafId = requestAnimationFrame(animate);
+        };
+
+        rafId = requestAnimationFrame(animate);
+      } catch (err) {
+        if (disposed) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[ShaderTest] Error:', err);
+        setStatus(`Error: ${msg}`);
+      }
+    }
+
+    start();
+
+    return () => {
+      disposed = true;
+      if (rafId !== undefined) cancelAnimationFrame(rafId);
+      mb.destroy();
     };
   }, []);
 
@@ -139,54 +120,31 @@ export default function ShaderTest() {
       background: '#000',
       color: '#fff',
       fontFamily: 'monospace',
-      padding: '20px'
+      padding: '20px',
     }}>
-      <h1 style={{ marginBottom: '20px' }}>Mega Bezel 18-Pass Shader Test (Pure WebGL2)</h1>
+      <h1 style={{ marginBottom: '20px' }}>Mega Bezel Shader Test (WASM)</h1>
 
-      <div style={{ marginBottom: '20px', padding: '10px', background: '#222', borderRadius: '5px' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>{status}</div>
-        <div style={{ fontSize: '12px', color: '#888' }}>
-          Press F12 to open console for detailed logs
-        </div>
+      <div style={{
+        marginBottom: '20px',
+        padding: '10px',
+        background: '#222',
+        borderRadius: '5px',
+      }}>
+        <div style={{ fontWeight: 'bold' }}>{status}</div>
       </div>
 
       <canvas
         ref={canvasRef}
+        id="mega-bezel-canvas"
         width={800}
         height={600}
         style={{
           width: '800px',
           height: '600px',
           border: '2px solid #444',
-          boxShadow: '0 0 20px rgba(255,255,255,0.1)'
+          boxShadow: '0 0 20px rgba(255,255,255,0.1)',
         }}
       />
-
-      {passInfo.length > 0 && (
-        <details style={{
-          marginTop: '20px',
-          width: '800px',
-          background: '#222',
-          padding: '10px',
-          borderRadius: '5px'
-        }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
-            Pass Information ({passInfo.length} passes)
-          </summary>
-          <div style={{
-            marginTop: '10px',
-            fontSize: '12px',
-            maxHeight: '200px',
-            overflow: 'auto'
-          }}>
-            {passInfo.map((info, i) => (
-              <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #333' }}>
-                {info}
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
     </div>
   );
 }

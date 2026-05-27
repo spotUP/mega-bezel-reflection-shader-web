@@ -7,7 +7,6 @@ declare function MegaBezelModule(opts?: Record<string, any>): Promise<Emscripten
 
 export class MegaBezel {
   private canvas: HTMLCanvasElement
-  private gl: WebGL2RenderingContext | null = null
   private bridge: WasmBridge | null = null
   private loader: PresetLoader | null = null
   private feeder: FrameFeeder | null = null
@@ -21,15 +20,6 @@ export class MegaBezel {
   }
 
   async init(): Promise<void> {
-    const gl = this.canvas.getContext('webgl2', {
-      alpha: false,
-      antialias: false,
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
-    })
-    if (!gl) throw new Error('WebGL2 not supported')
-    this.gl = gl
-
     const mod = await MegaBezelModule({
       canvas: this.canvas,
       locateFile: (path: string) => {
@@ -41,6 +31,9 @@ export class MegaBezel {
     this.bridge = new WasmBridge(mod)
     if (!this.bridge.init())
       throw new Error('Failed to initialize WASM bridge')
+
+    if (!this.bridge.rendererInitGL('#' + this.canvas.id))
+      throw new Error('Failed to initialize GL context')
 
     this.ready = true
   }
@@ -58,7 +51,7 @@ export class MegaBezel {
   }
 
   renderFrame(source: FrameSource): void {
-    if (!this.bridge || !this.gl) return
+    if (!this.bridge) return
 
     if (!this.feeder) {
       const w = this.getSourceWidth(source)
@@ -88,7 +81,6 @@ export class MegaBezel {
       this.bridge.destroy()
       this.bridge = null
     }
-    this.gl = null
     this.ready = false
   }
 

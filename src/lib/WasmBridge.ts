@@ -5,6 +5,8 @@ type WasmFn = (...args: any[]) => any
 export class WasmBridge {
   private mod: EmscriptenModule
   private fns: Record<string, WasmFn> = {}
+  private uploadPtr = 0
+  private uploadSize = 0
 
   constructor(mod: EmscriptenModule) {
     this.mod = mod
@@ -37,6 +39,7 @@ export class WasmBridge {
     this.wrap('mbz_get_compiled_fragment', 'string', [])
     this.wrap('mbz_get_compile_error', 'string', [])
 
+    this.wrap('mbz_renderer_init_gl', 'number', ['string'])
     this.wrap('mbz_renderer_create', 'number', ['string'])
     this.wrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number'])
     this.wrap('mbz_renderer_render', 'void', ['number', 'number'])
@@ -98,17 +101,23 @@ export class WasmBridge {
     return this.call('mbz_get_compile_error')
   }
 
+  rendererInitGL(selector: string): boolean {
+    return this.call('mbz_renderer_init_gl', selector) === 1
+  }
+
   rendererCreate(memfsPresetPath: string): boolean {
     return this.call('mbz_renderer_create', memfsPresetPath) === 1
   }
 
   rendererUploadFrame(rgba: Uint8Array, width: number, height: number): boolean {
     const size = rgba.byteLength
-    const ptr = this.mod._malloc(size)
-    this.mod.HEAPU8.set(rgba, ptr)
-    const result = this.call('mbz_renderer_upload_frame', ptr, width, height)
-    this.mod._free(ptr)
-    return result === 1
+    if (size > this.uploadSize) {
+      if (this.uploadPtr) this.mod._free(this.uploadPtr)
+      this.uploadPtr = this.mod._malloc(size)
+      this.uploadSize = size
+    }
+    this.mod.HEAPU8.set(rgba, this.uploadPtr)
+    return this.call('mbz_renderer_upload_frame', this.uploadPtr, width, height) === 1
   }
 
   rendererRender(viewportWidth: number, viewportHeight: number) {
@@ -124,6 +133,11 @@ export class WasmBridge {
   }
 
   destroy() {
+    if (this.uploadPtr) {
+      this.mod._free(this.uploadPtr)
+      this.uploadPtr = 0
+      this.uploadSize = 0
+    }
     this.call('mbz_destroy')
   }
 }
