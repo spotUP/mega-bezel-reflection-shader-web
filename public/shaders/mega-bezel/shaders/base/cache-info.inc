@@ -1,8 +1,8 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
-    Incorporates much great feedback from the libretro forum, and thanks 
+    Incorporates much great feedback from the libretro forum, and thanks
     to Hunterk who helped me get started
 
     See more at the libretro forum
@@ -22,6 +22,8 @@
     along with this program.  If not, see [http://www.gnu.org/licenses/].
 */
 
+#pragma name CacheInfoPass
+
 #pragma format R32G32B32A32_SFLOAT
 
 #pragma stage vertex
@@ -39,7 +41,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 1) uniform sampler2D Source;
-layout(set = 0, binding = 2) uniform sampler2D InfoCachePassFeedback;
+layout(set = 0, binding = 2) uniform sampler2D CacheInfoPassFeedback;
 layout(set = 0, binding = 3) uniform sampler2D ScreenPlacementImage;
 
 // Get the original size with split area added
@@ -48,7 +50,7 @@ vec2 HSM_GetScreenCorePreppedSize(float screen_index)
 	vec2 core_prepped_size = global.DerezedPassSize.xy;
 
 	if (HSM_DUALSCREEN_MODE > 0)
-		if (HSM_GetCoreImageSplitDirection() == 1)
+		if (HSM_GetCoreSplitDirection() == 1)
 			core_prepped_size.y *= 0.5;
 		else
 			core_prepped_size.x *= 0.5;
@@ -67,7 +69,7 @@ vec2 HSM_GetRotatedScreenDerezedSize()
 	vec2 pass_size = global.DerezedPassSize.xy;
 
 	if (HSM_DUALSCREEN_MODE > 0)
-		if (HSM_GetCoreImageSplitDirection() == 1)
+		if (HSM_GetCoreSplitDirection() == 1)
 			pass_size.y *= 0.5;
 		else
 			pass_size.x *= 0.5;
@@ -79,7 +81,7 @@ float HSM_GetUseVerticalScanlines(float screen_aspect)
 {
 	float auto_use_vert_scanlines = screen_aspect < 1 ? 1 : 0;
 	float out_scanline_direction = 0;
-	
+
 	if (HSM_SCANLINE_DIRECTION < 1)
 		out_scanline_direction = screen_aspect < 1 ? 1 : 0;
 	else if (HSM_SCANLINE_DIRECTION > 1.5)
@@ -92,9 +94,9 @@ vec2 HSM_GetScreenScaleWithEdgeHeight(vec2 edge_thickness, vec2 screen_scale)
 // Edge thickness is a 0 to 1 percentage of the screen height
 {
 	float output_aspect_ratio = global.FinalViewportSize.x / global.FinalViewportSize.y;
-	
+
 	float aspect_ratio = screen_scale.x / screen_scale.y;
-	
+
 	vec2 edge_width_height_as_scale = vec2(0, 0);
 	edge_width_height_as_scale.x = 1 + (edge_thickness.x / screen_scale.y) / aspect_ratio / output_aspect_ratio;
 	edge_width_height_as_scale.y = 1 + edge_thickness.y / screen_scale.y;
@@ -133,7 +135,8 @@ vec2 HSM_GetScreenScale(float screen_aspect, float screen_height_from_image, vec
 
 		bool viewport_is_vertical = (global.FinalViewportSize.x < global.FinalViewportSize.y);
 
-		float vertical_preset_scale_mult = HSM_VERTICAL_PRESET > 0.5 || viewport_is_vertical ? DEFAULT_SCREEN_HEIGHT_PORTRAIT_MULTIPLIER : 1;
+		bool use_portrait_mode_scale_reduction = HSM_PORTRAIT_MODE_SCALE_REDUCTION == 1 || HSM_PORTRAIT_MODE_SCALE_REDUCTION == 2 && viewport_is_vertical;
+		float vertical_preset_scale_mult = use_portrait_mode_scale_reduction ? DEFAULT_SCREEN_HEIGHT_PORTRAIT_MULTIPLIER * HSM_PORTRAIT_MODE_SCALE_OFFSET : 1;
 		float screen_height = HSM_NON_INTEGER_SCALE * vertical_preset_scale_mult;
 
 		if (HSM_DUALSCREEN_MODE > 0)
@@ -143,7 +146,7 @@ vec2 HSM_GetScreenScale(float screen_aspect, float screen_height_from_image, vec
 		{
 			if (HSM_USE_PHYSICAL_SIZE_FOR_NON_INTEGER == 1)
 			{
-				float monitor_aspect_with_rotation = HSM_VERTICAL_PRESET > 0.5 || viewport_is_vertical ? 1 / HSM_PHYSICAL_MONITOR_ASPECT_RATIO : HSM_PHYSICAL_MONITOR_ASPECT_RATIO;
+				float monitor_aspect_with_rotation = use_portrait_mode_scale_reduction ? 1 / HSM_PHYSICAL_MONITOR_ASPECT_RATIO : HSM_PHYSICAL_MONITOR_ASPECT_RATIO;
 				float monitor_height = HSM_PHYSICAL_MONITOR_DIAGONAL_SIZE / sqrt(monitor_aspect_with_rotation * monitor_aspect_with_rotation + 1);
 				float sim_screen_height = HSM_PHYSICAL_SIM_TUBE_DIAGONAL_SIZE / sqrt(screen_aspect * screen_aspect + 1);
 
@@ -162,6 +165,7 @@ vec2 HSM_GetScreenScale(float screen_aspect, float screen_height_from_image, vec
 				float int_scale_remainder = fract(integer_scale_multiple_vert);
 				int_scale_remainder = (int_scale_remainder < 1 - int_scale_remainder) ? int_scale_remainder : 1 - int_scale_remainder;
 				float remainder_percent_of_screen_height = (int_scale_remainder * cropped_size.y) / (screen_height * global.FinalViewportSize.y);
+				// TODO should support horizontal int scale
 				if (remainder_percent_of_screen_height < HSM_SNAP_TO_CLOSEST_INT_SCALE_TOLERANCE)
 				{
 					integer_scale_multiple_vert = round(integer_scale_multiple_vert);
@@ -188,7 +192,7 @@ vec2 HSM_GetScreenScale(float screen_aspect, float screen_height_from_image, vec
 		// If the screen is too high
 		if ((viewport_res_y_without_border * screen_aspect) > global.FinalViewportSize.x)
 		{
-			viewport_res_y_without_border = (1 - 2 * (1 - HSM_INT_SCALE_MAX_HEIGHT)) * global.FinalViewportSize.x / screen_aspect; 
+			viewport_res_y_without_border = (1 - 2 * (1 - HSM_INT_SCALE_MAX_HEIGHT)) * global.FinalViewportSize.x / screen_aspect;
 		}
 
 		float integer_scale_multiple_vert = clamp(floor(viewport_res_y_without_border / cropped_size.y) + HSM_INT_SCALE_MULTIPLE_OFFSET, 1, 100);
@@ -201,20 +205,27 @@ vec2 HSM_GetScreenScale(float screen_aspect, float screen_height_from_image, vec
 		float integer_scale_multiple_horz = integer_scale_horz_from_aspect * global.FinalViewportSize.x / cropped_size.x;
 
 		// If we are using vertical scanlines or integer scale is set to both directions make the horizontal multiple an integer
-		float final_int_scale_mode = HSM_INT_SCALE_MODE;
-		if (HSM_INT_SCALE_MODE > 0.5)
+		bool use_vert_scanlines = HSM_GetUseVerticalScanlines(screen_aspect) == 1;
+		bool int_scale_vert_on = HSM_INT_SCALE_MODE == 1 && !use_vert_scanlines || HSM_INT_SCALE_MODE == 2;
+		bool int_scale_horz_on = HSM_INT_SCALE_MODE == 1 && use_vert_scanlines || HSM_INT_SCALE_MODE == 2;
+		bool screen_aspect_is_vertical = screen_aspect - 1 < 0;
+
+		if (int_scale_horz_on)
 		{
-			if (HSM_GetUseVerticalScanlines(screen_aspect) == 1 || HSM_INT_SCALE_MODE == 2)
-			{
-				integer_scale_multiple_horz = round(integer_scale_multiple_horz);
-				final_int_scale_mode = 2;
-			}
+			integer_scale_multiple_horz = round(integer_scale_multiple_horz);
+			// If the vertical integer scaling is not on, then we need to calculate a new vertical height
+			// based on the horizontal integer scale and the aspect ratio
+			if (!int_scale_vert_on)
+				integer_scale_multiple_vert = integer_scale_multiple_horz * cropped_size.x / screen_aspect / cropped_size.y;
 		}
 
-		float both_axes = clamp((final_int_scale_mode - 1) * 10000, 0, 1);
-		integer_scale_multiple_vert += both_axes * abs(clamp((screen_aspect - 1) * 10000, -1, 0)) * HSM_INT_SCALE_MULTIPLE_OFFSET_LONG;
-		integer_scale_multiple_horz += both_axes * abs(clamp((screen_aspect - 1) * 10000,  0, 1)) * HSM_INT_SCALE_MULTIPLE_OFFSET_LONG;
+		// Add int multiple offset on the long axis for each screen aspect orientation
+		if (screen_aspect_is_vertical && int_scale_vert_on)
+			integer_scale_multiple_vert += HSM_INT_SCALE_MULTIPLE_OFFSET_LONG;
+		if (!screen_aspect_is_vertical && int_scale_horz_on)
+			integer_scale_multiple_horz += HSM_INT_SCALE_MULTIPLE_OFFSET_LONG;
 
+		// Get the scales in both directions
 		integer_scale_vert = integer_scale_multiple_vert * cropped_size.y / global.FinalViewportSize.y;
 		float integer_scale_horz = integer_scale_multiple_horz * cropped_size.x / global.FinalViewportSize.x;
 
@@ -247,7 +258,7 @@ float HSM_GetIsCorePreppedSizeVertical(float screen_index)
 vec2 HSM_GetResMult(float use_vert_scanlines)
 {
 	vec2 sampling_mult = vec2(HSM_CORE_RES_SAMPLING_MULT_SCANLINE_DIR, HSM_CORE_RES_SAMPLING_MULT_OPPOSITE_DIR);
-	
+
 	if (use_vert_scanlines == 1 && HSM_ROTATE_CORE_IMAGE == 0 || use_vert_scanlines == 0 && abs(HSM_ROTATE_CORE_IMAGE) == 1)
 		sampling_mult = sampling_mult.yx;
 
@@ -259,7 +270,7 @@ bool HSM_ResolutionIsEqual(vec2 in_res, vec2 match_res)
 	return (in_res == match_res);
 }
 
-// if return_rough_aspect is on we only get a rough aspect which doesn't 
+// if return_rough_aspect is on we only get a rough aspect which doesn't
 // require the cropped_size (which implicates the use_vertical_scanlines)
 float HSM_GetScreenAspect(float screen_index, vec2 cropped_size)
 {
@@ -286,9 +297,9 @@ float HSM_GetScreenAspect(float screen_index, vec2 cropped_size)
 	vec2 sony_ps_fmv_res = 					vec2(320, 480);
 	vec2 sony_ps_fmv_res_2 = 				vec2(512, 480);
 
-	// This should handle some PS games with weird resolutions like Tekken and Driver 
+	// This should handle some PS games with weird resolutions like Tekken and Driver
 	float sony_ps_height = 448;
-	
+
 	if (HSM_ASPECT_RATIO_MODE == 0)
 	{
 		// If the vertical res is larger than 580 is is probably a modern square pixel resolution
@@ -313,7 +324,7 @@ float HSM_GetScreenAspect(float screen_index, vec2 cropped_size)
 		// Fall back to the explicit ratio
 		else horizontal_aspect = HSM_ASPECT_RATIO_EXPLICIT;
 	}
-	else 
+	else
 		if (HSM_ASPECT_RATIO_MODE == 1) horizontal_aspect = HSM_ASPECT_RATIO_EXPLICIT;
 		else if (HSM_ASPECT_RATIO_MODE == 2) horizontal_aspect = 1.3333;
 		else if (HSM_ASPECT_RATIO_MODE == 3) horizontal_aspect = 1.5;
@@ -331,13 +342,13 @@ float HSM_GetScreenAspect(float screen_index, vec2 cropped_size)
 	{
 		// Catch for Atari 2600 - Stella Emulator which would otherwise show up as a vertical aspect ratio
 		if (
-				HSM_ResolutionIsEqual(atari_2600_res, original_size) || 
+				HSM_ResolutionIsEqual(atari_2600_res, original_size) ||
 		   		HSM_ResolutionIsEqual(atari_2600_crop_res, original_size) ||
 		   		HSM_ResolutionIsEqual(sega_saturn_fmv_res, original_size) ||
 				HSM_ResolutionIsEqual(sony_ps_fmv_res, original_size) ||
 				HSM_ResolutionIsEqual(sony_ps_fmv_res_2, original_size) ||
 				original_size.y == sony_ps_height
-		   ) 
+		   )
 		{
 		   final_orientation = 1;
 		}
@@ -346,18 +357,18 @@ float HSM_GetScreenAspect(float screen_index, vec2 cropped_size)
 			final_orientation = (HSM_GetIsCorePreppedSizeVertical(screen_index) > 0.5) ? 2 : 1;
 		}
 	}
-	
+
 	float final_aspect_ratio = (final_orientation < 1.5) ? horizontal_aspect : vertical_aspect;
 
 	return final_aspect_ratio;
 }
 
-float HSM_IsCoordIn2DRange(vec2 in_coord, vec4 in_2d_range)
+int HSM_IsCoordIn2DRange(vec2 in_coord, vec4 in_2d_range)
 {
 	return (in_coord.x > in_2d_range.x &&
 			in_coord.y > in_2d_range.y &&
 			in_coord.x < in_2d_range.z &&
-			in_coord.y < in_2d_range.w ) ? 1.0 : 0.0;
+			in_coord.y < in_2d_range.w ) ? 1 : 0;
 }
 
 // HSM_CROP_BLACK_ONLY
@@ -472,7 +483,7 @@ void HSM_GetCroppedRotatedSizeAndPixelSampleAreaStart(float screen_index, sample
 			crop_bottom_px = floor(HSM_2ND_SCREEN_CROP_PERCENT_BOTTOM * rotated_negative_crop_added_size.y);
 			zoom_crop = HSM_2ND_SCREEN_CROP_PERCENT_ZOOM;
 
-			if (HSM_GetCoreImageSplitDirection() == 1)
+			if (HSM_GetCoreSplitDirection() == 1)
 			{
 				default_crop_top_px = floor(rotated_negative_crop_added_size.y * (0.5 - HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET));
 				crop_top_px = floor(crop_top_px / 2);
@@ -488,7 +499,7 @@ void HSM_GetCroppedRotatedSizeAndPixelSampleAreaStart(float screen_index, sample
 		else
 		{
 			zoom_crop = HSM_CROP_PERCENT_ZOOM;
-			if (HSM_GetCoreImageSplitDirection() == 1)
+			if (HSM_GetCoreSplitDirection() == 1)
 			{
 				default_crop_bottom_px = floor(rotated_negative_crop_added_size.y * (0.5 + HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET));
 				crop_top_px = floor(crop_top_px / 2);
@@ -499,12 +510,12 @@ void HSM_GetCroppedRotatedSizeAndPixelSampleAreaStart(float screen_index, sample
 				default_crop_right_px = floor(rotated_negative_crop_added_size.x * (0.5 + HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET));
 				crop_left_px = floor(crop_left_px / 2);
 				crop_right_px = floor(crop_right_px / 2);
-			}	
+			}
 		}
 
 		vec2 base_cropped_size = rotated_negative_crop_added_size - vec2(final_crop_left_px + final_crop_right_px, final_crop_top_px + final_crop_bottom_px);
 
-		if (HSM_GetCoreImageSplitDirection() == 1)
+		if (HSM_GetCoreSplitDirection() == 1)
 		{
 			zoom_crop_top_px = floor(base_cropped_size.x * zoom_crop / 2);
 		}
@@ -561,7 +572,7 @@ void HSM_GetCroppedRotatedSizeAndPixelSampleAreaStart(float screen_index, sample
 		}
 
 	}
- 
+
 	// Make sure we don't actually negatively crop
 	final_crop_top_px = clamp(final_crop_top_px, 0, 20000);
 	final_crop_bottom_px = clamp(final_crop_bottom_px, 0, 20000);
@@ -592,12 +603,12 @@ float HSM_GetParameterSum()
 					+ HSM_SINDEN_BORDER_EMPTY_TUBE_COMPENSATION
 
 					+ HSM_CACHE_GRAPHICS_ON
-					
+
 					// Night Lighting
-					+ HSM_AMBIENT_LIGHTING_OPACITY * 100
-					+ HSM_AMBIENT1_OPACITY * 100
-					+ HSM_AMBIENT2_OPACITY * 100
-					+ HSM_AMBIENT_LIGHTING_SWAP_IMAGE_MODE
+					+ HSM_LIGHTING_BLEND * 100
+					+ HSM_NIGHTLIGHT1_OPACITY * 100
+					+ HSM_NIGHTLIGHT2_OPACITY * 100
+					+ HSM_LIGHT_NIGHTLIGHTING_SWAP_IMAGE_MODE
 
 					//    Zoom & Pan
 					+ HSM_VIEWPORT_ZOOM * 100
@@ -618,7 +629,8 @@ float HSM_GetParameterSum()
 
 					//    SCALING
 					+ HSM_INT_SCALE_MODE
-					+ HSM_VERTICAL_PRESET
+					+ HSM_PORTRAIT_MODE_SCALE_REDUCTION
+					+ HSM_PORTRAIT_MODE_SCALE_OFFSET
 
 					// Integer Scale
 					+ HSM_INT_SCALE_MAX_HEIGHT
@@ -675,19 +687,80 @@ float HSM_GetParameterSum()
 					+ HSM_AB_COMPARE_SPLIT_POSITION
 					+ HSM_AB_COMPARE_FREEZE_GRAPHICS
 
-					// //    TUBE DIFFUSE
-					// + HSM_TUBE_OPACITY
-					// + HSM_TUBE_DIFFUSE_MODE
-					// + HSM_TUBE_DIFFUSE_IMAGE_DUALSCREEN_VIS_MODE
-					// + HSM_TUBE_DIFFUSE_IMAGE_COLORIZE_ON
-					// + HSM_TUBE_DIFFUSE_IMAGE_HUE
-					// + HSM_TUBE_DIFFUSE_IMAGE_SATURATION
-					// + HSM_TUBE_DIFFUSE_IMAGE_BRIGHTNESS
-					// + HSM_TUBE_DIFFUSE_IMAGE_GAMMA
-					+ HSM_TUBE_DIFFUSE_FORCE_ASPECT
-					+ HSM_TUBE_EXPLICIT_ASPECT
+					//    SCREEN VIGNETTE also used for COLORED GEL
+					+ HSM_SCREEN_VIGNETTE_ON
+					+ HSM_SCREEN_VIGNETTE_DUALSCREEN_VIS_MODE
+					+ HSM_SCREEN_VIGNETTE_STRENGTH
+					+ HSM_SCREEN_VIGNETTE_POWER
+					+ HSM_SCREEN_VIGNETTE_IN_REFLECTION
+
+					// //    TUBE EMPTY
 					+ HSM_TUBE_EMPTY_THICKNESS
 					+ HSM_TUBE_EMPTY_THICKNESS_X_SCALE
+
+					// //    TUBE DIFFUSE
+					+ HSM_TUBE_OPACITY
+					+ HSM_TUBE_DIFFUSE_MODE
+					+ HSM_TUBE_DIFFUSE_IMAGE_AMOUNT
+					+ HSM_TUBE_DIFFUSE_IMAGE_DUALSCREEN_VIS_MODE
+					+ HSM_TUBE_DIFFUSE_IMAGE_COLORIZE_ON
+					+ HSM_TUBE_DIFFUSE_IMAGE_HUE
+					+ HSM_TUBE_DIFFUSE_IMAGE_SATURATION
+					+ HSM_TUBE_DIFFUSE_IMAGE_BRIGHTNESS
+					+ HSM_TUBE_DIFFUSE_IMAGE_GAMMA
+					+ HSM_TUBE_DIFFUSE_FORCE_ASPECT
+					+ HSM_TUBE_EXPLICIT_ASPECT
+					+ HSM_TUBE_DIFFUSE_IMAGE_LIGHT_NIGHTLIGHTING
+					+ HSM_TUBE_DIFFUSE_IMAGE_NIGHTLIGHT2_LIGHTING
+					+ HSM_TUBE_DIFFUSE_IMAGE_SCALE
+					+ HSM_TUBE_DIFFUSE_IMAGE_SCALE_X
+					+ HSM_TUBE_DIFFUSE_IMAGE_ROTATION
+
+					//     TUBE SHADOW
+					+ HSM_TUBE_SHADOW_IMAGE_ON
+					+ HSM_TUBE_SHADOW_IMAGE_OPACITY
+					+ HSM_TUBE_SHADOW_IMAGE_POS_X
+					+ HSM_TUBE_SHADOW_IMAGE_POS_Y
+					+ HSM_TUBE_SHADOW_IMAGE_SCALE_X
+					+ HSM_TUBE_SHADOW_IMAGE_SCALE_Y
+					+ HSM_TUBE_SHADOW_CURVATURE_SCALE
+
+					//    TUBE GLASS STATIC REFLECTION IMAGE
+					+ HSM_TUBE_STATIC_REFLECTION_IMAGE_ON
+					+ HSM_TUBE_STATIC_REFLECTION_IMAGE_DUALSCREEN_VIS_MODE
+					+ HSM_TUBE_STATIC_REFLECTION_IMAGE_OPACITY
+					+ HSM_TUBE_STATIC_OPACITY_DIFFUSE_MULTIPLY
+					+ HSM_TUBE_STATIC_BLACK_LEVEL
+					+ HSM_TUBE_STATIC_LIGHT_NIGHTLIGHTING
+					+ HSM_TUBE_STATIC_NIGHTLIGHT2_LIGHTING
+					+ HSM_TUBE_STATIC_SCALE
+					+ HSM_TUBE_STATIC_SCALE_X
+					+ HSM_TUBE_STATIC_POS_X
+					+ HSM_TUBE_STATIC_POS_Y
+					+ HSM_TUBE_STATIC_SHADOW_OPACITY
+					+ HSM_TUBE_STATIC_DITHER_AMOUNT
+
+					//    TUBE COLORED GEL
+					+ HSM_TUBE_COLORED_GEL_IMAGE_ON
+					+ HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_BRIGHTNESS
+					+ HSM_TUBE_COLORED_GEL_CRT_BRIGHTNESS
+					+ HSM_TUBE_COLORED_GEL_MIPMAPPING_BLEND_BIAS
+					+ HSM_TUBE_COLORED_GEL_IMAGE_SCALE
+					+ HSM_TUBE_COLORED_GEL_IMAGE_FLIP_HORIZONTAL
+					+ HSM_TUBE_COLORED_GEL_IMAGE_FLIP_VERTICAL
+					+ HSM_TUBE_COLORED_GEL_IMAGE_DUALSCREEN_VIS_MODE
+					+ HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT
+					+ HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT
+
+					//    TUBE COLORED GEL NORMAL BLEND
+					+ HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_AMOUNT
+					+ HSM_TUBE_COLORED_GEL_IMAGE_TRANSPARENCY_THRESHOLD
+					+ HSM_TUBE_COLORED_GEL_LAYERING_ORDER
+					+ HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_BRIGHTNESS
+					+ HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_VIGNETTE
+					+ HSM_TUBE_COLORED_GEL_IMAGE_FAKE_SCANLINE_AMOUNT
+					+ HSM_TUBE_COLORED_GEL_IMAGE_LIGHT_NIGHTLIGHTING
+					+ HSM_TUBE_COLORED_GEL_IMAGE_NIGHTLIGHT2_LIGHTING
 
 					// SCREEN BLACK EDGE
 					+ HSM_GLOBAL_CORNER_RADIUS
@@ -696,6 +769,14 @@ float HSM_GetParameterSum()
 					+ HSM_TUBE_BLACK_EDGE_CURVATURE_SCALE * 100
 					+ HSM_TUBE_BLACK_EDGE_THICKNESS * 100
 					+ HSM_TUBE_BLACK_EDGE_THICKNESS_X_SCALE * 100
+
+					+ HSM_SIMPLEBG_OPACITY
+					+ HSM_SIMPLEBG_BLEND_MODE
+					+ HSM_SIMPLEBG_SHOW_BG_OVER_SCREEN
+					+ HSM_SIMPLEBG_BRIGHTNESS
+					+ HSM_SIMPLEBG_CRT_SCREEN_BLEND_MODE
+					+ HSM_SIMPLEBG_COLORIZE_CRT_WITH_BG
+					+ HSM_SIMPLEBG_COLORIZE_BRIGHTNESS
 
 					// //    DUAL SCREEN
 					+ HSM_DUALSCREEN_MODE
@@ -717,33 +798,33 @@ float HSM_GetParameterSum()
 					+ HSM_2ND_SCREEN_CROP_PERCENT_RIGHT * 100
 
 					// AMBIENT LIGHTING 1
-					+ HSM_AMBIENT1_HUE * 360
-					+ HSM_AMBIENT1_SATURATION * 100
-					+ HSM_AMBIENT1_VALUE * 100
-					+ HSM_AMBIENT1_CONTRAST
-					+ HSM_AMBIENT1_SCALE_INHERIT_MODE
-					+ HSM_AMBIENT1_SCALE * 100
-					+ HSM_AMBIENT1_SCALE_X * 100
-					+ HSM_AMBIENT1_ROTATE
-					+ HSM_AMBIENT1_MIRROR_HORZ
-					+ HSM_AMBIENT1_POS_INHERIT_MODE
-					+ HSM_AMBIENT1_POSITION_X * 1000
-					+ HSM_AMBIENT1_POSITION_Y * 1000
-					+ HSM_AMBIENT1_DITHERING_SAMPLES
+					+ HSM_NIGHTLIGHT1_HUE * 360
+					+ HSM_NIGHTLIGHT1_SATURATION * 100
+					+ HSM_NIGHTLIGHT1_VALUE * 100
+					+ HSM_NIGHTLIGHT1_CONTRAST
+					+ HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE
+					+ HSM_NIGHTLIGHT1_SCALE * 100
+					+ HSM_NIGHTLIGHT1_SCALE_X * 100
+					+ HSM_NIGHTLIGHT1_ROTATE
+					+ HSM_NIGHTLIGHT1_MIRROR_HORZ
+					+ HSM_NIGHTLIGHT1_POS_INHERIT_MODE
+					+ HSM_NIGHTLIGHT1_POSITION_X * 1000
+					+ HSM_NIGHTLIGHT1_POSITION_Y * 1000
+					+ HSM_NIGHTLIGHT1_DITHERING_SAMPLES
 
 					// AMBIENT LIGHTING 2
-					+ HSM_AMBIENT2_HUE * 360
-					+ HSM_AMBIENT2_SATURATION * 100
-					+ HSM_AMBIENT2_VALUE * 100
-					+ HSM_AMBIENT2_CONTRAST
-					+ HSM_AMBIENT2_SCALE_INHERIT_MODE
-					+ HSM_AMBIENT2_SCALE * 100
-					+ HSM_AMBIENT2_SCALE_X * 100
-					+ HSM_AMBIENT2_ROTATE
-					+ HSM_AMBIENT2_MIRROR_HORZ
-					+ HSM_AMBIENT2_POS_INHERIT_MODE
-					+ HSM_AMBIENT2_POSITION_X * 1000
-					+ HSM_AMBIENT2_POSITION_Y * 1000
+					+ HSM_NIGHTLIGHT2_HUE * 360
+					+ HSM_NIGHTLIGHT2_SATURATION * 100
+					+ HSM_NIGHTLIGHT2_VALUE * 100
+					+ HSM_NIGHTLIGHT2_CONTRAST
+					+ HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE
+					+ HSM_NIGHTLIGHT2_SCALE * 100
+					+ HSM_NIGHTLIGHT2_SCALE_X * 100
+					+ HSM_NIGHTLIGHT2_ROTATE
+					+ HSM_NIGHTLIGHT2_MIRROR_HORZ
+					+ HSM_NIGHTLIGHT2_POS_INHERIT_MODE
+					+ HSM_NIGHTLIGHT2_POSITION_X * 1000
+					+ HSM_NIGHTLIGHT2_POSITION_Y * 1000
 
 					//    BEZEL INDEPENDENT SCALE
 					+ HSM_BZL_USE_INDEPENDENT_SCALE
@@ -761,14 +842,7 @@ float HSM_GetParameterSum()
 					+ HSM_BZL_INNER_CURVATURE_SCALE * 100
 					+ HSM_BZL_INNER_CORNER_RADIUS_SCALE * 100
 
-#ifdef HAS_BEZEL_PARAMS
-
-					// Reflection Image Mask
-					+ HSM_REFLECT_MASK_IMAGE_AMOUNT
-					+ HSM_REFLECT_MASK_FOLLOW_LAYER
-					+ HSM_REFLECT_MASK_FOLLOW_MODE
-					+ HSM_REFLECT_MASK_BRIGHTNESS * 100
-					+ HSM_REFLECT_MASK_BLACK_LEVEL
+		#ifdef HAS_BEZEL_PARAMS
 
 					//	Bezel Params not in Screen Scale
 					+ HSM_BZL_INNER_EDGE_THICKNESS / 0.00007
@@ -791,8 +865,8 @@ float HSM_GetParameterSum()
 					+ HSM_BZL_COLOR_HUE * 360
 					+ HSM_BZL_COLOR_SATURATION * 100
 					+ HSM_BZL_COLOR_VALUE * 100
-					+ HSM_BZL_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_BZL_AMBIENT2_LIGHTING_MULTIPLIER * 100
+					+ HSM_BZL_ADD_MODE_NIGHTLIGHTING1_MULTIPLIER * 100
+					+ HSM_BZL_ADD_MODE_NIGHTLIGHTING2_MULTIPLIER * 100
 
 					// Frame Color
 					+ HSM_FRM_USE_INDEPENDENT_COLOR
@@ -826,31 +900,110 @@ float HSM_GetParameterSum()
 					+ HSM_REFLECT_CORNER_ROTATION_OFFSET_TOP
 					+ HSM_REFLECT_CORNER_ROTATION_OFFSET_BOTTOM
 					+ HSM_REFLECT_CORNER_SPREAD_FALLOFF
-#endif
+	#endif
 
-#ifdef HAS_IMAGE_LAYER_PARAMS
+	#ifdef HAS_IMAGE_LAYER_PARAMS
+
+					// Reflection  Mask
+					+ HSM_REFLECT_MASK_IMAGE_AMOUNT
+					+ HSM_REFLECT_MASK_FOLLOW_LAYER
+					+ HSM_REFLECT_MASK_FOLLOW_MODE
+					+ HSM_REFLECT_MASK_BRIGHTNESS * 100
+					+ HSM_REFLECT_MASK_BLACK_LEVEL
 
 					// Layer Order
 					+ HSM_BG_LAYER_ORDER
 					+ HSM_VIEWPORT_VIGNETTE_LAYER_ORDER
-					+ HSM_CRT_LAYER_ORDER
+					+ HSM_LED_LAYER_ORDER
+
+					+ HSM_MIDDLE_LAYER_GROUP_FIRST_LAYER
 					+ HSM_DEVICE_LAYER_ORDER
 					+ HSM_DEVICELED_LAYER_ORDER
-					+ HSM_CAB_GLASS_LAYER_ORDER
+					+ HSM_BEZEL_LAYER_ORDER_OFFSET_FROM_TUBE
+					+ HSM_CRT_LAYER_ORDER
+
 					+ HSM_DECAL_LAYER_ORDER
-					+ HSM_LED_LAYER_ORDER
+					+ HSM_CAB_GLASS_LAYER_ORDER
 					+ HSM_TOP_LAYER_ORDER
 
-					// Background
+					// COMPOSITING LAYER GROUPS
+
+					+ HSM_COMPOSITE_BACKGROUND_ON
+					+ HSM_COMPOSITE_BACKGROUND_STATIC_AMBIENT_MULTIPLIER
+					+ HSM_COMPOSITE_BACKGROUND_NIGHTLIGHT1_MULTIPLIER
+					+ HSM_COMPOSITE_BACKGROUND_NIGHTLIGHT2_MULTIPLIER
+
+					+ HSM_COMPOSITE_MIDDLEGROUND_ON
+					+ HSM_COMPOSITE_MIDDLEGROUND_STATIC_AMBIENT_MULTIPLIER
+					+ HSM_COMPOSITE_MIDDLEGROUND_NIGHTLIGHT1_MULTIPLIER
+					+ HSM_COMPOSITE_MIDDLEGROUND_NIGHTLIGHT2_MULTIPLIER
+
+					+ HSM_COMPOSITE_FOREGROUND_ON
+					+ HSM_COMPOSITE_FOREGROUND_STATIC_AMBIENT_MULTIPLIER
+					+ HSM_COMPOSITE_FOREGROUND_NIGHTLIGHT1_MULTIPLIER
+					+ HSM_COMPOSITE_FOREGROUND_NIGHTLIGHT2_MULTIPLIER
+
+					* HSM_COMPOSITE_ADDITIVE_ON
+					+ HSM_COMPOSITE_ADDITIVE_BRIGHTNESS
+					* HSM_COMPOSITE_CRT_AND_REFLECTION_ON
+
+					// Render Simple
+					+ HSM_RENDER_SIMPLE_MODE
+					+ HSM_RENDER_SIMPLE_MASK_TYPE
+
+					// Mask Debug
+					+ HSM_LAYERING_DEBUG_MASK_MODE
+
+					+ HSM_3DSHADING_DEBUG_MAPS
+					+ HSM_3DSHADING_DEBUG_MATERIAL
+
+					+ HSM_3DSHADING_SHADOWLIGHT_POINT.x
+					+ HSM_3DSHADING_SHADOWLIGHT_POINT.y
+					+ HSM_3DSHADING_SHADOWLIGHT_POINT.z
+
+					+ HSM_3DSHADING_OMNI
+					+ HSM_3DSHADING_NORMAL_SOURCE
+					+ HSM_3DSHADING_NORMAL_STRENGTH
+					+ HSM_3DSHADING_AMBIENT_OFFSET_HUE
+					+ HSM_3DSHADING_AMBIENT_OFFSET_SATURATION
+					+ HSM_3DSHADING_AMBIENT_OFFSET_VALUE
+					+ HSM_3DSHADING_AO_HEIGHT_CUTOFF
+					+ HSM_3DSHADING_ROUGHNESS
+					+ HSM_3DSHADING_DIFFUSE_AO
+					+ HSM_3DSHADING_SPECULAR_AMOUNT
+					+ HSM_3DSHADING_SPECULAR_AO
+
+					+ HSM_3DSHADING_SHADOW_FROM_MIDDLE_AMOUNT
+					+ HSM_3DSHADING_SHADOW_FROM_RIGHT_AMOUNT
+					+ HSM_3DSHADING_SHADOW_FROM_LEFT_AMOUNT
+
+					+ HSM_HSHADOW_SAMPLES
+					+ HSM_HSHADOW_NOISE
+					+ HSM_HSHADOW_DEPTH_MULT
+					+ HSM_HSHADOW_DIST_UMBRA
+					+ HSM_HSHADOW_DIST_PENUMBRA
+					+ HSM_HSHADOW_SPREAD_NOISE
+					+ HSM_HSHADOW_GAMMA
+
+					+ HSM_HSHADOW_BG_CONTRAST
+					+ HSM_HSHADOW_BG_CONTRAST_CENTER
+					+ HSM_HSHADOW_BG_OFFSET_Z
+
+					+ HSM_HSHADOW_DEVICE_CONTRAST
+					+ HSM_HSHADOW_DEVICE_CONTRAST_CENTER
+					+ HSM_HSHADOW_DEVICE_OFFSET_Z
+
+					+ HSM_HSHADOW_BEZEL_OFFSET_Z
+
+
+					// BackgroundImage
 					+ HSM_BG_OPACITY
 					+ HSM_BG_COLORIZE_ON
 					+ HSM_BG_HUE * 360
 					+ HSM_BG_SATURATION * 100
 					+ HSM_BG_BRIGHTNESS * 100
 					+ HSM_BG_GAMMA
-					+ HSM_BG_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_BG_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_BG_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_BG_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_BG_BLEND_MODE
 					+ HSM_BG_SOURCE_MATTE_TYPE
 					+ HSM_BG_MASK_MODE
@@ -869,7 +1022,7 @@ float HSM_GetParameterSum()
 					+ HSM_BG_WRAP_MODE
 					+ HSM_BG_MIPMAPPING_BLEND_BIAS
 
-					// Background Vignette
+					// BackgroundImage Vignette
 					+ HSM_VIEWPORT_VIGNETTE_OPACITY * 100
 					+ HSM_VIEWPORT_VIGNETTE_MASK_MODE
 					+ HSM_VIEWPORT_VIGNETTE_CUTOUT_MODE
@@ -897,9 +1050,7 @@ float HSM_GetParameterSum()
 					+ HSM_LED_SATURATION * 100
 					+ HSM_LED_BRIGHTNESS * 100
 					+ HSM_LED_GAMMA
-					+ HSM_LED_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_LED_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_LED_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_LED_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_LED_BLEND_MODE
 					+ HSM_LED_SOURCE_MATTE_TYPE
 					+ HSM_LED_MASK_MODE
@@ -924,9 +1075,7 @@ float HSM_GetParameterSum()
 					+ HSM_DEVICE_SATURATION * 100
 					+ HSM_DEVICE_BRIGHTNESS * 100
 					+ HSM_DEVICE_GAMMA
-					+ HSM_DEVICE_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_DEVICE_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_DEVICE_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_DEVICE_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_DEVICE_BLEND_MODE
 					+ HSM_DEVICE_SOURCE_MATTE_TYPE
 					+ HSM_DEVICE_MASK_MODE
@@ -951,9 +1100,7 @@ float HSM_GetParameterSum()
 					+ HSM_DEVICELED_SATURATION * 100
 					+ HSM_DEVICELED_BRIGHTNESS * 100
 					+ HSM_DEVICELED_GAMMA
-					+ HSM_DEVICELED_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_DEVICELED_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_DEVICELED_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_DEVICELED_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_DEVICELED_BLEND_MODE
 					+ HSM_DEVICELED_SOURCE_MATTE_TYPE
 					+ HSM_DEVICELED_MASK_MODE
@@ -971,16 +1118,14 @@ float HSM_GetParameterSum()
 					+ HSM_DEVICELED_POS_Y * 100
 					+ HSM_DEVICELED_MIPMAPPING_BLEND_BIAS
 
-					// Decal
+					// DecalImage
 					+ HSM_DECAL_OPACITY * 100
 					+ HSM_DECAL_COLORIZE_ON
 					+ HSM_DECAL_HUE * 360
 					+ HSM_DECAL_SATURATION * 100
 					+ HSM_DECAL_BRIGHTNESS * 100
 					+ HSM_DECAL_GAMMA
-					+ HSM_DECAL_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_DECAL_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_DECAL_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_DECAL_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_DECAL_BLEND_MODE
 					+ HSM_DECAL_SOURCE_MATTE_TYPE
 					+ HSM_DECAL_MASK_MODE
@@ -1005,9 +1150,7 @@ float HSM_GetParameterSum()
 					+ HSM_CAB_GLASS_SATURATION * 100
 					+ HSM_CAB_GLASS_BRIGHTNESS * 100
 					+ HSM_CAB_GLASS_GAMMA
-					+ HSM_CAB_GLASS_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_CAB_GLASS_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_CAB_GLASS_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_CAB_GLASS_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_CAB_GLASS_BLEND_MODE
 					+ HSM_CAB_GLASS_SOURCE_MATTE_TYPE
 					+ HSM_CAB_GLASS_MASK_MODE
@@ -1025,16 +1168,14 @@ float HSM_GetParameterSum()
 					+ HSM_CAB_GLASS_POS_Y * 100
 					+ HSM_CAB_GLASS_MIPMAPPING_BLEND_BIAS
 
-					// Top Image
+					// Top
 					+ HSM_TOP_OPACITY * 100
 					+ HSM_TOP_COLORIZE_ON
 					+ HSM_TOP_HUE * 360
 					+ HSM_TOP_SATURATION * 100
 					+ HSM_TOP_BRIGHTNESS * 100
 					+ HSM_TOP_GAMMA
-					+ HSM_TOP_AMBIENT_LIGHTING_MULTIPLIER * 100
-					+ HSM_TOP_AMBIENT2_LIGHTING_MULTIPLIER * 100
-					+ HSM_TOP_APPLY_AMBIENT_IN_ADD_MODE
+					+ HSM_TOP_ADD_MODE_NIGHTLIGHTING_AMOUNT
 					+ HSM_TOP_BLEND_MODE
 					+ HSM_TOP_SOURCE_MATTE_TYPE
 					+ HSM_TOP_MASK_MODE
@@ -1053,9 +1194,7 @@ float HSM_GetParameterSum()
 					+ HSM_TOP_MIRROR_WRAP
 					+ HSM_TOP_MIPMAPPING_BLEND_BIAS
 
-					+ HSM_RENDER_SIMPLE_MODE
-					+ HSM_LAYERING_DEBUG_MASK_MODE
-#endif
+	#endif
 
 					);
 	return out_sum;
@@ -1082,13 +1221,10 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	vec2 cropped_rotated_size = vec2(100);
 	vec2 cropped_sample_area_start_pixel_coord = vec2(100);
 	HSM_GetCroppedRotatedSizeAndPixelSampleAreaStart(1, original_pass, cropped_rotated_size, cropped_sample_area_start_pixel_coord);
-	// vec2 cropped_unrotated_size = abs(HSM_ROTATE_CORE_IMAGE) > 0.5 ? cropped_rotated_size.yx : cropped_rotated_size.xy;
-
 	float screen_aspect = HSM_GetScreenAspect(1, cropped_rotated_size);
 	float use_vertical_scanlines = HSM_GetUseVerticalScanlines(screen_aspect);
 	vec2 sampling_dir_mult = HSM_GetResMult(use_vertical_scanlines);
 	vec2 cropped_rotated_size_with_res_mult = HSM_GetCroppedRotatedSizeWithResMult(cropped_rotated_size, sampling_dir_mult);
-	// vec2 cropped_unrotated_size_with_res_mult = abs(HSM_ROTATE_CORE_IMAGE) > 0.5 ? cropped_rotated_size_with_res_mult.yx : cropped_rotated_size_with_res_mult.xy;
 
 	// First Screen
 	vec3 screen_pos_and_height = HSM_GetScreenPlacementAndHeight(screen_placement_image, 60);
@@ -1098,7 +1234,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Adjust tube empty thickness for Sinden lightgun bright edge border if needed
 	float tube_sinden_border_thickness =  HSM_SINDEN_BORDER_ON > 0.5 && HSM_SINDEN_BORDER_EMPTY_TUBE_COMPENSATION > 0.5 ? 0.6 * HSM_SINDEN_BORDER_THICKNESS * 60 : 0;
 
-	vec2 tube_diffuse_scale = HSM_GetTubeScale(screen_scale, screen_pos_and_height.z, vec2(HSM_TUBE_EMPTY_THICKNESS * HSM_TUBE_EMPTY_THICKNESS_X_SCALE + tube_sinden_border_thickness, HSM_TUBE_EMPTY_THICKNESS + screen_aspect * tube_sinden_border_thickness));	
+	vec2 tube_diffuse_scale = HSM_GetTubeScale(screen_scale, screen_pos_and_height.z, vec2(HSM_TUBE_EMPTY_THICKNESS * HSM_TUBE_EMPTY_THICKNESS_X_SCALE + tube_sinden_border_thickness, HSM_TUBE_EMPTY_THICKNESS + screen_aspect * tube_sinden_border_thickness));
 	float tube_diffuse_aspect = tube_diffuse_scale.x / tube_diffuse_scale.y * output_aspect;
 
 	// TODO need to adjust height in screen_pos_and_height with the tube extra thickness
@@ -1113,7 +1249,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 		tube_diffuse_scale = vec2( tube_diffuse_scale.y * tube_diffuse_aspect / output_aspect, tube_diffuse_scale.y );
 	}
 
-	vec2 tube_scale = HSM_GetTubeScale(tube_diffuse_scale, screen_pos_and_height.z, vec2(HSM_TUBE_BLACK_EDGE_THICKNESS * HSM_TUBE_BLACK_EDGE_THICKNESS_X_SCALE, HSM_TUBE_BLACK_EDGE_THICKNESS));	
+	vec2 tube_scale = HSM_GetTubeScale(tube_diffuse_scale, screen_pos_and_height.z, vec2(HSM_TUBE_BLACK_EDGE_THICKNESS * HSM_TUBE_BLACK_EDGE_THICKNESS_X_SCALE, HSM_TUBE_BLACK_EDGE_THICKNESS));
 
 	vec2 pos_offset = HSM_GetScreenPositionOffset(screen_pos_and_height.xy, screen_scale, 1);
 
@@ -1127,8 +1263,8 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	vec2 screen_size_2nd_screen = GetScreenSizeWithZoom(screen_scale_2nd_screen);
 	vec2 cropped_size_with_res_mult_2nd_screen = HSM_GetCroppedRotatedSizeWithResMult(cropped_size_2nd_screen, sampling_dir_mult);
 
-	vec2 tube_diffuse_scale_2nd_screen = 	HSM_GetTubeScale(screen_scale_2nd_screen, 		DEFAULT_UNCORRECTED_SCREEN_SCALE.y, vec2(HSM_TUBE_EMPTY_THICKNESS * HSM_TUBE_EMPTY_THICKNESS_X_SCALE, 			HSM_TUBE_EMPTY_THICKNESS));	
-	vec2 tube_scale_2nd_screen = 			HSM_GetTubeScale(tube_diffuse_scale_2nd_screen, DEFAULT_UNCORRECTED_SCREEN_SCALE.y, vec2(HSM_TUBE_BLACK_EDGE_THICKNESS * HSM_TUBE_BLACK_EDGE_THICKNESS_X_SCALE, HSM_TUBE_BLACK_EDGE_THICKNESS));	
+	vec2 tube_diffuse_scale_2nd_screen = 	HSM_GetTubeScale(screen_scale_2nd_screen, 		DEFAULT_UNCORRECTED_SCREEN_SCALE.y, vec2(HSM_TUBE_EMPTY_THICKNESS * HSM_TUBE_EMPTY_THICKNESS_X_SCALE, 			HSM_TUBE_EMPTY_THICKNESS));
+	vec2 tube_scale_2nd_screen = 			HSM_GetTubeScale(tube_diffuse_scale_2nd_screen, DEFAULT_UNCORRECTED_SCREEN_SCALE.y, vec2(HSM_TUBE_BLACK_EDGE_THICKNESS * HSM_TUBE_BLACK_EDGE_THICKNESS_X_SCALE, HSM_TUBE_BLACK_EDGE_THICKNESS));
 	float tube_aspect_2nd_screen = tube_scale_2nd_screen.x / tube_scale_2nd_screen.y * output_aspect;
 
 	// TODO need to add tube diffuse aspect to cache data
@@ -1140,7 +1276,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 	// Sample 1, 1
 	// r AVERAGE_LUMA
-	sample_2d_range = HSM_GetCacheSampleRange(1, 1);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_AVERAGE_LUMA);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = sampling_dir_mult;
@@ -1150,17 +1286,17 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 2, 1
 	// r SCREEN_ASPECT
 	// ba SCREEN_SCALE
-	sample_2d_range = HSM_GetCacheSampleRange(2, 1);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_SCREEN_SCALE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
-	{ 
+	{
 		out_color.r = screen_aspect;
 		out_color.ba = screen_scale;
 	}
 
 	// Sample 3, 1
-	// rg TUBE_SCALE 
+	// rg TUBE_SCALE
 	// ba SCREEN_POS_OFFSET
-	sample_2d_range = HSM_GetCacheSampleRange(3, 1);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_TUBE_SCALE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = tube_scale;
@@ -1169,7 +1305,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 	// Sample 4, 1
 	// rg CROPPED_ROTATED_SIZE_WITH_RES_MULT
-	sample_2d_range = HSM_GetCacheSampleRange(4, 1);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = cropped_rotated_size_with_res_mult;
@@ -1179,29 +1315,18 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 1, 2
 	// rg CROPPED_ROTATED_SIZE
 	// ba SAMPLE_AREA_START_PIXEL_COORD
-	sample_2d_range = HSM_GetCacheSampleRange(1, 2);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CROPPED_ROTATED_SIZE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = cropped_rotated_size;
 		out_color.ba = cropped_sample_area_start_pixel_coord;
 	}
 
-	// // Sample 5, 1
-	// // rg CROPPED_UNROTATED_SIZE
-	// sample_2d_range = HSM_GetCacheSampleRange(5, 1);
-	// if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
-	// {
-	// 	out_color.rg = cropped_unrotated_size;
-	// 	out_color.ba = cropped_unrotated_size_with_res_mult;
-	// }
-
-// TODO Need to add unrotated sizes
-
 	// Sample 2, 2
 	// r SCREEN_ASPECT_2ND_SCREEN
 	// g PARAMETER_SUM_SCREEN_SCALE
 	// ba SCREEN_SCALE_2ND_SCREEN
-	sample_2d_range = HSM_GetCacheSampleRange(2, 2);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_SCREEN_SCALE_2ND_SCREEN);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.r = screen_aspect_2nd_screen;
@@ -1211,7 +1336,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 3, 2
 	// rg TUBE_SCALE
 	// ba SCREEN_POS_OFFSET
-	sample_2d_range = HSM_GetCacheSampleRange(3, 2);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_TUBE_SCALE_2ND_SCREEN);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = tube_scale_2nd_screen;
@@ -1220,7 +1345,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 	// Sample 4, 2
 	// rg CROPPED_ROTATED_SIZE_WITH_RES_MULT 2nd screen
-	sample_2d_range = HSM_GetCacheSampleRange(4, 2);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT_2ND_SCREEN);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = cropped_size_with_res_mult_2nd_screen;
@@ -1229,7 +1354,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 1, 3
 	// rg CROPPED_ROTATED_SIZE 2nd screen
 	// ba SAMPLE_AREA_START_PIXEL_COORD 2nd screen
-	sample_2d_range = HSM_GetCacheSampleRange(1, 3);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CROPPED_ROTATED_SIZE_2ND_SCREEN);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = cropped_size_2nd_screen;
@@ -1238,7 +1363,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 	// Sample 2, 3
 	// rg CORE_SIZE
-	sample_2d_range = HSM_GetCacheSampleRange(2, 3);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CORE_SIZE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = global.OriginalSize.xy;
@@ -1248,7 +1373,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 3, 3
 	// rg VIEWPORT_SCALE
 	// ba VIEWPORT_POS
-	sample_2d_range = HSM_GetCacheSampleRange(3, 3);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_VIEWPORT_SCALE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = vec2(HSM_VIEWPORT_ZOOM, HSM_VIEWPORT_ZOOM);
@@ -1258,7 +1383,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 4, 3
 	// rg SCREEN_SCALE_2ND_SCREEN
 	// ba SCREEN_POS_OFFSET_2ND_SCREEN
-	sample_2d_range = HSM_GetCacheSampleRange(4, 3);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_VIEWPORT_SCALE_2ND_SCREEN);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = screen_scale_2nd_screen;
@@ -1266,12 +1391,12 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	}
 
 	// Sample 1, 4
-	sample_2d_range = HSM_GetCacheSampleRange(1, 4);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_PARAMETER_SUM);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.r = parameter_sum;
 
-		vec2 sample_coord = HSM_GetCacheSampleCoord(1, 4);
+		vec2 sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_PARAMETER_SUM);
 		vec4 texture_sample = texture(feedback_pass, sample_coord);
 
 		float last_frame = floor(texture_sample.g);
@@ -1282,7 +1407,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 2, 4
 	// r = NEGATIVE_CROP_EXPAND_MULTIPLIER
 	// g = MAX_NEGATIVE_CROP;
-	sample_2d_range = HSM_GetCacheSampleRange(2, 4);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_VERTICAL_SCANLINES);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.r = NEGATIVE_CROP_EXPAND_MULTIPLIER;
@@ -1294,7 +1419,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 3, 4
 	// rg TUBE_DIFFUSE_SCALE
 	// ba TUBE_DIFFUSE_SCALE_2ND_SCREEN
-	sample_2d_range = HSM_GetCacheSampleRange(3, 4);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_TUBE_DIFFUSE_SCALE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = tube_diffuse_scale;
@@ -1304,7 +1429,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Sample 4, 4
 	// rg SCREEN_SIZE
 	// ba SCREEN_SIZE_2ND_SCREEN
-	sample_2d_range = HSM_GetCacheSampleRange(4, 4);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_SCREEN_SIZE);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.rg = screen_size;
@@ -1312,13 +1437,13 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	}
 
 
-	vec2 sample_coord = vec2(0); 
-	vec4 texture_sample = vec4(0); 
+	vec2 sample_coord = vec2(0);
+	vec4 texture_sample = vec4(0);
 
 	// Check the difference in parameter sum values to see if the cache has changed
 	// Sample 1, 4 Feedback
 	// r parameter_sum_feedback
-	sample_coord = HSM_GetCacheSampleCoord(1, 4);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_PARAMETER_SUM);
 	texture_sample = texture(feedback_pass, sample_coord);
 	float parameter_sum_feedback = texture_sample.r;
 
@@ -1328,7 +1453,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 	// Sample 4, 1 Feedback
 	// rg parameter_sum_feedback
-	sample_coord = HSM_GetCacheSampleCoord(4, 1);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT);
 	texture_sample = texture(feedback_pass, sample_coord);
 	CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK = texture_sample.rg;
 	float res_mult_size_sum_feedback = CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK.x + CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK.y;
@@ -1338,13 +1463,13 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// r res_mult_size2_sum
 	float res_mult_size2_sum = cropped_size_with_res_mult_2nd_screen.x + cropped_size_with_res_mult_2nd_screen.y;
 
-	sample_coord = HSM_GetCacheSampleCoord(4, 2);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT_2ND_SCREEN);
 	texture_sample = texture(feedback_pass, sample_coord);
 	CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK = texture_sample.rg;
 	float res_mult_size2_sum_feedback = CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK.x + CROPPED_ROTATED_SIZE_WITH_RES_MULT_FEEDBACK.y;
 
 	// Need to check croped sample resolutions of both screens
-	bool cache_changed = res_mult_size_sum != res_mult_size_sum_feedback || 
+	bool cache_changed = res_mult_size_sum != res_mult_size_sum_feedback ||
 						 res_mult_size2_sum != res_mult_size2_sum_feedback ||
 						 abs((parameter_sum) - (parameter_sum_feedback)) > 0.0000001 ? true : false ||
 						 HSM_CACHE_GRAPHICS_ON < 0.5;
@@ -1353,7 +1478,7 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 	// Store if the cache has changed since last frame
 	// Sample 8, 8
 	// r CACHE_INFO_CHANGED
-	sample_2d_range = HSM_GetCacheSampleRange(8, 8);
+	sample_2d_range = HSM_GetCacheSampleRange(SAMPLE_CELL_CACHE_CHANGED);
 	if (HSM_IsCoordIn2DRange(viewport_coord, sample_2d_range) == 1)
 	{
 		out_color.r = cache_changed ? 1 : 0;
@@ -1364,5 +1489,13 @@ vec4 HSM_GetColorForScreenInfoCache(vec2 viewport_coord, sampler2D feedback_pass
 
 void main()
 {
-   FragColor = HSM_GetColorForScreenInfoCache(vTexCoord, InfoCachePassFeedback, Source, ScreenPlacementImage);
+	if (HSM_IsOutsideCacheFullRange(vTexCoord))
+	{
+		return;
+	}
+
+   FragColor = HSM_GetColorForScreenInfoCache(vTexCoord,
+   											  CacheInfoPassFeedback,
+											  Source,
+											  ScreenPlacementImage);
 }

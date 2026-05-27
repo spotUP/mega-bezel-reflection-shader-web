@@ -29,7 +29,7 @@ layout(push_constant) uniform Push
    uint FrameCount;
    float TNTC;
    float LS;
-   float LUTLOW, LUTBR;
+   float LUTLOW, LUTBR;   
    float CP, CS;
    float WP;
    float wp_saturation;
@@ -108,7 +108,7 @@ void main()
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D PreCRTPass;
+layout(set = 0, binding = 2) uniform sampler2D PreCrtPass;
 layout(set = 0, binding = 3) uniform sampler2D AfterglowPass;
 layout(set = 0, binding = 4) uniform sampler2D SamplerLUT1;
 layout(set = 0, binding = 5) uniform sampler2D SamplerLUT2;
@@ -250,18 +250,18 @@ float contrast(float x)
 
 void main()
 {
-   vec4 imgColor = COMPAT_TEXTURE(PreCRTPass, vTexCoord.xy);
+   vec4 imgColor = COMPAT_TEXTURE(PreCrtPass, vTexCoord.xy);
    vec4 aftglow = COMPAT_TEXTURE(AfterglowPass, vTexCoord.xy);
-
+   
    float w = 1.0-aftglow.w;
 
    float l = length(aftglow.rgb);
    aftglow.rgb = AS*w*normalize(pow(aftglow.rgb + 0.01, vec3(sat)))*l;
    float bp = w * BP/255.0;
-
+   
    // Retro Sega Systems: Genesis, 32x, CD and Saturn 2D had color palettes designed in TV levels to save on transformations.
    if (SEGA_FIX > 0.5) imgColor.rgb = imgColor.rgb * (255.0 / 239.0);
-
+   
    imgColor.rgb = min(imgColor.rgb, 1.0);
    
    vec3 color = imgColor.rgb;
@@ -319,7 +319,7 @@ void main()
 	mat3 m_out;
 	
 	if (CS == 0.0) { p = 2.2; m_out =  ToSRGB;   } else
-	if (CS == 1.0) { p = 2.2; m_out =  ToModern; } else
+	if (CS == 1.0) { p = 2.2; m_out =  ToModern; } else	
 	if (CS == 2.0) { p = 2.6; m_out =  ToDCI;    } else
 	if (CS == 3.0) { p = 2.2; m_out =  ToAdobe;  } else
 	if (CS == 4.0) { p = 2.4; m_out =  ToREC;    }
@@ -328,20 +328,20 @@ void main()
 	
 	mat3 m_in = Profile0;
 
-	if (CP == 0.0) { m_in = Profile0; } else
+	if (CP == 0.0) { m_in = Profile0; } else	
 	if (CP == 1.0) { m_in = Profile1; } else
 	if (CP == 2.0) { m_in = Profile2; } else
 	if (CP == 3.0) { m_in = Profile3; } else
 	if (CP == 4.0) { m_in = Profile4; } else
 	if (CP == 5.0) { m_in = Profile5; }
-
+	
 	color = m_in*color;
 	color = m_out*color;
 
 	color = clamp(color, 0.0, 1.0);
 
-	color = pow(color, vec3(1.0/p));
-
+	color = pow(color, vec3(1.0/p));	
+	
 	if (CP == -1.0) color = c;
 	
 	vec3 scolor1 = plant(pow(color, vec3(wp_saturation)), max(max(color.r,color.g),color.b));
@@ -376,9 +376,9 @@ void main()
 	color = min(color * params.pre_bb, 1.0);
 
    /* HSM Removed
-	FragColor = vec4(color, vignette(vTexCoord.xy));
+	FragColor = vec4(color, vignette(vTexCoord.xy)); 
    */
 
    // HSM Added (Vignette added in post crt processing)
-	FragColor = vec4(color, 0);
+	FragColor = vec4(color, 0); 
 } 

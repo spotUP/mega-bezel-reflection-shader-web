@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
 	Texture interpolation based on "Improved texture interpolation" by Inigo Quilez
 	Original description: http://www.iquilezles.org/www/articles/texture/texture.htm
@@ -109,6 +109,11 @@ vec4 HSM_GetPreMultipliedColorLinear(vec4 in_color, float matte_type, float enco
 	if (matte_type == SOURCE_MATTE_NONE)
 		out_color.rgb *= out_color.a;
 
+	// If alpha is near 0 then rgb should be 0 too
+	// This fixes scenarios where the matte color was appearing as an additive blend because alpha was almost 0 but RGB still quite bright
+	if (in_color.a < 0.01)
+		out_color.rgb *= out_color.a;
+
 	return out_color;
 }
 
@@ -117,7 +122,13 @@ vec4 HSM_GetPreMultipliedColorLinear(vec4 in_color, float matte_type, float enco
  * which means their rgb has already been multiplied by their alpha */
 vec4 HSM_PreMultAlphaBlend(vec4 color_under, vec4 color_over)
 {
-	vec4 out_color = vec4(color_over.rgb + (color_under.rgb * (1 - color_over.a)), clamp(color_under.a + color_over.a, 0, 1));
+	// // Old Blend Method
+	// vec4 out_color = vec4(color_over.rgb + (color_under.rgb * (1 - color_over.a)), clamp(color_under.a + color_over.a, 0, 1));
+
+	// Important to avoid errors on AMD
+	color_over.a = clamp(color_over.a, 0.0, 1.0);
+	vec4 out_color = color_over + color_under * (1 - color_over.a);
+	out_color.a = color_under.a + color_over.a - color_under.a * color_over.a;
 	return out_color;
 }
 
@@ -156,6 +167,14 @@ vec4 HSM_BlendModeLayerMix(vec4 color_under, vec4 color_over, float blend_mode, 
 	return out_color;
 }
 
+vec3 HSM_DitheredNoise(vec2 in_coord, vec2 in_output_resolution, float in_strength)
+{
+	vec3 out_color = fract(sin(in_coord.x * in_output_resolution.x * vec3(13,1,11) + in_coord.y * in_output_resolution.y * vec3(1,7,5)) * 158.391832) / 255.0;
+	out_color *= in_strength;
+	return out_color;
+}
+
+// Must be sampling from a pass which has linear filtering on
 vec4 HSM_TextureQuilez(sampler2D in_sampler_2D, vec2 in_texture_size, vec2 p)
 {
 	vec2 tex_size = textureSize(in_sampler_2D, 0);
@@ -170,13 +189,6 @@ vec4 HSM_TextureQuilez(sampler2D in_sampler_2D, vec2 in_texture_size, vec2 p)
 
 	// final sum and weight normalization
 	return texture(in_sampler_2D, p);
-}
-
-// Simple texture sampling at absolute coordinates (normalized 0-1 UV space)
-// WebGL2 compatibility: This function was missing from the original Mega Bezel
-vec4 HSM_TextureAbsolute(sampler2D in_sampler_2D, vec2 uv)
-{
-	return texture(in_sampler_2D, uv);
 }
 
 float HHLP_GetMaskCenteredOnValue(float in_value, float value_to_match, float threshold)
@@ -290,11 +302,62 @@ vec4 HHLP_GetBilinearTextureSample(sampler2D in_sampler, vec2 in_coord, vec4 in_
    return result;
 }
 
+vec4 HHLP_GetAveragedTextureSample(sampler2D in_sampler, vec2 in_coord, vec4 in_size)
+{
+   vec2 uv = in_coord * in_size.xy; // Shift by 0.5 since the texel sampling points are in the texel center.
+   vec2 a = fract(uv);
+   vec2 tex = (floor(uv) + 0.5) * in_size.zw; // Build a sampling point which is in the center of the texel.
+
+   // Sample the bilinear footprint.
+   vec4 t0 = texture(in_sampler, vec2(uv.x, uv.y) * in_size.zw);
+   vec4 t1 = texture(in_sampler, vec2(uv.x + 1, uv.y) * in_size.zw);
+   vec4 t2 = texture(in_sampler, vec2(uv.x + 1, uv.y + 1) * in_size.zw);
+   vec4 t3 = texture(in_sampler, vec2(uv.x - 1, uv.y - 1) * in_size.zw);
+   vec4 t4 = texture(in_sampler, vec2(uv.x - 1, uv.y) * in_size.zw);
+//    vec4 t3 = textureLodOffset(in_sampler, tex, 0.0, ivec2(1, 1));
+   vec4 t5 = texture(in_sampler, vec2(uv.x, uv.y + 1) * in_size.zw);
+   vec4 t6 = texture(in_sampler, vec2(uv.x - 1, uv.y + 1) * in_size.zw);
+   vec4 t7 = texture(in_sampler, vec2(uv.x + 1, uv.y - 1) * in_size.zw);
+   vec4 t8 = texture(in_sampler, vec2(uv.x, uv.y - 1) * in_size.zw);
+//    vec4 t6 = textureLodOffset(in_sampler, tex, 0.0, ivec2(-1, -1));
+
+   // Bilinear filter.
+   vec4 result = (t0 + t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8) / 9.0;
+
+   return result;
+}
+
+vec2 HHLP_ConvertCoordInRangeToZeroToOne( vec2 in_coord, vec4 in_range)
+{
+	return (in_coord - in_range.xy) / vec2(in_range.z - in_range.x, in_range.w - in_range.y);
+}
+
+vec2 HHLP_ConvertZeroToOneCoordToRange( vec2 in_coord, vec4 in_range)
+{
+	return in_range.xy + in_coord * vec2(in_range.z - in_range.x, in_range.w - in_range.y);
+}
+
 bool HHLP_IsOutsideCoordSpace(vec2 in_coord)
 {
 	return (abs(in_coord.x - 0.5) > 0.501 || abs(in_coord.y - 0.5) > 0.501);
 }
 
-float rand(vec2 co, float size){
+bool HHLP_IsOutsideRange(vec2 in_coord, vec4 in_range)
+{
+	return HHLP_IsOutsideCoordSpace(HHLP_ConvertCoordInRangeToZeroToOne( in_coord, in_range));
+}
+
+bool HHLP_IsInsideCoordSpace(vec2 in_coord)
+{
+	return !HHLP_IsOutsideCoordSpace(in_coord);
+}
+
+bool HHLP_IsInsideRange(vec2 in_coord, vec4 in_range)
+{
+	return !HHLP_IsOutsideRange(in_coord, in_range);
+}
+
+float rand(vec2 co, float size)
+{
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) * size;
 }

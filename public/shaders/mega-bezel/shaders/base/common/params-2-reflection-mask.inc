@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
     Incorporates much great feedback from the libretro forum, and thanks 
     to Hunterk who helped me get started
@@ -26,9 +26,9 @@
 //    REFLECTION MASK
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_REFLECT_MASK_EMPTY_LINE					    " " 0 0 0.001 0.001
-#pragma parameter HSM_REFLECT_MASK_TITLE			                "[ REFLECTION MASK IMAGE - Only in Image Layer Presets ]:" 0 0 0.01 0.01
+#pragma parameter HSM_REFLECT_MASK_TITLE			                "[ REFLECTION MASK IMAGE (BW ) -  Layer Presets ]:" 0 0 0.01 0.01
 
-#pragma parameter HSM_REFLECT_MASK_IMAGE_AMOUNT 		            "          Reflection Image Mask Amount" 0 0 100 1
+#pragma parameter HSM_REFLECT_MASK_IMAGE_AMOUNT 		            "          Reflection  Mask Amount" 0 0 100 1
 #ifndef HSM_REFLECT_MASK_IMAGE_AMOUNT 
 #define HSM_REFLECT_MASK_IMAGE_AMOUNT global.HSM_REFLECT_MASK_IMAGE_AMOUNT / 100
 #endif

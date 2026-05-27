@@ -167,7 +167,9 @@ bool glslang_parse_meta(const struct string_list *lines, glslang_meta *meta)
                      )
                   {
                      RARCH_ERR("[Slang] Duplicate parameters found for \"%s\", but arguments do not match.\n", id);
+#ifndef MBZ_STANDALONE
                      return false;
+#endif
                   }
                }
                else

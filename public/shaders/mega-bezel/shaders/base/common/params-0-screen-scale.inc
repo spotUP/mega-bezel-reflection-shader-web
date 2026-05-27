@@ -1,8 +1,8 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
-    Incorporates much great feedback from the libretro forum, and thanks 
+    Incorporates much great feedback from the libretro forum, and thanks
     to Hunterk who helped me get started
 
     See more at the libretro forum
@@ -23,7 +23,7 @@
 */
 
 // Screen Scale Required Parameters
-#pragma parameter HSM_MEGA_BEZEL_TITLE								"[ --- HSM MEGA BEZEL V1.17.1_2024-04-14 --- ]" 0 0 0.001 0.001
+#pragma parameter HSM_MEGA_BEZEL_TITLE								"[ --- HSM MEGA BEZEL V1.14.0_2023-04-15 --- ]" 0 0 0.001 0.001
 
 #pragma parameter HSM_RESOLUTION_DEBUG_ON							"          Show Resolution Info" 0 0 1 1
 float HSM_RESOLUTION_DEBUG_ON = global.HSM_RESOLUTION_DEBUG_ON;
@@ -62,22 +62,25 @@ float HSM_STATIC_LAYERS_GAMMA = global.HSM_STATIC_LAYERS_GAMMA;
 
 
 //---------------------------------------------------------------------------------------------------
-//    AMBIENT LIGHTING AKA NIGHTLIGHTING 
+//    AMBIENT LIGHTING AKA NIGHTLIGHTING
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_AMBIENT_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_AMBIENT_TITLE                       "[ AMBIENT LIGHTING ]:" 0 0 0.001 0.001
+#pragma parameter HSM_AMBIENT_TITLE                       "[ LIGHTING / SHADING ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_AMBIENT_LIGHTING_OPACITY                      "          Ambient Global Opacity Multiplier"  0 0 100 1
-float HSM_AMBIENT_LIGHTING_OPACITY = global.HSM_AMBIENT_LIGHTING_OPACITY / 100;
+#pragma parameter HSM_LIGHTING_MODE 				      "         Lighting  Mode - NONE | 2D | 3D Shading"  2 0 2 1
+float HSM_LIGHTING_MODE = global.HSM_LIGHTING_MODE;
 
-#pragma parameter HSM_AMBIENT1_OPACITY                     "          Ambient 1st Image Opacity"  100 0 100 1
-float HSM_AMBIENT1_OPACITY = global.HSM_AMBIENT1_OPACITY / 100 * global.HSM_AMBIENT_LIGHTING_OPACITY / 100;
+#pragma parameter HSM_LIGHTING_BLEND                         "         Lighting Blend - 100 for Lighting ON"  100 0 100 1
+float HSM_LIGHTING_BLEND = global.HSM_LIGHTING_BLEND / 100;
 
-#pragma parameter HSM_AMBIENT2_OPACITY                     "          Ambient 2nd Image Opacity (Used for BG by Default)"  100 0 100 1
-float HSM_AMBIENT2_OPACITY = global.HSM_AMBIENT2_OPACITY / 100 * global.HSM_AMBIENT_LIGHTING_OPACITY / 100;
+#pragma parameter HSM_NIGHTLIGHT1_OPACITY                     "      Night Lighting 1st  Opacity"  100 0 100 1
+float HSM_NIGHTLIGHT1_OPACITY = global.HSM_NIGHTLIGHT1_OPACITY / 100 * global.HSM_LIGHTING_BLEND / 100;
 
-#pragma parameter HSM_AMBIENT_LIGHTING_SWAP_IMAGE_MODE     "          Which Images to Use: BOTH | 1 ONLY | 2 ONLY | SWAP"  0 0 3 1
-float HSM_AMBIENT_LIGHTING_SWAP_IMAGE_MODE = global.HSM_AMBIENT_LIGHTING_SWAP_IMAGE_MODE;
+#pragma parameter HSM_NIGHTLIGHT2_OPACITY                     "      Night Lighting 2nd  Opacity (Used for BG by Default)"  100 0 100 1
+float HSM_NIGHTLIGHT2_OPACITY = global.HSM_NIGHTLIGHT2_OPACITY / 100 * global.HSM_LIGHTING_BLEND / 100;
+
+#pragma parameter HSM_LIGHT_NIGHTLIGHTING_SWAP_IMAGE_MODE  "      Which s to Use: BOTH | 1 ONLY | 2 ONLY | SWAP"  0 0 3 1
+float HSM_LIGHT_NIGHTLIGHTING_SWAP_IMAGE_MODE = global.HSM_LIGHT_NIGHTLIGHTING_SWAP_IMAGE_MODE;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -130,11 +133,11 @@ float HSM_FLIP_VIEWPORT_VERTICAL = -(global.HSM_FLIP_VIEWPORT_VERTICAL * 2 - 1);
 #pragma parameter HSM_FLIP_VIEWPORT_HORIZONTAL						"          Flip Viewport Horizontal"  0 0 1 1
 float HSM_FLIP_VIEWPORT_HORIZONTAL = -(global.HSM_FLIP_VIEWPORT_HORIZONTAL * 2 - 1);
 
-#pragma parameter HSM_FLIP_CORE_VERTICAL							"          Flip Core Image Vertical"  0 0 1 1
+#pragma parameter HSM_FLIP_CORE_VERTICAL							"          Flip Core  Vertical"  0 0 1 1
 // float HSM_FLIP_CORE_VERTICAL = global.HSM_FLIP_CORE_VERTICAL;
 float HSM_FLIP_CORE_VERTICAL = -(global.HSM_FLIP_CORE_VERTICAL * 2 - 1);
 
-#pragma parameter HSM_FLIP_CORE_HORIZONTAL							"          Flip Core Image Horizontal"  0 0 1 1
+#pragma parameter HSM_FLIP_CORE_HORIZONTAL							"          Flip Core  Horizontal"  0 0 1 1
 // float HSM_FLIP_CORE_HORIZONTAL = global.HSM_FLIP_CORE_HORIZONTAL;
 float HSM_FLIP_CORE_HORIZONTAL = -(global.HSM_FLIP_CORE_HORIZONTAL * 2 - 1);
 
@@ -159,6 +162,104 @@ float HSM_ASPECT_RATIO_EXPLICIT = global.HSM_ASPECT_RATIO_EXPLICIT;
 
 
 //---------------------------------------------------------------------------------------------------
+//    TUBE_ASPECT RATIO
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_TUBE_ASPECT_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_TUBE_ASPECT_RATIO_TITLE							"[ TUBE ASPECT RATIO ]:" 0 0 0.001 0.001
+
+#pragma parameter HSM_TUBE_DIFFUSE_FORCE_ASPECT 			        "          Tube Aspect - EVEN | SCREEN | Explicit"  1 0 2 1
+#define HSM_TUBE_DIFFUSE_FORCE_ASPECT global.HSM_TUBE_DIFFUSE_FORCE_ASPECT
+
+#pragma parameter HSM_TUBE_EXPLICIT_ASPECT 			                "          Explicit Tube Aspect "  1.3333 0.5 3 0.005
+#define HSM_TUBE_EXPLICIT_ASPECT global.HSM_TUBE_EXPLICIT_ASPECT
+
+
+//---------------------------------------------------------------------------------------------------
+//    OVERSCAN
+//---------------------------------------------------------------------------------------------------
+
+#pragma parameter HSM_OVERSCAN_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_OVERSCAN_TITLE "[ OVERSCAN & RASTER BLOOM ]: " 0.0 0.0 1.0 1.0
+
+#pragma parameter HSM_OVERSCAN_AMOUNT "          Overscan %" 0 -50 100 0.1
+#define HSM_OVERSCAN_AMOUNT        (global.HSM_OVERSCAN_AMOUNT / 100)
+
+#pragma parameter HSM_OVERSCAN_X "          Overscan X %" 0 -50 100 0.1
+#define HSM_OVERSCAN_X        (HSM_OVERSCAN_AMOUNT + global.HSM_OVERSCAN_X / 100)
+
+#pragma parameter HSM_OVERSCAN_Y "          Overscan Y %" 0 -50 100 0.1
+#define HSM_OVERSCAN_Y        (HSM_OVERSCAN_AMOUNT + global.HSM_OVERSCAN_Y / 100)
+
+#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_ON "          Raster Bloom ON -- (Scaling based on average luma)" 0 0 1 1
+#define HSM_OVERSCAN_RASTER_BLOOM_ON        global.HSM_OVERSCAN_RASTER_BLOOM_ON
+
+#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_MODE "          Raster Bloom Overscan Mode" 2.0 0.0 2.0 1.0
+#define HSM_OVERSCAN_RASTER_BLOOM_MODE           global.HSM_OVERSCAN_RASTER_BLOOM_MODE
+
+#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_AMOUNT "          Raster Bloom %" 5.0 0.0 20.0 1.0
+#define HSM_OVERSCAN_RASTER_BLOOM_AMOUNT        global.HSM_OVERSCAN_RASTER_BLOOM_AMOUNT / 100    // Bloom overscan percentage
+
+#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE "          Raster Bloom Overscan Neutral Area" 0.3 0.0 1.0 0.05
+#define HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE           global.HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE
+
+#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER "          Raster Bloom Overscan Neutral Area Center" 0.5 0.0 1.0 0.05
+#define HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER           global.HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER
+
+//---------------------------------------------------------------------------------------------------
+//    CURVATURE
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_CURVATURE_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_CURVATURE_TITLE								"[ CURVATURE ]:" 0 0 0.001 0.001
+
+// #pragma parameter HSM_USE_GEOM 									"          Use Geom Curvature" 0 -1 3 1
+// float HSM_USE_GEOM = global.HSM_USE_GEOM;
+float HSM_USE_GEOM = 0;
+
+#pragma parameter HSM_CURVATURE_MODE 								"       Curvature Mode  OFF | 2D | 2D-CYL | 3D-1 | 3D-2 | 3D CYL" 1 0 5 1
+float HSM_CURVATURE_MODE = global.HSM_CURVATURE_MODE;
+
+#pragma parameter HSM_CURVATURE_2D_SCALE_LONG_AXIS 					"          2D Curvature on Long Axis" 100 5 400 5
+#define HSM_CURVATURE_2D_SCALE_LONG_AXIS global.HSM_CURVATURE_2D_SCALE_LONG_AXIS / 100
+
+#pragma parameter HSM_CURVATURE_2D_SCALE_SHORT_AXIS 				"          2D Curvature on Short Axis" 100 5 400 5
+#define HSM_CURVATURE_2D_SCALE_SHORT_AXIS global.HSM_CURVATURE_2D_SCALE_SHORT_AXIS / 100
+
+#pragma parameter HSM_CURVATURE_3D_RADIUS 							"          3D Radius" 200 16 102400 1
+float HSM_CURVATURE_3D_RADIUS = global.HSM_CURVATURE_3D_RADIUS / 100;
+
+#pragma parameter HSM_CURVATURE_3D_VIEW_DIST 						"          3D View Distance - Def 150" 150 50 102400 5
+float HSM_CURVATURE_3D_VIEW_DIST = global.HSM_CURVATURE_3D_VIEW_DIST / 100;
+
+#pragma parameter HSM_CURVATURE_3D_TILT_ANGLE_X 					"          3D Tilt Angle X" 0 -120 120 1
+float HSM_CURVATURE_3D_TILT_ANGLE_X = global.HSM_CURVATURE_3D_TILT_ANGLE_X / 100;
+
+#pragma parameter HSM_CURVATURE_3D_TILT_ANGLE_Y 					"          3D Tilt Angle Y" 0 -120 120 1
+float HSM_CURVATURE_3D_TILT_ANGLE_Y = global.HSM_CURVATURE_3D_TILT_ANGLE_Y / 100;
+
+#pragma parameter HSM_CRT_CURVATURE_SCALE 				            "       CRT Curvature Scale Multiplier: 0 = Less Moire Artifacts" 100 0 100 1
+float HSM_CRT_CURVATURE_SCALE = global.HSM_CRT_CURVATURE_SCALE / 100;
+
+
+//---------------------------------------------------------------------------------------------------
+//    ANAMORPHIC DISTORTION
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_ANAMORPHIC_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_ANAMORPHIC_TITLE								"[ ANAMORPHIC DISTORTION ]:" 0 0 0.001 0.001
+
+#pragma parameter HSM_ANAMORPHIC_DISTORT_ON 			            "          Use Anamorphic Distortion" 0 0 1 1
+float HSM_ANAMORPHIC_DISTORT_ON = global.HSM_ANAMORPHIC_DISTORT_ON;
+
+#pragma parameter HSM_ANAMORPHIC_DISTORT_AMOUNT                     "          Amount - NEGATIVE: KEEP SIDES | POSITIVE: KEEP CENTER" 100.0 -150.0 150.0 2.0
+float HSM_ANAMORPHIC_DISTORT_AMOUNT = global.HSM_ANAMORPHIC_DISTORT_AMOUNT / 10.0;
+
+#pragma parameter HSM_ANAMORPHIC_DISTORT_AUTO_MULTIPLY_MODE 		"       Multiply Amount by Diff between Source and Screen Aspect" 1 0 1 1
+float HSM_ANAMORPHIC_DISTORT_AUTO_MULTIPLY_MODE = global.HSM_ANAMORPHIC_DISTORT_AUTO_MULTIPLY_MODE;
+
+#pragma parameter HSM_ANAMORPHIC_DISTORT_SOURCE_ASPECT 			    "          Source Aspect" 1.33 0.5 3 0.01
+float HSM_ANAMORPHIC_DISTORT_SOURCE_ASPECT = global.HSM_ANAMORPHIC_DISTORT_SOURCE_ASPECT;
+
+
+//---------------------------------------------------------------------------------------------------
 //    CRT SCREEN SCALING GENERAL
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_SCALING_EMPTY_LINE							" " 0 0 0.001 0.001
@@ -167,9 +268,11 @@ float HSM_ASPECT_RATIO_EXPLICIT = global.HSM_ASPECT_RATIO_EXPLICIT;
 #pragma parameter HSM_INT_SCALE_MODE 								"          Integer Scale Mode - OFF | ShortAxis | BothAxes" 0 0 2 1
 #define HSM_INT_SCALE_MODE global.HSM_INT_SCALE_MODE
 
-#pragma parameter HSM_VERTICAL_PRESET 								"       Preset is for Monitor Portrait Mode (Smaller CRT Screen)" 0 0 1 1
-float HSM_VERTICAL_PRESET = global.HSM_VERTICAL_PRESET;
+#pragma parameter HSM_PORTRAIT_MODE_SCALE_REDUCTION 			    "        Monitor Portrait Mode Scale Reduction - OFF| ON | AUTO " 2 0 2 1
+float HSM_PORTRAIT_MODE_SCALE_REDUCTION = global.HSM_PORTRAIT_MODE_SCALE_REDUCTION;
 
+#pragma parameter HSM_PORTRAIT_MODE_SCALE_OFFSET 			        "        Monitor Portrait Mode Scale Offset %" 100 1 200 0.2
+float HSM_PORTRAIT_MODE_SCALE_OFFSET = global.HSM_PORTRAIT_MODE_SCALE_OFFSET / 100;
 
 //---------------------------------------------------------------------------------------------------
 //    Integer Scale
@@ -227,13 +330,13 @@ float HSM_PHYSICAL_SIM_TUBE_DIAGONAL_SIZE = global.HSM_PHYSICAL_SIM_TUBE_DIAGONA
 #pragma parameter HSM_AUTOMATIC_SCREEN_SCALE_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_AUTOMATIC_SCREEN_SCALE_TITLE					"[ NON-INTEGER - AUTOMATIC SCREEN SCALE & PLACEMENT ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_USE_IMAGE_FOR_PLACEMENT 						"          Use Image For Automatic Placement (Scale and Y Pos)" 0 0 1 1
+#pragma parameter HSM_USE_IMAGE_FOR_PLACEMENT 						"          Use  For Automatic Placement (Scale and Y Pos)" 0 0 1 1
 float HSM_USE_IMAGE_FOR_PLACEMENT = global.HSM_USE_IMAGE_FOR_PLACEMENT;
 
 #pragma parameter HSM_PLACEMENT_IMAGE_USE_HORIZONTAL 				"          Auto Place Horizontal (X Pos)" 0 0 1 1
 float HSM_PLACEMENT_IMAGE_USE_HORIZONTAL = global.HSM_PLACEMENT_IMAGE_USE_HORIZONTAL;
 
-#pragma parameter HSM_PLACEMENT_IMAGE_MODE 						    "          Placement Image Mode: TRANSPARENCY : WHITE ON BLACK" 0 0 1 1
+#pragma parameter HSM_PLACEMENT_IMAGE_MODE 						    "          Placement  Mode: TRANSPARENCY : WHITE ON BLACK" 0 0 1 1
 float HSM_PLACEMENT_IMAGE_MODE = global.HSM_PLACEMENT_IMAGE_MODE;
 
 
@@ -280,24 +383,23 @@ float HSM_SCREEN_POSITION_Y = -1 * global.HSM_SCREEN_POSITION_Y / 1000;
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_CROPPING_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_CROPPING_TITLE								"[ CROPPING CORE IMAGE ]:" 0 0 0.001 0.001
-#pragma parameter HSM_CROP_FYI 									    "    FYI !!! Negative Crop is currently Disabled" 0 0 0.001 0.001
 
 #pragma parameter HSM_CROP_MODE 									"          Crop Mode  -  OFF | CROP BLACK ONLY | CROP ANY" 2 0 2 1
 float HSM_CROP_MODE = global.HSM_CROP_MODE;
 
-#pragma parameter HSM_CROP_PERCENT_ZOOM								"          Crop Zoom %" 0 -50 100 0.1
+#pragma parameter HSM_CROP_PERCENT_ZOOM								"          Crop Zoom %" 0 0 100 0.1
 float HSM_CROP_PERCENT_ZOOM = global.HSM_CROP_PERCENT_ZOOM / 100;
 
-#pragma parameter HSM_CROP_PERCENT_TOP 								"          Crop Top %" 0 -50 100 0.1
+#pragma parameter HSM_CROP_PERCENT_TOP 								"          Crop Top %" 0 0 100 0.1
 float HSM_CROP_PERCENT_TOP = global.HSM_CROP_PERCENT_TOP / 100;
 
-#pragma parameter HSM_CROP_PERCENT_BOTTOM 							"          Crop Bottom %" 0 -50 100 0.1
+#pragma parameter HSM_CROP_PERCENT_BOTTOM 							"          Crop Bottom %" 0 0 100 0.1
 float HSM_CROP_PERCENT_BOTTOM = global.HSM_CROP_PERCENT_BOTTOM / 100;
 
-#pragma parameter HSM_CROP_PERCENT_LEFT 							"          Crop Left %" 0 -50 100 0.1
+#pragma parameter HSM_CROP_PERCENT_LEFT 							"          Crop Left %" 0 0 100 0.1
 float HSM_CROP_PERCENT_LEFT = global.HSM_CROP_PERCENT_LEFT / 100;
 
-#pragma parameter HSM_CROP_PERCENT_RIGHT 							"          Crop Right %" 0 -50 100 0.1
+#pragma parameter HSM_CROP_PERCENT_RIGHT 							"          Crop Right %" 0 0 100 0.1
 float HSM_CROP_PERCENT_RIGHT = global.HSM_CROP_PERCENT_RIGHT / 100;
 
 #pragma parameter HSM_CROP_BLACK_THRESHOLD 							"          Black Threshold for 'CROP BLACK ONLY'" 0 0 100 1
@@ -318,6 +420,19 @@ float HSM_CROP_BLACK_THRESHOLD = global.HSM_CROP_BLACK_THRESHOLD / 100;
 #pragma parameter HSM_DREZ_SHAR 			"          Sharpness Definition" 0.5 0.0 2.0 0.05
 #pragma parameter HSM_DREZ_HAR 			    "          Anti-Ringing" 0.5 0.0 1.0 0.10
 
+//---------------------------------------------------------------------------------------------------
+//    SCANLINE DIRECTION
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_SCANLINE_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_SCANLINE_TITLE								"[ SCANLINE DIRECTION ]:" 0 0 0.001 0.001
+
+#pragma parameter HSM_SCANLINE_DIRECTION 							"          Scanline Direction - Auto | Horiz | Vert"  0 0 2 1
+float HSM_SCANLINE_DIRECTION = global.HSM_SCANLINE_DIRECTION;
+
+#pragma parameter no_scanlines "          No-Scanline Mode (Guest Advanced Only)" 0.0 0.0 1.0 1.0
+
+#pragma parameter hiscan "       High Resolution Scanlines (GDV with ScaleFx or XBR Only)" 0.0 0.0 1.0 1.0
+#define hiscan        global.hiscan
 
 //---------------------------------------------------------------------------------------------------
 //    CORE RES SAMPLING
@@ -346,42 +461,31 @@ float HSM_DOWNSAMPLE_BLUR_OPPOSITE_DIR = global.HSM_DOWNSAMPLE_BLUR_OPPOSITE_DIR
 #pragma parameter SHARPEN_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter SHARPEN_TITLE  	"[ FAST SHARPEN - GUEST.R ]:"         			0.00 0.0 2.00 0.05
 #pragma parameter SHARPEN_ON  		"          FSharpen - ON"       		1 0 1 1
-#pragma parameter CSHARPEN          "          FSharpen - Sharpen strength"         0.00 0.0 5.00 0.10 
-#pragma parameter CCONTR            "          FSharpen - Sharpen Contrast/Ringing" 0.05 0.0 0.25 0.01 
-#pragma parameter CDETAILS          "          FSharpen - Details sharpened"        1.00 0.0 1.00 0.05 
-#pragma parameter DEBLUR            "          FSharpen - Deblur Strength (For NTSC Only)"          1.00 1.0 7.00 0.25 
+#pragma parameter CSHARPEN          "          FSharpen - Sharpen strength"         0.00 0.0 5.00 0.10
+#pragma parameter CCONTR            "          FSharpen - Sharpen Contrast/Ringing" 0.05 0.0 0.25 0.01
+#pragma parameter CDETAILS          "          FSharpen - Details sharpened"        1.00 0.0 1.00 0.05
+#pragma parameter DEBLUR            "          FSharpen - Deblur Strength (For NTSC Only)"          1.00 1.0 7.00 0.25
 
 
 //---------------------------------------------------------------------------------------------------
-//    INTERLACING from Guest.r's Guest Advanced Shader
+//    INTERLACING
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_INTERLACE_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_INTERLACE_TITLE								"[ SCANLINES & INTERLACING( By Guest.r) ]:" 0 0 0.001 0.001
-#pragma parameter HSM_SCANLINE_DIRECTION 							"          Scanline Direction - Auto | Horiz | Vert"  0 0 2 1
-float HSM_SCANLINE_DIRECTION = global.HSM_SCANLINE_DIRECTION;
+#pragma parameter HSM_INTERLACE_TITLE								"[ INTERLACING From Guest.r :) ]:" 0 0 0.001 0.001
 
-#pragma parameter hiscan "          High Resolution Scanlines (ScaleFx or XBR Only)" 0.0 0.0 1.0 1.0
-#define hiscan        global.hiscan
+#pragma parameter HSM_INTERLACE_TRIGGER_RES 						"          Interlacing and Fake Scanlines Trigger Res" 650 100 2000 25
+float HSM_INTERLACE_TRIGGER_RES = global.HSM_INTERLACE_TRIGGER_RES;
 
-// Uses naming from Guest Advanced
-#pragma parameter no_scanlines                                      "          No-Scanline Mode (Guest Advanced Only)" 0.0 0.0 1.5 0.05
-
-#pragma parameter HSM_INTERLACE_SUPPORT1							"[  Interlace Mode: What Happens if Vertical Res > Trigger Res ]" 0 0 0.001 0.001
-#pragma parameter HSM_INTERLACE_SUPPORT2 							"[ -1:NO SCANLN 0:NO LACE 1-3:NORM LACE 4-5:INTERPOLATE FIELDS ]" 0 0 0.0001 1
-
-#pragma parameter HSM_INTERLACE_MODE 								"          Interlace Mode:" 4 -1.0 5.0 1.0
+#pragma parameter HSM_INTERLACE_MODE 								"    Interlace Mode: -1:NO SCANLN 0:OFF 1-3:NORM 4-5:INTERPOLATE" 4 -1.0 5.0 1.0
 #define HSM_INTERLACE_MODE global.HSM_INTERLACE_MODE
 
-#pragma parameter HSM_INTERLACE_TRIGGER_RES 						"          Trigger Res for Interlace, Fake Scanlines & VGA" 375 100 2000 25
-#define HSM_INTERLACE_TRIGGER_RES global.HSM_INTERLACE_TRIGGER_RES
-
-#pragma parameter HSM_INTERLACE_EFFECT_SMOOTHNESS_INTERS 			"          Interlace Effect Smoothness" 0 0 100 10
+#pragma parameter HSM_INTERLACE_EFFECT_SMOOTHNESS_INTERS 			"          Interlacing Effect Smoothness" 0 0 100 10
 #define HSM_INTERLACE_EFFECT_SMOOTHNESS_INTERS global.HSM_INTERLACE_EFFECT_SMOOTHNESS_INTERS / 200
 
-#pragma parameter HSM_INTERLACE_SCANLINE_EFFECT 					"          Interlace Scanline Effect ('Laced brightness)" 0.20 0.0 1.0 0.05
+#pragma parameter HSM_INTERLACE_SCANLINE_EFFECT 					"          Interlacing Scanline Effect" 20 0 100 5
 #define HSM_INTERLACE_SCANLINE_EFFECT global.HSM_INTERLACE_SCANLINE_EFFECT / 100
 
-#pragma parameter iscans 				                            "          Interlace (Scanline) Saturation" 0.25 0 1 0.05
+#pragma parameter iscans 				                            "          Interlacing (Scanline) Saturation" 0.25 0 1 0.05
 #define iscans global.iscans
 
 #pragma parameter vga_mode                                          "          VGA Single/Double Scan mode" 0.0 0.0 1.0 1.0
@@ -397,7 +501,7 @@ float HSM_SCANLINE_DIRECTION = global.HSM_SCANLINE_DIRECTION;
 #pragma parameter HSM_FAKE_SCANLINE_MODE 							"          Show Fake Scanlines - OFF | ON | USE TRIGGER RES" 2 0 2 1
 #define HSM_FAKE_SCANLINE_MODE global.HSM_FAKE_SCANLINE_MODE
 
-#pragma parameter HSM_FAKE_SCANLINE_OPACITY 						"          Opacity - Def 70" 30 0 100 5
+#pragma parameter HSM_FAKE_SCANLINE_OPACITY 						"          Opacity - Def 70" 0 0 100 5
 #define HSM_FAKE_SCANLINE_OPACITY global.HSM_FAKE_SCANLINE_OPACITY / 100
 
 #pragma parameter HSM_FAKE_SCANLINE_RES_MODE						"          Scan Resolution Mode: AUTO (CORE RES) : EXPLICIT" 1 0 1 1
@@ -419,72 +523,6 @@ float HSM_SCANLINE_DIRECTION = global.HSM_SCANLINE_DIRECTION;
 #ifndef HSM_FAKE_SCANLINE_BRIGHTNESS_CUTOFF
 	#define HSM_FAKE_SCANLINE_BRIGHTNESS_CUTOFF 3
 #endif
-
-//---------------------------------------------------------------------------------------------------
-//    CURVATURE
-//---------------------------------------------------------------------------------------------------
-
-#pragma parameter HSM_OVERSCAN_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_OVERSCAN_TITLE "[ OVERSCAN & RASTER BLOOM ]: " 0.0 0.0 1.0 1.0
-
-#pragma parameter HSM_OVERSCAN_AMOUNT "          Overscan %" 0 -50 100 0.5
-#define HSM_OVERSCAN_AMOUNT        (global.HSM_OVERSCAN_AMOUNT / 100)
-
-#pragma parameter HSM_OVERSCAN_X "          Overscan X %" 0 -50 100 0.5
-#define HSM_OVERSCAN_X        (HSM_OVERSCAN_AMOUNT + global.HSM_OVERSCAN_X / 100)
-
-#pragma parameter HSM_OVERSCAN_Y "          Overscan Y %" 0 -50 100 0.5
-#define HSM_OVERSCAN_Y        (HSM_OVERSCAN_AMOUNT + global.HSM_OVERSCAN_Y / 100)
-
-#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_ON "          Raster Bloom ON -- (Scaling based on average luma)" 0 0 1 1
-#define HSM_OVERSCAN_RASTER_BLOOM_ON        global.HSM_OVERSCAN_RASTER_BLOOM_ON
-
-#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_MODE "          Raster Bloom Overscan Mode" 2.0 0.0 2.0 1.0
-#define HSM_OVERSCAN_RASTER_BLOOM_MODE           global.HSM_OVERSCAN_RASTER_BLOOM_MODE
-
-#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_AMOUNT "          Raster Bloom %" 5.0 0.0 20.0 1.0
-#define HSM_OVERSCAN_RASTER_BLOOM_AMOUNT        global.HSM_OVERSCAN_RASTER_BLOOM_AMOUNT / 100     // Bloom overscan percentage
-
-#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE "          Raster Bloom Overscan Neutral Area" 0.3 0.0 1.0 0.05
-#define HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE           global.HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE
-
-#pragma parameter HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER "          Raster Bloom Overscan Neutral Area Center" 0.5 0.0 1.0 0.05
-#define HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER           global.HSM_OVERSCAN_RASTER_BLOOM_NEUTRAL_RANGE_CENTER
-
-
-//---------------------------------------------------------------------------------------------------
-//    CURVATURE
-//---------------------------------------------------------------------------------------------------
-#pragma parameter HSM_CURVATURE_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_CURVATURE_TITLE								"[ CURVATURE ]:" 0 0 0.001 0.001
-
-// #pragma parameter HSM_USE_GEOM 									"          Use Geom Curvature" 0 -1 3 1
-// float HSM_USE_GEOM = global.HSM_USE_GEOM;
-float HSM_USE_GEOM = 0;
-
-#pragma parameter HSM_CURVATURE_MODE 								"       Curvature Mode  OFF | 2D | 2D-CYL | 3D-1 | 3D-2 | 3D CYL" 1 0 5 1
-float HSM_CURVATURE_MODE = global.HSM_CURVATURE_MODE;
-
-#pragma parameter HSM_CURVATURE_2D_SCALE_LONG_AXIS 					"          2D Curvature on Long Axis" 100 5 400 5
-#define HSM_CURVATURE_2D_SCALE_LONG_AXIS global.HSM_CURVATURE_2D_SCALE_LONG_AXIS / 100
-
-#pragma parameter HSM_CURVATURE_2D_SCALE_SHORT_AXIS 				"          2D Curvature on Short Axis" 100 5 400 5
-#define HSM_CURVATURE_2D_SCALE_SHORT_AXIS global.HSM_CURVATURE_2D_SCALE_SHORT_AXIS / 100
-
-#pragma parameter HSM_CURVATURE_3D_RADIUS 							"          3D Radius" 200 16 102400 1
-float HSM_CURVATURE_3D_RADIUS = global.HSM_CURVATURE_3D_RADIUS / 100;
-
-#pragma parameter HSM_CURVATURE_3D_VIEW_DIST 						"          3D View Distance - Def 150" 150 50 102400 5
-float HSM_CURVATURE_3D_VIEW_DIST = global.HSM_CURVATURE_3D_VIEW_DIST / 100;
-
-#pragma parameter HSM_CURVATURE_3D_TILT_ANGLE_X 					"          3D Tilt Angle X" 0 -120 120 1
-float HSM_CURVATURE_3D_TILT_ANGLE_X = global.HSM_CURVATURE_3D_TILT_ANGLE_X / 100;
-
-#pragma parameter HSM_CURVATURE_3D_TILT_ANGLE_Y 					"          3D Tilt Angle Y" 0 -120 120 1
-float HSM_CURVATURE_3D_TILT_ANGLE_Y = global.HSM_CURVATURE_3D_TILT_ANGLE_Y / 100;
-
-#pragma parameter HSM_CRT_CURVATURE_SCALE 				            "       CRT Curvature Scale Multiplier: 0 = Less Moire Artifacts" 100 0 100 1
-float HSM_CRT_CURVATURE_SCALE = global.HSM_CRT_CURVATURE_SCALE / 100;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -512,17 +550,17 @@ float HSM_CRT_CURVATURE_SCALE = global.HSM_CRT_CURVATURE_SCALE / 100;
 #define HSM_SIGNAL_NOISE_TYPE global.HSM_SIGNAL_NOISE_TYPE
 
 
-//---------------------------------------------------------------------------------------------------
-//    ANTI-FLICKER
-//---------------------------------------------------------------------------------------------------
-#pragma parameter HSM_ANTI_FLICKER_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_ANTI_FLICKER_TITLE							"[ ANTI-FLICKER ]:" 0 0 0.001 0.001
+// //---------------------------------------------------------------------------------------------------
+// //    ANTI-FLICKER
+// //---------------------------------------------------------------------------------------------------
+// #pragma parameter HSM_ANTI_FLICKER_EMPTY_LINE							" " 0 0 0.001 0.001
+// #pragma parameter HSM_ANTI_FLICKER_TITLE							"[ ANTI-FLICKER ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_ANTI_FLICKER_ON 								"          Anti-Flicker ON" 0 0 1 1
-#define HSM_ANTI_FLICKER_ON global.HSM_ANTI_FLICKER_ON
+// #pragma parameter HSM_ANTI_FLICKER_ON 								"          Anti-Flicker ON" 0 0 1 1
+// #define HSM_ANTI_FLICKER_ON global.HSM_ANTI_FLICKER_ON
 
-#pragma parameter HSM_ANTI_FLICKER_THRESHOLD 						"          Luma Difference Threshold" 25 0 100 5
-#define HSM_ANTI_FLICKER_THRESHOLD global.HSM_ANTI_FLICKER_THRESHOLD / 100
+// #pragma parameter HSM_ANTI_FLICKER_THRESHOLD 						"          Luma Difference Threshold" 25 0 100 5
+// #define HSM_ANTI_FLICKER_THRESHOLD global.HSM_ANTI_FLICKER_THRESHOLD / 100
 
 
 //---------------------------------------------------------------------------------------------------
@@ -566,19 +604,24 @@ float HSM_AB_COMPARE_FREEZE_GRAPHICS = global.HSM_AB_COMPARE_FREEZE_GRAPHICS;
 #pragma parameter HSM_PASS_VIEWER_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_PASS_VIEWER_TITLE       "[ SHOW PASS (For Debugging) ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_SHOW_PASS_INDEX_INFO1   "     0:END | 1:REFLECTION | 2:TUBE | 3:CRT" 0 0 0.001 0.001
-#pragma parameter HSM_SHOW_PASS_INDEX_INFO2   "     4:INTERLACE | 5:COLOR CORRECT & UPSCALE" 0 0 0.001 0.001
-#pragma parameter HSM_SHOW_PASS_INDEX_INFO3   "     6:DEDITHER | 7:DREZ | 8:CORE" 0 0 0.001 0.001
-#pragma parameter HSM_SHOW_PASS_INDEX_INFO4   "     9:LAYERS TOP | 10:LAYERS BOTTOM" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_ALPHA         "          Show Alpha Channel" 0 0 1 1
+float HSM_SHOW_PASS_ALPHA = global.HSM_SHOW_PASS_ALPHA;
 
-#pragma parameter HSM_SHOW_PASS_INDEX         "          Show Pass Index" 0 0 10 1
+#pragma parameter HSM_SHOW_PASS_INDEX         "          Show Pass Index (Details Below)" 0 0 8 1
 float HSM_SHOW_PASS_INDEX = global.HSM_SHOW_PASS_INDEX;
+
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO0    "               0: END" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO1    "               1: REFLECTION" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO2    "               2: TUBE" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO3    "               3: CRT" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO4    "               4: INTERLACE" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO5    "               5: COLOR CORRECT & UPSCALE" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO6    "               6: DEDITHER" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO7    "               7: DREZ" 0 0 0.001 0.001
+#pragma parameter HSM_SHOW_PASS_INDEX_INFO8    "               8: CORE" 0 0 0.001 0.001
 
 #pragma parameter HSM_SHOW_PASS_APPLY_SCREEN_COORD  "          Apply Screen Scale & Curvature to Unscaled Passes" 1 0 1 1
 float HSM_SHOW_PASS_APPLY_SCREEN_COORD = global.HSM_SHOW_PASS_APPLY_SCREEN_COORD;
-
-#pragma parameter HSM_SHOW_PASS_ALPHA         "          Show Alpha Channel" 0 0 1 1
-float HSM_SHOW_PASS_ALPHA = global.HSM_SHOW_PASS_ALPHA;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -634,19 +677,13 @@ float HSM_MONOCHROME_DUALSCREEN_VIS_MODE = global.HSM_MONOCHROME_DUALSCREEN_VIS_
 #pragma parameter HSM_TUBE_ASPECT_AND_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_TUBE_ASPECT_AND_EMPTY_TITLE						"[ TUBE ASPECT & EMPTY SPACE ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_TUBE_DIFFUSE_FORCE_ASPECT 			        "          Tube Aspect - EVEN | SCREEN | Explicit"  1 0 2 1
-#define HSM_TUBE_DIFFUSE_FORCE_ASPECT global.HSM_TUBE_DIFFUSE_FORCE_ASPECT
-
-#pragma parameter HSM_TUBE_EXPLICIT_ASPECT 			                "          Explicit Tube Aspect "  1.3333 0.5 3 0.01
-#define HSM_TUBE_EXPLICIT_ASPECT global.HSM_TUBE_EXPLICIT_ASPECT
-
 #pragma parameter HSM_TUBE_EMPTY_THICKNESS 				            "          Empty Tube Thickness" 0 0 6000 10
 #define HSM_TUBE_EMPTY_THICKNESS (0.7 * global.HSM_TUBE_EMPTY_THICKNESS / 100)
 
 #pragma parameter HSM_TUBE_EMPTY_THICKNESS_X_SCALE 			        "          Empty Tube Thicknes X Scale" 100 0 3000 1
 #define HSM_TUBE_EMPTY_THICKNESS_X_SCALE (global.HSM_TUBE_EMPTY_THICKNESS_X_SCALE / 100)
 
-#pragma parameter HSM_SCREEN_CORNER_RADIUS_SCALE 			        "          Screen (Game Image) Corner Radius Scale" 100 5 3000 1
+#pragma parameter HSM_SCREEN_CORNER_RADIUS_SCALE 			        "          Screen (Game ) Corner Radius Scale" 100 5 3000 1
 #define HSM_SCREEN_CORNER_RADIUS_SCALE (global.HSM_SCREEN_CORNER_RADIUS_SCALE / 100)
 
 
@@ -680,19 +717,19 @@ float HSM_TUBE_DIFFUSE_IMAGE_BRIGHTNESS = global.HSM_TUBE_DIFFUSE_IMAGE_BRIGHTNE
 #pragma parameter HSM_TUBE_DIFFUSE_IMAGE_GAMMA                      "          Gamma Adjust" 1 0 5 0.01
 float HSM_TUBE_DIFFUSE_IMAGE_GAMMA = global.HSM_TUBE_DIFFUSE_IMAGE_GAMMA;
 
-#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_AMBIENT_LIGHTING           "          Ambient Lighting Multiplier" 100 0 100 1
-float HSM_TUBE_DIFFUSE_IMAGE_AMBIENT_LIGHTING = global.HSM_TUBE_DIFFUSE_IMAGE_AMBIENT_LIGHTING / 100;
+#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_LIGHT_NIGHTLIGHTING           "          Add Blend Mode Night Lighting 1 Multiplier" 100 0 100 1
+float HSM_TUBE_DIFFUSE_IMAGE_LIGHT_NIGHTLIGHTING = global.HSM_TUBE_DIFFUSE_IMAGE_LIGHT_NIGHTLIGHTING / 100;
 
-#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_AMBIENT2_LIGHTING          "          Ambient 2nd Image Lighting Multiplier" 0 0 100 1
-float HSM_TUBE_DIFFUSE_IMAGE_AMBIENT2_LIGHTING = global.HSM_TUBE_DIFFUSE_IMAGE_AMBIENT2_LIGHTING / 100;
+#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_NIGHTLIGHT2_LIGHTING          "          Add Blend Mode Night Lighting 2 Multiplier" 0 0 100 1
+float HSM_TUBE_DIFFUSE_IMAGE_NIGHTLIGHT2_LIGHTING = global.HSM_TUBE_DIFFUSE_IMAGE_NIGHTLIGHT2_LIGHTING / 100;
 
-#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_SCALE  			        "          Image Scale" 140 0 1000 1
+#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_SCALE  			        "           Scale" 140 0 1000 1
 float HSM_TUBE_DIFFUSE_IMAGE_SCALE = global.HSM_TUBE_DIFFUSE_IMAGE_SCALE / 100;
 
-#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_SCALE_X  			        "          Image Scale X" 100 0 1000 1
+#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_SCALE_X  			        "           Scale X" 100 0 1000 1
 float HSM_TUBE_DIFFUSE_IMAGE_SCALE_X = global.HSM_TUBE_DIFFUSE_IMAGE_SCALE_X / 100;
 
-#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_ROTATION  			        "          Image Rotation: -1: 270 | 0 | 1: 90" 0 -1 1 1
+#pragma parameter HSM_TUBE_DIFFUSE_IMAGE_ROTATION  			        "           Rotation: -1: 270 | 0 | 1: 90" 0 -1 1 1
 float HSM_TUBE_DIFFUSE_IMAGE_ROTATION = global.HSM_TUBE_DIFFUSE_IMAGE_ROTATION;
 
 
@@ -702,7 +739,7 @@ float HSM_TUBE_DIFFUSE_IMAGE_ROTATION = global.HSM_TUBE_DIFFUSE_IMAGE_ROTATION;
 #pragma parameter HSM_TUBE_SHADOW_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_TUBE_SHADOW_IMAGE_TITLE					"[ TUBE SHADOW IMAGE ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_TUBE_SHADOW_IMAGE_ON  					"          Tube Shadow Image - OFF | ON" 1 0 1 1
+#pragma parameter HSM_TUBE_SHADOW_IMAGE_ON  					"          Tube Shadow  - OFF | ON" 1 0 1 1
 float HSM_TUBE_SHADOW_IMAGE_ON = global.HSM_TUBE_SHADOW_IMAGE_ON;
 
 #pragma parameter HSM_TUBE_SHADOW_IMAGE_OPACITY                 "          Opacity" 60 0 100 2
@@ -730,7 +767,7 @@ float HSM_TUBE_SHADOW_CURVATURE_SCALE = global.HSM_TUBE_SHADOW_CURVATURE_SCALE /
 #pragma parameter HSM_TUBE_STATIC_EMPTY_LINE							" " 0 0 0.001 0.001
 #pragma parameter HSM_TUBE_STATIC_TITLE			"[ TUBE GLASS STATIC REFLECTION IMAGE ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_TUBE_STATIC_REFLECTION_IMAGE_ON  				"          Use Tube Static Reflection Image - OFF | ON" 0 0 1 1
+#pragma parameter HSM_TUBE_STATIC_REFLECTION_IMAGE_ON  				"          Use Tube Static Reflection  - OFF | ON" 0 0 1 1
 float HSM_TUBE_STATIC_REFLECTION_IMAGE_ON = global.HSM_TUBE_STATIC_REFLECTION_IMAGE_ON;
 
 #pragma parameter HSM_TUBE_STATIC_REFLECTION_IMAGE_DUALSCREEN_VIS_MODE    "          Dual Screen Visibility - BOTH | SCREEN 1 | SCREEN 2" 0 0 2 1
@@ -745,11 +782,11 @@ float HSM_TUBE_STATIC_OPACITY_DIFFUSE_MULTIPLY = global.HSM_TUBE_STATIC_OPACITY_
 #pragma parameter HSM_TUBE_STATIC_BLACK_LEVEL      "          Black Level"  25 -100 100 0.5
 float HSM_TUBE_STATIC_BLACK_LEVEL = global.HSM_TUBE_STATIC_BLACK_LEVEL / 1000 + 1;
 
-#pragma parameter HSM_TUBE_STATIC_AMBIENT_LIGHTING "          Ambient Lighting Multiplier" 60 0 100 1
-float HSM_TUBE_STATIC_AMBIENT_LIGHTING = global.HSM_TUBE_STATIC_AMBIENT_LIGHTING / 100;
+#pragma parameter HSM_TUBE_STATIC_LIGHT_NIGHTLIGHTING "          Add Blend Mode Night Lighting 1 Multiplier" 60 0 100 1
+float HSM_TUBE_STATIC_LIGHT_NIGHTLIGHTING = global.HSM_TUBE_STATIC_LIGHT_NIGHTLIGHTING / 100;
 
-#pragma parameter HSM_TUBE_STATIC_AMBIENT2_LIGHTING "          Ambient 2nd Image Lighting Multiplier" 0 0 100 1
-float HSM_TUBE_STATIC_AMBIENT2_LIGHTING = global.HSM_TUBE_STATIC_AMBIENT2_LIGHTING / 100;
+#pragma parameter HSM_TUBE_STATIC_NIGHTLIGHT2_LIGHTING "          Add Blend Mode Night Lighting 2 Multiplier" 0 0 100 1
+float HSM_TUBE_STATIC_NIGHTLIGHT2_LIGHTING = global.HSM_TUBE_STATIC_NIGHTLIGHT2_LIGHTING / 100;
 
 #pragma parameter HSM_TUBE_STATIC_SCALE  			"          Scale" 120 0 1000 1
 float HSM_TUBE_STATIC_SCALE = global.HSM_TUBE_STATIC_SCALE / 100.0;
@@ -766,14 +803,8 @@ float HSM_TUBE_STATIC_POS_Y = global.HSM_TUBE_STATIC_POS_Y / 1000;
 #pragma parameter HSM_TUBE_STATIC_SHADOW_OPACITY  	"          Shadow Opacity" 0 0 100 1
 float HSM_TUBE_STATIC_SHADOW_OPACITY = global.HSM_TUBE_STATIC_SHADOW_OPACITY / 100;
 
-#pragma parameter HSM_TUBE_STATIC_DITHER_SAMPLES  "          Noise Samples (Reduces Banding)" 0 0 10 1
-float HSM_TUBE_STATIC_DITHER_SAMPLES = global.HSM_TUBE_STATIC_DITHER_SAMPLES;
-
-#pragma parameter HSM_TUBE_STATIC_DITHER_DISTANCE  "          Noise Distance" 5 0 10 0.5
-float HSM_TUBE_STATIC_DITHER_DISTANCE = global.HSM_TUBE_STATIC_DITHER_DISTANCE;
-
-#pragma parameter HSM_TUBE_STATIC_DITHER_AMOUNT "          Noise Amount" 0.6 0 10 0.1
-float HSM_TUBE_STATIC_DITHER_AMOUNT = global.HSM_TUBE_STATIC_DITHER_AMOUNT;
+#pragma parameter HSM_TUBE_STATIC_DITHER_AMOUNT "          Noise Amount (Reduces Banding)" 10 0 200 1
+float HSM_TUBE_STATIC_DITHER_AMOUNT = global.HSM_TUBE_STATIC_DITHER_AMOUNT / 200;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -786,7 +817,7 @@ float HSM_TUBE_STATIC_DITHER_AMOUNT = global.HSM_TUBE_STATIC_DITHER_AMOUNT;
 #pragma parameter HSM_TUBE_OPACITY                          "          Tube Opacity" 100 0 100 0.1
 float HSM_TUBE_OPACITY = global.HSM_TUBE_OPACITY / 100;
 
-#pragma parameter HSM_CRT_BLEND_MODE                        "          CRT Blend Mode: OFF | ADD | MULTIPLY" 1 0 2 1
+#pragma parameter HSM_CRT_BLEND_MODE                        "          CRT Blend Mode: OFF | ADD | MULTIPLY | OVER" 1 0 3 1
 #define HSM_CRT_BLEND_MODE global.HSM_CRT_BLEND_MODE
 
 #pragma parameter HSM_CRT_BLEND_AMOUNT                      "          CRT Blend Amount" 100 0 100 1
@@ -802,8 +833,11 @@ float HSM_TUBE_OPACITY = global.HSM_TUBE_OPACITY / 100;
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_ON  					"          Use Tube Colored Gel - OFF | ON" 0 0 1 1
 float HSM_TUBE_COLORED_GEL_IMAGE_ON = global.HSM_TUBE_COLORED_GEL_IMAGE_ON;
 
+#pragma parameter HSM_TUBE_COLORED_GEL_MIPMAPPING_BLEND_BIAS        "          Mipmapping Blend Bias (Affects Sharpness)" 0 -5 5 0.1
+float HSM_TUBE_COLORED_GEL_MIPMAPPING_BLEND_BIAS = global.HSM_TUBE_COLORED_GEL_MIPMAPPING_BLEND_BIAS;
+
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_SCALE  			    "          Scale" 100 0 1000 1
-float HSM_TUBE_COLORED_GEL_IMAGE_SCALE = global.HSM_TUBE_COLORED_GEL_IMAGE_SCALE / 100;
+float HSM_TUBE_COLORED_GEL_IMAGE_SCALE = (global.HSM_TUBE_COLORED_GEL_IMAGE_SCALE + 0.3) / (100);
 
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_FLIP_HORIZONTAL  		"          Flip Horizontal" 0 0 1 1
 float HSM_TUBE_COLORED_GEL_IMAGE_FLIP_HORIZONTAL = -(global.HSM_TUBE_COLORED_GEL_IMAGE_FLIP_HORIZONTAL * 2 - 1);
@@ -814,20 +848,17 @@ float HSM_TUBE_COLORED_GEL_IMAGE_FLIP_VERTICAL = -(global.HSM_TUBE_COLORED_GEL_I
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_DUALSCREEN_VIS_MODE    "          Dual Screen Visibility - BOTH | SCREEN 1 | SCREEN 2" 0 0 2 1
 float HSM_TUBE_COLORED_GEL_IMAGE_DUALSCREEN_VIS_MODE = global.HSM_TUBE_COLORED_GEL_IMAGE_DUALSCREEN_VIS_MODE;
 
-#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT  		"          Multiply Blend Amount" 90 0 100 1
-float HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT / 100;
-
-#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT  		"          Additive Blend Amount" 0 0 100 0.05
-float HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT / 100;
-
 #pragma parameter HSM_TUBE_COLORED_GEL_CRT_BRIGHTNESS  	            "          CRT Brightness Boost When Gel is ON" 100 10 1000 5
 float HSM_TUBE_COLORED_GEL_CRT_BRIGHTNESS = global.HSM_TUBE_COLORED_GEL_CRT_BRIGHTNESS / 100;
 
-#pragma parameter HSM_TUBE_COLORED_GEL_LAYERING_ORDER				"          Gel Layering Order - CRT UNDER GEL | CRT OVER GEL " 0 0 1 1
-float HSM_TUBE_COLORED_GEL_LAYERING_ORDER = global.HSM_TUBE_COLORED_GEL_LAYERING_ORDER;
+#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT  		"          Multiply Blend Amount" 90 0 100 1
+float HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT / 100;
 
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_BRIGHTNESS  	"          Multiply Brightness" 100 10 1000 5
 float HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_BRIGHTNESS = global.HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_BRIGHTNESS / 100;
+
+#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT  		"          Additive Blend Amount" 0 0 100 0.05
+float HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMAGE_ADDITIVE_AMOUNT / 100;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -842,6 +873,9 @@ float HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMA
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_TRANSPARENCY_THRESHOLD "          Transparency Threshold" 23 0 100 1
 float HSM_TUBE_COLORED_GEL_IMAGE_TRANSPARENCY_THRESHOLD = global.HSM_TUBE_COLORED_GEL_IMAGE_TRANSPARENCY_THRESHOLD / 100;
 
+#pragma parameter HSM_TUBE_COLORED_GEL_LAYERING_ORDER				"          Gel Layering Order - CRT UNDER GEL | CRT OVER GEL " 0 0 1 1
+float HSM_TUBE_COLORED_GEL_LAYERING_ORDER = global.HSM_TUBE_COLORED_GEL_LAYERING_ORDER;
+
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_BRIGHTNESS  	"          Brightness" 100 0 200 1
 float HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_BRIGHTNESS = global.HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_BRIGHTNESS / 100;
 
@@ -851,15 +885,11 @@ float HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_VIGNETTE = global.HSM_TUBE_COLORED_GEL_I
 #pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_FAKE_SCANLINE_AMOUNT   "          Fake Scanline Amount" 0 0 100 1
 float HSM_TUBE_COLORED_GEL_IMAGE_FAKE_SCANLINE_AMOUNT = global.HSM_TUBE_COLORED_GEL_IMAGE_FAKE_SCANLINE_AMOUNT / 100;
 
-#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT_LIGHTING       "          Ambient Lighting Multiplier" 100 0 100 1
-float HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT_LIGHTING = global.HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT_LIGHTING / 100;
+#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_LIGHT_NIGHTLIGHTING       "          Add Blend Mode Night Lighting 1 Multiplier" 100 0 100 1
+float HSM_TUBE_COLORED_GEL_IMAGE_LIGHT_NIGHTLIGHTING = global.HSM_TUBE_COLORED_GEL_IMAGE_LIGHT_NIGHTLIGHTING / 100;
 
-#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT2_LIGHTING      "          Ambient 2nd Image Lighting Multiplier" 0 0 100 1
-float HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT2_LIGHTING = global.HSM_TUBE_COLORED_GEL_IMAGE_AMBIENT2_LIGHTING / 100;
-
-// #pragma parameter HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL				"          Show CRT on Top of Colored Gel Normal" 0 0 1 1
-// float HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL = global.HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL;
-float HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL = 0;
+#pragma parameter HSM_TUBE_COLORED_GEL_IMAGE_NIGHTLIGHT2_LIGHTING      "          Add Blend Mode Night Lighting 2 Multiplier" 0 0 100 1
+float HSM_TUBE_COLORED_GEL_IMAGE_NIGHTLIGHT2_LIGHTING = global.HSM_TUBE_COLORED_GEL_IMAGE_NIGHTLIGHT2_LIGHTING / 100;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -888,6 +918,33 @@ float HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL = 0;
 
 
 //---------------------------------------------------------------------------------------------------
+//    SIMPLE BACKGROUND
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_SIMPLE_BG_IMG_TITLE	                    "[ SIMPLE BACKGROUND (NON STD & ADV PRESETS)]:" 0 0 0.01 0.01
+
+#pragma parameter HSM_SIMPLEBG_SHOW_BG_OVER_SCREEN                "          Show BG: 0:UNDER SCREEN | 1:OVER SCREEN" 1 0 1 1
+float HSM_SIMPLEBG_SHOW_BG_OVER_SCREEN = global.HSM_SIMPLEBG_SHOW_BG_OVER_SCREEN;
+
+#pragma parameter HSM_SIMPLEBG_BLEND_MODE                             "          Blend Mode - OFF | NORMAL | ADD | MULTIPLY"  1 -1 3 1
+float HSM_SIMPLEBG_BLEND_MODE = global.HSM_SIMPLEBG_BLEND_MODE;
+
+#pragma parameter HSM_SIMPLEBG_OPACITY                                "          BG Opacity" 100 0 100 1
+float HSM_SIMPLEBG_OPACITY = global.HSM_SIMPLEBG_OPACITY / 100;
+
+#pragma parameter HSM_SIMPLEBG_BRIGHTNESS                             "          BG Brightness" 100 0 200 1
+float HSM_SIMPLEBG_BRIGHTNESS = global.HSM_SIMPLEBG_BRIGHTNESS / 100;
+
+#pragma parameter HSM_SIMPLEBG_CRT_SCREEN_BLEND_MODE                     "          CRT SIMPLE Blend Mode - OFF | NORMAL | ADD (Backdrop)" 1 0 2 1
+float HSM_SIMPLEBG_CRT_SCREEN_BLEND_MODE = global.HSM_SIMPLEBG_CRT_SCREEN_BLEND_MODE;
+
+#pragma parameter HSM_SIMPLEBG_COLORIZE_CRT_WITH_BG               "          CRT Colorize with BG" 0 0 100 1
+float HSM_SIMPLEBG_COLORIZE_CRT_WITH_BG = global.HSM_SIMPLEBG_COLORIZE_CRT_WITH_BG / 100;
+
+#pragma parameter HSM_SIMPLEBG_COLORIZE_BRIGHTNESS                "          CRT Colorize Brightness" 100 0 1000 10
+float HSM_SIMPLEBG_COLORIZE_BRIGHTNESS = global.HSM_SIMPLEBG_COLORIZE_BRIGHTNESS / 100;
+
+
+//---------------------------------------------------------------------------------------------------
 //    DUAL SCREEN
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_DUALSCREEN_EMPTY_LINE							" " 0 0 0.001 0.001
@@ -896,13 +953,13 @@ float HSM_SHOW_CRT_ON_TOP_OF_COLORED_GEL = 0;
 #pragma parameter HSM_DUALSCREEN_MODE								"          Dual Screen Mode - OFF | VERTICAL | HORIZONTAL" 0 0 2 1
 float HSM_DUALSCREEN_MODE = global.HSM_DUALSCREEN_MODE;
 
-#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SPLIT_MODE				"          Core Image Split Mode  - AUTO | VERTICAL | HORIZONTAL" 1 0 2 1
+#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SPLIT_MODE				"          Core  Split Mode  - AUTO | VERTICAL | HORIZONTAL" 1 0 2 1
 float HSM_DUALSCREEN_CORE_IMAGE_SPLIT_MODE = global.HSM_DUALSCREEN_CORE_IMAGE_SPLIT_MODE;
 
-#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SWAP_SCREENS			"          Core Image Swap Screen Content" 0 0 1 1
+#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SWAP_SCREENS			"          Core  Swap Screen Content" 0 0 1 1
 float HSM_DUALSCREEN_CORE_IMAGE_SWAP_SCREENS = global.HSM_DUALSCREEN_CORE_IMAGE_SWAP_SCREENS;
 
-#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET			"          Core Image Split Offset" 0 -100 100 1
+#pragma parameter HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET			"          Core  Split Offset" 0 -100 100 1
 float HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET = global.HSM_DUALSCREEN_CORE_IMAGE_SPLIT_OFFSET / 1000;
 
 // #pragma parameter HSM_2ND_SCREEN_SIDES_CROP				"          Crop % from Edges of 2nd Screen" 0 0 100 0.1
@@ -957,6 +1014,12 @@ float HSM_2ND_SCREEN_CROP_PERCENT_RIGHT = global.HSM_2ND_SCREEN_CROP_PERCENT_RIG
 // #pragma parameter HSM_SCREEN_REFLECTION_FOLLOW_DIFFUSE_THICKNESS    "          Follow Tube Diffuse Extra Thickness" 0 1 200 1
 // float HSM_SCREEN_REFLECTION_FOLLOW_DIFFUSE_THICKNESS = global.HSM_SCREEN_REFLECTION_FOLLOW_DIFFUSE_THICKNESS / 100;
 
+#pragma parameter HSM_SCREEN_REFLECTION_ALLOW_REFLECTION     		"          Allow Reflection" 1 0 1 1
+float HSM_SCREEN_REFLECTION_ALLOW_REFLECTION = global.HSM_SCREEN_REFLECTION_ALLOW_REFLECTION;
+
+#pragma parameter HSM_SCREEN_REFLECTION_SOURCE_BOUNDARY_SCALE     		    "          Reflection and Bounce Source Boundary Scale" 110 0 200 1
+float HSM_SCREEN_REFLECTION_SOURCE_BOUNDARY_SCALE = global.HSM_SCREEN_REFLECTION_SOURCE_BOUNDARY_SCALE / 100;
+
 #pragma parameter HSM_SCREEN_REFLECTION_SCALE     					"          Screen Reflection Scale" 100 1 300 1
 float HSM_SCREEN_REFLECTION_SCALE = global.HSM_SCREEN_REFLECTION_SCALE / 100;
 
@@ -968,99 +1031,127 @@ float HSM_SCREEN_REFLECTION_POS_Y = global.HSM_SCREEN_REFLECTION_POS_Y / 600;
 
 
 
-#pragma parameter HSM_AMBIENT1_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_AMBIENT1_TITLE                       "[ AMBIENT LIGHTING IMAGE 1 ]:" 0 0 0.001 0.001
+#pragma parameter HSM_NIGHTLIGHT1_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_NIGHTLIGHT1_TITLE                       "[ AMBIENT LIGHTING IMAGE 1 ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_AMBIENT1_HUE                 	        "          Hue"  0 -180 180 1
-float HSM_AMBIENT1_HUE = global.HSM_AMBIENT1_HUE / 360;
+#pragma parameter HSM_NIGHTLIGHT1_HUE                 	        "          Hue"  0 -180 180 1
+float HSM_NIGHTLIGHT1_HUE = global.HSM_NIGHTLIGHT1_HUE / 360;
 
-#pragma parameter HSM_AMBIENT1_SATURATION          	        "          Saturation"  100 0 300 1
-float HSM_AMBIENT1_SATURATION = global.HSM_AMBIENT1_SATURATION / 100;
+#pragma parameter HSM_NIGHTLIGHT1_SATURATION          	        "          Saturation"  100 0 300 1
+float HSM_NIGHTLIGHT1_SATURATION = global.HSM_NIGHTLIGHT1_SATURATION / 100;
 
-#pragma parameter HSM_AMBIENT1_VALUE               	        "          Value"  120 0 400 1
-float HSM_AMBIENT1_VALUE = global.HSM_AMBIENT1_VALUE / 100;
+#pragma parameter HSM_NIGHTLIGHT1_VALUE               	        "          Value"  120 0 400 1
+float HSM_NIGHTLIGHT1_VALUE = global.HSM_NIGHTLIGHT1_VALUE / 100;
 
-#pragma parameter HSM_AMBIENT1_CONTRAST               	    "          Contrast"  100 0 200 0.5
-float HSM_AMBIENT1_CONTRAST = global.HSM_AMBIENT1_CONTRAST / 100;
+#pragma parameter HSM_NIGHTLIGHT1_CONTRAST               	    "          Contrast"  100 0 200 0.5
+float HSM_NIGHTLIGHT1_CONTRAST = global.HSM_NIGHTLIGHT1_CONTRAST / 100;
 
-#pragma parameter HSM_AMBIENT1_SCALE_KEEP_ASPECT           "        Scale Aspect - MATCH VIEWPORT | USE TEXURE ASPECT"  1 0 1 1
-float HSM_AMBIENT1_SCALE_KEEP_ASPECT = global.HSM_AMBIENT1_SCALE_KEEP_ASPECT;
+#pragma parameter HSM_NIGHTLIGHT1_SCALE_KEEP_ASPECT           "        Scale Aspect - MATCH VIEWPORT | USE TEXURE ASPECT"  1 0 1 1
+float HSM_NIGHTLIGHT1_SCALE_KEEP_ASPECT = global.HSM_NIGHTLIGHT1_SCALE_KEEP_ASPECT;
 
-#pragma parameter HSM_AMBIENT1_SCALE_INHERIT_MODE         	"          Scale Inheritance - OFF | ZOOM | TUBE"  2 0 2 1
-float HSM_AMBIENT1_SCALE_INHERIT_MODE = global.HSM_AMBIENT1_SCALE_INHERIT_MODE;
+#pragma parameter HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE         	"          Scale Inheritance - OFF | ZOOM | TUBE"  2 0 2 1
+float HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE = global.HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE;
 
-#pragma parameter HSM_AMBIENT1_SCALE             	        "          Scale Offset"  250 10 1000 1
-float HSM_AMBIENT1_SCALE = global.HSM_AMBIENT1_SCALE / 100;
+#pragma parameter HSM_NIGHTLIGHT1_SCALE             	        "          Scale Offset"  250 10 1000 1
+float HSM_NIGHTLIGHT1_SCALE = global.HSM_NIGHTLIGHT1_SCALE / 100;
 
-#pragma parameter HSM_AMBIENT1_SCALE_X             	        "          Scale Offset X"  100 10 1000 0.5
-float HSM_AMBIENT1_SCALE_X = global.HSM_AMBIENT1_SCALE_X / 100;
+#pragma parameter HSM_NIGHTLIGHT1_SCALE_X             	        "          Scale Offset X"  100 10 1000 0.5
+float HSM_NIGHTLIGHT1_SCALE_X = global.HSM_NIGHTLIGHT1_SCALE_X / 100;
 
-#pragma parameter HSM_AMBIENT1_ROTATE         	            "          Rotate"  0 0 1 1
-float HSM_AMBIENT1_ROTATE = global.HSM_AMBIENT1_ROTATE;
+#pragma parameter HSM_NIGHTLIGHT1_ROTATE         	            "          Rotate"  0 0 1 1
+float HSM_NIGHTLIGHT1_ROTATE = global.HSM_NIGHTLIGHT1_ROTATE;
 
-#pragma parameter HSM_AMBIENT1_MIRROR_HORZ         	        "          Mirror Horizontal"  0 0 1 1
-float HSM_AMBIENT1_MIRROR_HORZ = global.HSM_AMBIENT1_MIRROR_HORZ;
+#pragma parameter HSM_NIGHTLIGHT1_MIRROR_HORZ         	        "          Mirror Horizontal"  0 0 1 1
+float HSM_NIGHTLIGHT1_MIRROR_HORZ = global.HSM_NIGHTLIGHT1_MIRROR_HORZ;
 
-#pragma parameter HSM_AMBIENT1_POS_INHERIT_MODE         	"          Position Inheritance - OFF | ON"  1 0 1 1
-float HSM_AMBIENT1_POS_INHERIT_MODE = global.HSM_AMBIENT1_POS_INHERIT_MODE;
+#pragma parameter HSM_NIGHTLIGHT1_POS_INHERIT_MODE         	"          Position Inheritance - OFF | ON"  1 0 1 1
+float HSM_NIGHTLIGHT1_POS_INHERIT_MODE = global.HSM_NIGHTLIGHT1_POS_INHERIT_MODE;
 
-#pragma parameter HSM_AMBIENT1_POSITION_X 					"          Position X" 0 -1500 1500 1
-float HSM_AMBIENT1_POSITION_X = global.HSM_AMBIENT1_POSITION_X / -1000;
+#pragma parameter HSM_NIGHTLIGHT1_POSITION_X 					"          Position X" 0 -1500 1500 1
+float HSM_NIGHTLIGHT1_POSITION_X = global.HSM_NIGHTLIGHT1_POSITION_X / -1000;
 
-#pragma parameter HSM_AMBIENT1_POSITION_Y 					"          Position Y" 0 -1500 1500 1
-float HSM_AMBIENT1_POSITION_Y = -1 * global.HSM_AMBIENT1_POSITION_Y / -1000;
+#pragma parameter HSM_NIGHTLIGHT1_POSITION_Y 					"          Position Y" 0 -1500 1500 1
+float HSM_NIGHTLIGHT1_POSITION_Y = -1 * global.HSM_NIGHTLIGHT1_POSITION_Y / -1000;
 
 // Commented out because I don't think anyone is using this
-// #pragma parameter HSM_AMBIENT1_DITHERING_SAMPLES   "          Dithering Noise Samples (Reduces Banding)" 0 0 10 1
-// float HSM_AMBIENT1_DITHERING_SAMPLES = global.HSM_AMBIENT1_DITHERING_SAMPLES;
-float HSM_AMBIENT1_DITHERING_SAMPLES = 0;
+// #pragma parameter HSM_NIGHTLIGHT1_DITHERING_SAMPLES   "          Dithering Noise Samples (Reduces Banding)" 0 0 10 1
+// float HSM_NIGHTLIGHT1_DITHERING_SAMPLES = global.HSM_NIGHTLIGHT1_DITHERING_SAMPLES;
+float HSM_NIGHTLIGHT1_DITHERING_SAMPLES = 0;
 
 
 //---------------------------------------------------------------------------------------------------
-//    Ambient Lighting Image 2
+//    Ambient Lighting  2
 //---------------------------------------------------------------------------------------------------
 
-#pragma parameter HSM_AMBIENT2_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_AMBIENT2_TITLE                            "[ AMBIENT LIGHTING IMAGE 2 ]:" 0 0 0.001 0.001
+#pragma parameter HSM_NIGHTLIGHT2_EMPTY_LINE							" " 0 0 0.001 0.001
+#pragma parameter HSM_NIGHTLIGHT2_TITLE                            "[ AMBIENT LIGHTING IMAGE 2 ]:" 0 0 0.001 0.001
 
-#pragma parameter HSM_AMBIENT2_HUE                 	            "          Hue"  0 -180 180 1
-float HSM_AMBIENT2_HUE = global.HSM_AMBIENT2_HUE / 360;
+#pragma parameter HSM_NIGHTLIGHT2_HUE                 	            "          Hue"  0 -180 180 1
+float HSM_NIGHTLIGHT2_HUE = global.HSM_NIGHTLIGHT2_HUE / 360;
 
-#pragma parameter HSM_AMBIENT2_SATURATION          	            "          Saturation"  100 0 300 1
-float HSM_AMBIENT2_SATURATION = global.HSM_AMBIENT2_SATURATION / 100;
+#pragma parameter HSM_NIGHTLIGHT2_SATURATION          	            "          Saturation"  100 0 300 1
+float HSM_NIGHTLIGHT2_SATURATION = global.HSM_NIGHTLIGHT2_SATURATION / 100;
 
-#pragma parameter HSM_AMBIENT2_VALUE               	            "          Value"  100 0 400 1
-float HSM_AMBIENT2_VALUE = global.HSM_AMBIENT2_VALUE / 100;
+#pragma parameter HSM_NIGHTLIGHT2_VALUE               	            "          Value"  100 0 400 1
+float HSM_NIGHTLIGHT2_VALUE = global.HSM_NIGHTLIGHT2_VALUE / 100;
 
-#pragma parameter HSM_AMBIENT2_CONTRAST               	        "          Contrast"  100 0 200 0.5
-float HSM_AMBIENT2_CONTRAST = global.HSM_AMBIENT2_CONTRAST / 100;
+#pragma parameter HSM_NIGHTLIGHT2_CONTRAST               	        "          Contrast"  100 0 200 0.5
+float HSM_NIGHTLIGHT2_CONTRAST = global.HSM_NIGHTLIGHT2_CONTRAST / 100;
 
-#pragma parameter HSM_AMBIENT2_SCALE_KEEP_ASPECT                "        Scale Aspect - MATCH VIEWPORT | USE TEXURE ASPECT"  0 0 1 1
-float HSM_AMBIENT2_SCALE_KEEP_ASPECT = global.HSM_AMBIENT2_SCALE_KEEP_ASPECT;
+#pragma parameter HSM_NIGHTLIGHT2_SCALE_KEEP_ASPECT                "        Scale Aspect - MATCH VIEWPORT | USE TEXURE ASPECT"  0 0 1 1
+float HSM_NIGHTLIGHT2_SCALE_KEEP_ASPECT = global.HSM_NIGHTLIGHT2_SCALE_KEEP_ASPECT;
 
-#pragma parameter HSM_AMBIENT2_SCALE_INHERIT_MODE         	    "          Scale Inheritance - OFF | ZOOM | TUBE"  1 0 2 1
-float HSM_AMBIENT2_SCALE_INHERIT_MODE = global.HSM_AMBIENT2_SCALE_INHERIT_MODE;
+#pragma parameter HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE         	    "          Scale Inheritance - OFF | ZOOM | TUBE"  1 0 2 1
+float HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE = global.HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE;
 
-#pragma parameter HSM_AMBIENT2_SCALE             	            "          Scale Offset"  100 10 1000 0.5
-float HSM_AMBIENT2_SCALE = global.HSM_AMBIENT2_SCALE / 100;
+#pragma parameter HSM_NIGHTLIGHT2_SCALE             	            "          Scale Offset"  100 10 1000 0.5
+float HSM_NIGHTLIGHT2_SCALE = global.HSM_NIGHTLIGHT2_SCALE / 100;
 
-#pragma parameter HSM_AMBIENT2_SCALE_X             	            "          Scale Offset X"  100 10 1000 0.5
-float HSM_AMBIENT2_SCALE_X = global.HSM_AMBIENT2_SCALE_X / 100;
+#pragma parameter HSM_NIGHTLIGHT2_SCALE_X             	            "          Scale Offset X"  100 10 1000 0.5
+float HSM_NIGHTLIGHT2_SCALE_X = global.HSM_NIGHTLIGHT2_SCALE_X / 100;
 
-#pragma parameter HSM_AMBIENT2_ROTATE         	                "          Rotate"  0 0 1 1
-float HSM_AMBIENT2_ROTATE = global.HSM_AMBIENT2_ROTATE;
+#pragma parameter HSM_NIGHTLIGHT2_ROTATE         	                "          Rotate"  0 0 1 1
+float HSM_NIGHTLIGHT2_ROTATE = global.HSM_NIGHTLIGHT2_ROTATE;
 
-#pragma parameter HSM_AMBIENT2_MIRROR_HORZ         	            "          Mirror Horizontal"  0 0 1 1
-float HSM_AMBIENT2_MIRROR_HORZ = global.HSM_AMBIENT2_MIRROR_HORZ;
+#pragma parameter HSM_NIGHTLIGHT2_MIRROR_HORZ         	            "          Mirror Horizontal"  0 0 1 1
+float HSM_NIGHTLIGHT2_MIRROR_HORZ = global.HSM_NIGHTLIGHT2_MIRROR_HORZ;
 
-#pragma parameter HSM_AMBIENT2_POS_INHERIT_MODE         	    "          Position Inheritance - OFF | ON"  1 0 1 1
-float HSM_AMBIENT2_POS_INHERIT_MODE = global.HSM_AMBIENT2_POS_INHERIT_MODE;
+#pragma parameter HSM_NIGHTLIGHT2_POS_INHERIT_MODE         	    "          Position Inheritance - OFF | ON"  1 0 1 1
+float HSM_NIGHTLIGHT2_POS_INHERIT_MODE = global.HSM_NIGHTLIGHT2_POS_INHERIT_MODE;
 
-#pragma parameter HSM_AMBIENT2_POSITION_X 						"          Position X" 0 -1000 1000 1
-float HSM_AMBIENT2_POSITION_X = global.HSM_AMBIENT2_POSITION_X / -1000;
+#pragma parameter HSM_NIGHTLIGHT2_POSITION_X 						"          Position X" 0 -1000 1000 1
+float HSM_NIGHTLIGHT2_POSITION_X = global.HSM_NIGHTLIGHT2_POSITION_X / -1000;
 
-#pragma parameter HSM_AMBIENT2_POSITION_Y 						"          Position Y" 0 -1000 1000 1
-float HSM_AMBIENT2_POSITION_Y = -1 * global.HSM_AMBIENT2_POSITION_Y / -1000;
+#pragma parameter HSM_NIGHTLIGHT2_POSITION_Y 						"          Position Y" 0 -1000 1000 1
+float HSM_NIGHTLIGHT2_POSITION_Y = -1 * global.HSM_NIGHTLIGHT2_POSITION_Y / -1000;
+
+
+//---------------------------------------------------------------------------------------------------
+//    PRESET INFO
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_NON_USER_INFO_EMPTY_LINE					" " 0 0 0.001 0.001
+#pragma parameter HSM_NON_USER_INFO_TITLE						"[ NON-USER PRESET SETUP ]:" 0 0 0.001 0.001
+
+#pragma parameter HSM_NON_USER_INFO_PRE_CRT_CHAIN 				"        Pre CRT Chain - SMOOTH-ADV | ADV | STD | POTATO" 0 0 3 1
+#define HSM_NON_USER_INFO_PRE_CRT_CHAIN global.HSM_NON_USER_INFO_PRE_CRT_CHAIN
+
+#pragma parameter HSM_NON_USER_INFO_POST_CRT_PROCESS 			"     Post CRT Process - DEFAULT|N0-REF|GLASS|SCREEN-ONLY|POTATO" 0 0 4 1
+#define HSM_NON_USER_INFO_POST_CRT_PROCESS global.HSM_NON_USER_INFO_POST_CRT_PROCESS
+
+#pragma parameter HSM_NON_USER_INFO_UPSCALING 				    "          Upscaling - 0:NONE | 1:SCALEFX | 2:SUPER-XBR" 0 0 2 1
+#define HSM_NON_USER_INFO_UPSCALING global.HSM_NON_USER_INFO_UPSCALING
+
+#pragma parameter HSM_NON_USER_PARAM_IS_GLASS_PRESET 		    "          Is Glass Preset" 0 0 1 1
+#define HSM_NON_USER_PARAM_IS_GLASS_PRESET global.HSM_NON_USER_PARAM_IS_GLASS_PRESET
+
+#pragma parameter HSM_NON_USER_DELINEARIZE_REFLECT_PASS 	"          De-Linearize Reflection Pass" 0 0 1 1
+#define HSM_NON_USER_DELINEARIZE_REFLECT_PASS global.HSM_NON_USER_DELINEARIZE_REFLECT_PASS
+
+#pragma parameter HSM_NON_USER_LINEARIZE_INTERLACE_PASS 	"          Linearize Interlace Pass" 1 0 1 1
+#define HSM_NON_USER_LINEARIZE_INTERLACE_PASS global.HSM_NON_USER_LINEARIZE_INTERLACE_PASS
+
+#pragma parameter HSM_NON_USER_IS_HDR_PRESET 	"          Is HDR Preset" 0 0 1 1
+#define HSM_NON_USER_IS_HDR_PRESET global.HSM_NON_USER_IS_HDR_PRESET
 
 
 //---------------------------------------------------------------------------------------------------
@@ -1089,7 +1180,7 @@ float HSM_AMBIENT2_POSITION_Y = -1 * global.HSM_AMBIENT2_POSITION_Y / -1000;
 //    BEZEL GENERAL
 //---------------------------------------------------------------------------------------------------
 #pragma parameter HSM_BEZEL_GENERAL_EMPTY_LINE							" " 0 0 0.001 0.001
-#pragma parameter HSM_BEZEL_GENERAL_TITLE							"[ BEZEL GENERAL ]:" 0 0 0.001 0.001 
+#pragma parameter HSM_BEZEL_GENERAL_TITLE							"[ BEZEL GENERAL ]:" 0 0 0.001 0.001
 
 #pragma parameter HSM_BZL_OPACITY                                   "          Opacity" 100 0 100 5
 float HSM_BZL_OPACITY = global.HSM_BZL_OPACITY / 100;

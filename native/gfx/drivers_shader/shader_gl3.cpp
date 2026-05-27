@@ -283,7 +283,32 @@ GLuint gl3_cross_compile_program(
 
       auto vertex_source     = vertex_compiler.compile();
       auto fragment_source   = fragment_compiler.compile();
-#ifdef MBZ_STANDALONE
+
+#ifdef HAVE_OPENGLES3
+      /* GLES 3.00 polyfills for functions available in GLES 3.10+ */
+      static const char *gles300_polyfills =
+         "precision highp float; precision highp int;\n"
+         "highp uint packUnorm4x8(highp vec4 v) {"
+         "  highp uvec4 u = uvec4(clamp(v, 0.0, 1.0) * 255.0 + 0.5);"
+         "  return u.x | (u.y << 8u) | (u.z << 16u) | (u.w << 24u); }\n"
+         "highp vec4 unpackUnorm4x8(highp uint p) {"
+         "  return vec4(float(p & 0xFFu), float((p >> 8u) & 0xFFu),"
+         "  float((p >> 16u) & 0xFFu), float((p >> 24u) & 0xFFu)) / 255.0; }\n";
+
+      auto inject_polyfills = [&](std::string &src) {
+         if (src.find("packUnorm4x8") != std::string::npos ||
+             src.find("unpackUnorm4x8") != std::string::npos)
+         {
+            size_t pos = src.find('\n');
+            if (pos != std::string::npos)
+               src.insert(pos + 1, gles300_polyfills);
+         }
+      };
+      inject_polyfills(vertex_source);
+      inject_polyfills(fragment_source);
+#endif
+
+#ifdef MBZ_DEBUG
       fprintf(stderr, "[MBZ DBG] Cross-compiled VS:\n%s\n", vertex_source.c_str());
       fprintf(stderr, "[MBZ DBG] Cross-compiled FS:\n%s\n", fragment_source.c_str());
 #endif
@@ -372,7 +397,7 @@ GLuint gl3_cross_compile_program(
          char loc_buf[64];
          snprintf(loc_buf, sizeof(loc_buf), "RARCH_TEXTURE_%d", binding);
          GLint location = glGetUniformLocation(program, loc_buf);
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
          fprintf(stderr, "[MBZ DBG] tex fixup: %s -> loc=%d binding=%u\n",
             loc_buf, location, binding);
 #endif
@@ -1098,17 +1123,10 @@ void Pass::reflect_parameter_array(const char *name, std::vector<slang_texture_s
 
 bool Pass::init_pipeline()
 {
-#ifdef MBZ_STANDALONE
-   pipeline = gl3_cross_compile_program(
-         vertex_shader.data(),   vertex_shader.size()   * sizeof(uint32_t),
-         fragment_shader.data(), fragment_shader.size() * sizeof(uint32_t),
-         &locations, true);
-#else
    pipeline = gl3_cross_compile_program(
          vertex_shader.data(),   vertex_shader.size()   * sizeof(uint32_t),
          fragment_shader.data(), fragment_shader.size() * sizeof(uint32_t),
          &locations, false);
-#endif
 
    if (!pipeline)
       return false;
@@ -1529,7 +1547,7 @@ void Pass::add_parameter(unsigned index, const std::string &id)
 void Pass::set_semantic_texture(slang_texture_semantic semantic,
       const Texture &texture)
 {
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
    fprintf(stderr, "[MBZ DBG] set_semantic_texture sem=%d tex=%u %ux%u reflected=%d\n",
       semantic, texture.texture.image, texture.texture.width, texture.texture.height,
       (int)(semantic < SLANG_NUM_TEXTURE_SEMANTICS &&
@@ -1539,7 +1557,7 @@ void Pass::set_semantic_texture(slang_texture_semantic semantic,
    if (reflection.semantic_textures[semantic][0].texture)
    {
       unsigned binding = reflection.semantic_textures[semantic][0].binding;
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
       fprintf(stderr, "[MBZ DBG] BIND tex=%u to unit=%u (sem=%d)\n",
          texture.texture.image, binding, semantic);
 #endif
@@ -1696,7 +1714,7 @@ void Pass::build_commands(
 
    current_framebuffer_size = size;
 
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
    fprintf(stderr, "[MBZ DBG] build_commands: pipeline=%u final=%d src_tex=%u %ux%u\n",
       pipeline, (int)final_pass, source.texture.image,
       source.texture.width, source.texture.height);
@@ -1710,7 +1728,7 @@ void Pass::build_commands(
       GLsizei count = GLsizei((reflection.ubo_size + 15) / 16);
       glUniform4fv(locations.flat_ubo_vertex, count,
                    reinterpret_cast<const float *>(uniforms.data()));
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
       const float *m = reinterpret_cast<const float *>(uniforms.data());
       fprintf(stderr, "[MBZ DBG] UBO vertex loc=%d count=%d MVP=[%.1f,%.1f,%.1f,%.1f / %.1f,%.1f,%.1f,%.1f / ...]\n",
          locations.flat_ubo_vertex, count, m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7]);
@@ -1834,7 +1852,7 @@ void Pass::build_commands(
                          reinterpret_cast<void *>(uintptr_t(0)));
    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
                          reinterpret_cast<void *>(uintptr_t(2 * sizeof(float))));
-#ifdef MBZ_STANDALONE
+#ifdef MBZ_DEBUG
    {
       GLenum err = glGetError();
       if (err != GL_NO_ERROR)

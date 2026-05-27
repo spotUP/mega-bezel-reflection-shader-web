@@ -15,8 +15,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     uint FrameCount;
 } global;
 
-// Dynamic scanline pulse - set via uniform (separate from UBO for WebGL2 compatibility)
-uniform float ScanlinePulse;
+const float ScanlinePulse = 0.0;
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;

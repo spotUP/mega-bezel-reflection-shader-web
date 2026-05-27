@@ -85,6 +85,7 @@ int mbz_renderer_upload_frame(const uint8_t *rgba, int width, int height) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
                         GL_RGBA, GL_UNSIGNED_BYTE, rgba);
     }
+    glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     return 1;

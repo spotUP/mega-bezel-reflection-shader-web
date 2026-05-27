@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
     Incorporates much great feedback from the libretro forum, and thanks 
     to Hunterk who helped me get started
@@ -100,11 +100,11 @@ float HSM_BZL_COLOR_SATURATION = global.HSM_BZL_COLOR_SATURATION / 100;
 #pragma parameter HSM_BZL_COLOR_VALUE				"          Value/Brightness - Def 10" 10 0 100 0.2
 float HSM_BZL_COLOR_VALUE = global.HSM_BZL_COLOR_VALUE / 100;
 
-#pragma parameter HSM_BZL_AMBIENT_LIGHTING_MULTIPLIER         "          Bezel Ambient Lighting Multiplier"  100 0 100 1
-float HSM_BZL_AMBIENT_LIGHTING_MULTIPLIER = global.HSM_BZL_AMBIENT_LIGHTING_MULTIPLIER / 100;
+#pragma parameter HSM_BZL_ADD_MODE_NIGHTLIGHTING1_MULTIPLIER         "          Bezel Add Blend Mode Night Lighting 1 Multiplier"  100 0 100 1
+float HSM_BZL_ADD_MODE_NIGHTLIGHTING1_MULTIPLIER = global.HSM_BZL_ADD_MODE_NIGHTLIGHTING1_MULTIPLIER / 100;
 
-#pragma parameter HSM_BZL_AMBIENT2_LIGHTING_MULTIPLIER         "          Ambient 2nd Image Lighting Multiplier"  0 0 100 1
-float HSM_BZL_AMBIENT2_LIGHTING_MULTIPLIER = global.HSM_BZL_AMBIENT2_LIGHTING_MULTIPLIER / 100;
+#pragma parameter HSM_BZL_ADD_MODE_NIGHTLIGHTING2_MULTIPLIER         "          Add Blend Mode Night Lighting 2 Multiplier"  0 0 100 1
+float HSM_BZL_ADD_MODE_NIGHTLIGHTING2_MULTIPLIER = global.HSM_BZL_ADD_MODE_NIGHTLIGHTING2_MULTIPLIER / 100;
 
 
 //---------------------------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ float HSM_FRM_OUTER_EDGE_THICKNESS = global.HSM_FRM_OUTER_EDGE_THICKNESS * 0.000
 #pragma parameter HSM_FRM_OUTER_EDGE_SHADING 		    "          Outer Edge Shading" 50 0 100 5
 float HSM_FRM_OUTER_EDGE_SHADING = global.HSM_FRM_OUTER_EDGE_SHADING / 100;
 
-#pragma parameter HSM_FRM_SHADOW_OPACITY	            "          Shadow Opacity" 100 0 300 1
+#pragma parameter HSM_FRM_SHADOW_OPACITY	            "          Shadow Opacity" 70 0 300 1
 float HSM_FRM_SHADOW_OPACITY = global.HSM_FRM_SHADOW_OPACITY / 100;
 
 #pragma parameter HSM_FRM_SHADOW_WIDTH                  "          Shadow Width" 100 0 500 1

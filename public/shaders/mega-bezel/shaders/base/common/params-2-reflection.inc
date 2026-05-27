@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
     Incorporates much great feedback from the libretro forum, and thanks 
     to Hunterk who helped me get started
@@ -138,6 +138,22 @@ float HSM_REFLECT_VIGNETTE_AMOUNT = global.HSM_REFLECT_VIGNETTE_AMOUNT / 100;
 
 #pragma parameter HSM_REFLECT_VIGNETTE_SIZE 		                "          Glass Reflection Vignette Size" 100 50 200 2
 float HSM_REFLECT_VIGNETTE_SIZE = global.HSM_REFLECT_VIGNETTE_SIZE / 100;
+
+
+//---------------------------------------------------------------------------------------------------
+//    GLASS PRESET
+//---------------------------------------------------------------------------------------------------
+#pragma parameter HSM_GLASSPRESET_EMPTY_LINE					    " " 0 0 0.001 0.001
+#pragma parameter HSM_GLASSPRESET_TITLE	                        "[ GLASS PRESET HIGHLIGHT IMAGE ]:" 0 0 0.01 0.01
+
+#pragma parameter HSM_GLASSPRESET_HIGHLIGHT_OPACITY             "          Opacity" 1 0 100 0.1
+float HSM_GLASSPRESET_HIGHLIGHT_OPACITY = global.HSM_GLASSPRESET_HIGHLIGHT_OPACITY / 100;
+
+#pragma parameter HSM_GLASSPRESET_HIGHLIGHT_BLEND_MODE          "          Blend Mode - OFF | NORMAL | ADD | MULTIPLY"  2 0 3 1
+float HSM_GLASSPRESET_HIGHLIGHT_BLEND_MODE = global.HSM_GLASSPRESET_HIGHLIGHT_BLEND_MODE;
+
+#pragma parameter HSM_GLASSPRESET_HIGHLIGHT_NOISE_AMOUNT         "          Noise Amount" 100 0 200 1
+float HSM_GLASSPRESET_HIGHLIGHT_NOISE_AMOUNT = global.HSM_GLASSPRESET_HIGHLIGHT_NOISE_AMOUNT / 200;
 
 
 /////////////// CONSTANT TUNING SETTINGS ///////////////

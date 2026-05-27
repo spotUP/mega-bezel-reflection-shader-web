@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
     Incorporates much great feedback from the libretro forum, and thanks 
     to Hunterk who helped me get started
@@ -22,8 +22,156 @@
     along with this program.  If not, see [http://www.gnu.org/licenses/].
 */
 
+
+#define PRECOMP_INDEX_BACKGROUND 0
+#define PRECOMP_INDEX_MIDDLEGROUND 1
+#define PRECOMP_INDEX_FOREGROUND 2
+#define PRECOMP_INDEX_ADDITIVE 3
+
+#define PRECOMP_INDEX_TUBE 0
+#define PRECOMP_INDEX_GEL 1
+#define PRECOMP_INDEX_AMBIENT_LIGHT_1 2
+#define PRECOMP_INDEX_AMBIENT_LIGHT_2 3
+#define PRECOMP_INDEX_STATIC_HIGHLIGHT 4
+
+
+vec4 HSM_GetPrecompRange(float in_precomp_index)
+{
+	return vec4(0.0, 0.0, 1.0, 1.0);
+
+	vec4 out_range = vec4(0.25, 0.25, 0.5, 0.5);
+	if (in_precomp_index == PRECOMP_INDEX_BACKGROUND)
+		out_range = vec4(0, 0, 0.5, 0.5);
+
+	if (in_precomp_index == PRECOMP_INDEX_MIDDLEGROUND)
+		out_range = vec4(0.5, 0, 1, 0.5);
+
+	if (in_precomp_index == PRECOMP_INDEX_FOREGROUND)
+		out_range = vec4(0, 0.5, 0.5, 1.0);
+
+	if (in_precomp_index == PRECOMP_INDEX_ADDITIVE)
+		out_range = vec4(0.5, 0.5, 1.0, 1.0);
+	
+	return out_range;
+}
+
+vec4 HSM_GetTubeFxPrecompRange(float in_precomp_index)
+{
+	vec4 out_range = vec4(0.25, 0.25, 0.5, 0.5);
+	if (in_precomp_index == PRECOMP_INDEX_TUBE)
+		out_range = vec4(0, 0, 0.5, 0.5);
+
+	if (in_precomp_index == PRECOMP_INDEX_GEL)
+		out_range = vec4(0.5, 0, 1, 0.5);
+
+	if (in_precomp_index == PRECOMP_INDEX_AMBIENT_LIGHT_1)
+		out_range = vec4(0, 0.5, 0.5, 1.0);
+
+	if (in_precomp_index == PRECOMP_INDEX_AMBIENT_LIGHT_2)
+		out_range = vec4(0.5, 0.5, 1.0, 1.0);
+
+	if (in_precomp_index == PRECOMP_INDEX_STATIC_HIGHLIGHT)
+		out_range = vec4(0.5, 0.5, 1.0, 1.0);
+
+	return out_range;
+}
+
+float HSM_Pack_Vec2_To_Float(vec2 in_vec2)
+{
+	// Need to clamp and reduce max value for AMD GPUs
+	in_vec2 = clamp(in_vec2, 0.0, 1.0) * (255.0 / 256.0);
+	return uintBitsToFloat(packUnorm2x16(in_vec2));
+}
+
+vec2 HSM_Unpack_Float_To_Vec2(float in_packed)
+{
+	// Need to bring back to the full 0-1 range
+	return unpackUnorm2x16(floatBitsToUint(in_packed)) * (256.0 / 255.0);
+}
+
+vec4 HSM_Pack_2_Rgba_To_1_Rgba(	vec4 rgba_1, 
+								vec4 rgba_2)
+{
+	vec4 out_color = vec4(	HSM_Pack_Vec2_To_Float(rgba_1.rg),
+							HSM_Pack_Vec2_To_Float(rgba_1.ba),
+							HSM_Pack_Vec2_To_Float(rgba_2.rg),
+							HSM_Pack_Vec2_To_Float(rgba_2.ba));
+	return out_color;
+}
+
+void HSM_Unpack_1_Rgba_To_2_Rgba(vec4 packed_rgba, 
+								inout vec4 rgba_1, 
+								inout vec4 rgba_2)
+{
+	rgba_1.rg = HSM_Unpack_Float_To_Vec2(packed_rgba.r);
+	rgba_1.ba = HSM_Unpack_Float_To_Vec2(packed_rgba.g);
+	rgba_2.rg = HSM_Unpack_Float_To_Vec2(packed_rgba.b);
+	rgba_2.ba = HSM_Unpack_Float_To_Vec2(packed_rgba.a);
+}
+
+float HSM_Pack_Rgba_To_Float(vec4 in_rgba)
+{
+	// Need to clamp and reduce max value for AMD GPUs
+	in_rgba = clamp(in_rgba, 0.0, 1.0) * (255.0 / 256.0);
+	return uintBitsToFloat(packUnorm4x8(in_rgba));
+}
+
+vec4 HSM_Unpack_Float_To_Rgba(float in_packed)
+{
+	// Need to bring back to the full 0-1 range
+	return unpackUnorm4x8(floatBitsToUint(in_packed)) * (256.0 / 255.0);
+}
+
+vec4 HSM_Pack_4_Rgba_To_1_Rgba(	vec4 rgba_1, 
+								vec4 rgba_2, 
+								vec4 rgba_3, 
+								vec4 rgba_4)
+{
+	vec4 out_color = vec4(HSM_Pack_Rgba_To_Float(rgba_1),
+							HSM_Pack_Rgba_To_Float(rgba_2),
+							HSM_Pack_Rgba_To_Float(rgba_3),
+							HSM_Pack_Rgba_To_Float(rgba_4));
+	return out_color;
+}
+
+void HSM_Unpack_1_Rgba_To_4_Rgba(vec4 packed_rgba, 
+								inout vec4 rgba_1, 
+								inout vec4 rgba_2, 
+								inout vec4 rgba_3, 
+								inout vec4 rgba_4)
+{
+	rgba_1 = HSM_Unpack_Float_To_Rgba(packed_rgba.r);
+	rgba_2 = HSM_Unpack_Float_To_Rgba(packed_rgba.g);
+	rgba_3 = HSM_Unpack_Float_To_Rgba(packed_rgba.b);
+	rgba_4 = HSM_Unpack_Float_To_Rgba(packed_rgba.a);
+}
+
+vec4 HSM_GetPrecompRGBA(sampler2D in_sampler_2D, vec2 in_coord, float in_precomp_index)
+{
+	vec4 precomp_range = HSM_GetPrecompRange(in_precomp_index);
+	vec2 sample_coord = precomp_range.xy + in_coord * vec2(precomp_range.z - precomp_range.x, precomp_range.w - precomp_range.y);
+	return texture(in_sampler_2D, sample_coord);
+}
+
+float HSM_GetPrecompIndexFromCoord(vec2 in_coord)
+{
+	return 0;
+	float out_index = -1.0;
+
+	for (float i = 0.0; i < 4; i++)
+	{
+		if (HHLP_IsInsideRange(in_coord, HSM_GetPrecompRange(i)))
+		{
+			out_index = i;
+			break;
+		}
+	} 
+
+	return out_index;
+}
+
 // Returns 1 for vertical split, 2 for horizontal split
-float HSM_GetCoreImageSplitDirection()
+float HSM_GetCoreSplitDirection()
 {
 	float core_image_split_direction = 1;
 
@@ -61,38 +209,45 @@ vec2 HSM_GetVTexCoordWithArgs(vec2 in_coord, vec2 in_scale, vec2 position_offset
 	return HSM_GetInverseScaledCoord(HSM_GetCoordWithPositionOffset(in_coord, position_offset), in_scale);
 }
 
-// Rows and Columns are 1 based
-vec4 HSM_GetCacheSampleRange(float column_index, float row_index)
+vec2 HSM_GetCacheSampleRangeSize()
 {
-	float num_rows = 8;
-	float num_columns = 8;
+	vec2 cache_image_resolution = global.DerezedPassSize.xy;
 
-	float range_width = 1 / num_columns;
-	float range_height = 1 / num_rows;
+	float sample_block_num_pixels = 3.0;
+	vec2 pixel_size = 1 / cache_image_resolution;
+	vec2 range_size = sample_block_num_pixels * pixel_size;
 
-	float zero_based_row_index = row_index - 1;
-	float zero_based_column_index = column_index - 1;
+	return range_size;
+}
+
+bool HSM_IsOutsideCacheFullRange(vec2 in_coord)
+{
+	float max_samples = 8;
+	vec4 cache_full_range = vec4(0);
+	cache_full_range.zw = vec2(max_samples, max_samples) * HSM_GetCacheSampleRangeSize();
+	vec2 test_coord = in_coord / cache_full_range.zw;
+	return HHLP_IsOutsideCoordSpace(test_coord);
+}
+
+// Rows and Columns are 1 based
+vec4 HSM_GetCacheSampleRange(vec2 in_cell)
+{
+	float row_index = in_cell.x;
+	float column_index = in_cell.y;
+	vec2 range_size = HSM_GetCacheSampleRangeSize();
 
 	vec4 out_sample_range = vec4(0);
+	out_sample_range.xy = vec2(column_index - 1, row_index - 1) * range_size;
+	out_sample_range.zw = vec2(column_index, row_index) * range_size;
 
-	out_sample_range.x = zero_based_column_index * range_width;
-	out_sample_range.y = zero_based_row_index * range_height;
-	out_sample_range.z = out_sample_range.x + range_width;
-	out_sample_range.w = out_sample_range.y + range_height;
-	
 	return out_sample_range;
 }
 
-vec2 HSM_GetCacheSampleCoord(float column_index, float row_index)
+vec2 HSM_GetCacheSampleCoord(vec2 in_cell)
 {
-	float num_rows = 8;
-	float num_columns = 8;
-
-	float range_width = 1 / num_columns;
-	float range_height = 1 / num_rows;
-
-	vec4 sample_range = HSM_GetCacheSampleRange(column_index, row_index);
-	return vec2(sample_range.x + range_width/2, sample_range.y + range_height/2);
+	vec4 sample_range = HSM_GetCacheSampleRange(in_cell);
+	vec2 sample_coord = sample_range.xy + (sample_range.zw - sample_range.xy) / 2.0;
+	return sample_coord;
 }
 
 vec2 HSM_GetViewportCoordWithFlip(vec2 viewport_coord)
@@ -137,28 +292,24 @@ float HSM_GetScreenIndex(vec2 viewport_coord)
 	return out_index;
 }
 
-// WebGL2 compatibility: Function to update CACHE_INFO_CHANGED flag from cache texture
-// This function reads the cache info changed flag from sample position (8, 8)
 void HSM_UpdateCacheInfoChanged(sampler2D in_cache_pass)
 {
-	vec2 sample_coord = HSM_GetCacheSampleCoord(8, 8);
+	vec2 sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CACHE_CHANGED);
 	vec4 texture_sample = texture(in_cache_pass, sample_coord);
 	CACHE_INFO_CHANGED = texture_sample.r > 0.5 ? true : false;
 }
 
 vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoord)
 {
-	// CRITICAL: Protect against division by zero which causes NaN propagation
-	float viewport_x = max(global.FinalViewportSize.x, 1.0);
-	float viewport_y = max(global.FinalViewportSize.y, 1.0);
-	float output_aspect = viewport_x / viewport_y;
+	// TODO need to set a value to tell us if this has been updated this frame
+	
+	float output_aspect = global.FinalViewportSize.x / global.FinalViewportSize.y;
 	vec2 flipped_viewport_coord = HSM_GetViewportCoordWithZoomAndPan(vTexCoord);
 	SCREEN_INDEX = HSM_GetScreenIndex(flipped_viewport_coord);
 	vec2 sample_coord = vec2(0);
 	vec4 texture_sample = vec4(0);
 
-	// Sample 1, 1
-	sample_coord = HSM_GetCacheSampleCoord(1, 1);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_AVERAGE_LUMA);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	AVERAGE_LUMA = texture_sample.a;
 	SAMPLING_SCANLINE_DIR_MULT = texture_sample.r;
@@ -169,159 +320,135 @@ vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoo
 
 	if (SCREEN_INDEX == 1)
 	{
-		// Sample 2, 1
 		// r SCREEN_ASPECT
 		// ba SCREEN_SCALE
-		sample_coord = HSM_GetCacheSampleCoord(2, 1);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_SCREEN_SCALE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		SCREEN_ASPECT = texture_sample.r;
 		SCREEN_SCALE = texture_sample.ba;
 
-		// Sample 3, 1
 		// rg TUBE_SCALE 
 		// ba SCREEN_POS_OFFSET
-		sample_coord = HSM_GetCacheSampleCoord(3, 1);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_SCALE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		TUBE_SCALE = texture_sample.rg;
 		SCREEN_POS_OFFSET = texture_sample.ba;
 
-		// Sample 3, 4
 		// rg TUBE_DIFFUSE_SCALE 
-		sample_coord = HSM_GetCacheSampleCoord(3, 4);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_DIFFUSE_SCALE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		TUBE_DIFFUSE_SCALE = texture_sample.rg;
-		// CRITICAL: Protect against division by zero
-		TUBE_DIFFUSE_ASPECT = TUBE_DIFFUSE_SCALE.x / max(TUBE_DIFFUSE_SCALE.y, 0.001) * output_aspect;
+		TUBE_DIFFUSE_ASPECT = TUBE_DIFFUSE_SCALE.x / TUBE_DIFFUSE_SCALE.y * output_aspect;
 
-		// Sample 4, 1
 		// rg CROPPED_ROTATED_SIZE_WITH_RES_MULT
-		sample_coord = HSM_GetCacheSampleCoord(4, 1);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		CROPPED_ROTATED_SIZE_WITH_RES_MULT = texture_sample.rg;
 		res_mult_size_sum = CROPPED_ROTATED_SIZE_WITH_RES_MULT.x + CROPPED_ROTATED_SIZE_WITH_RES_MULT.y;
 		ROTATED_CORE_PREPPED_SIZE = texture_sample.ba;
 
-		// Sample 1, 2
 		// rg CROPPED_ROTATED_SIZE
 		// ba SAMPLE_AREA_START_PIXEL_COORD
-		sample_coord = HSM_GetCacheSampleCoord(1, 2);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		CROPPED_ROTATED_SIZE = texture_sample.rg;
 		SAMPLE_AREA_START_PIXEL_COORD = texture_sample.ba;
 
-		// // Sample 5, 1
-		// // rg CROPPED_UNROTATED_SIZE
-		// sample_coord = HSM_GetCacheSampleCoord(5, 1);
-		// CROPPED_UNROTATED_SIZE = texture_sample.rg;
-		// CROPPED_UNROTATED_SIZE_WITH_RES_MULT = texture_sample.ba;
-
-		// Sample 4, 4
 		// rg screen size first screen
 		// ba screen size second screen
-		sample_coord = HSM_GetCacheSampleCoord(4, 4);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_SCREEN_SIZE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		SCREEN_SIZE = texture_sample.rg;
 	}
 	// If we are in the section of the viewport which is the second screen
 	if (SCREEN_INDEX == 2)
 	{
-		// Sample 2, 2 Sample - 2nd Screen
+		// 2nd Screen
 		// r SCREEN_ASPECT
 		// ba SCREEN_SCALE
-		sample_coord = HSM_GetCacheSampleCoord(2, 2);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_SCREEN_SCALE_2ND_SCREEN);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		SCREEN_ASPECT = texture_sample.r;
 		SCREEN_SCALE = texture_sample.gb;
 
-		// Sample 3, 2 - 2nd Screen
+		// 2nd Screen
 		// rg TUBE_SCALE
 		// ba SCREEN_POS_OFFSET
-		sample_coord = HSM_GetCacheSampleCoord(3, 2);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_SCALE_2ND_SCREEN);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		TUBE_SCALE = 		texture_sample.rg;
 		SCREEN_POS_OFFSET = texture_sample.ba;
 
 		// TODO need to add TUBE_DIFFUSE_ASPECT & deal with 2nd Screen
-		// Sample 3, 4
 		// ba TUBE_DIFFUSE_SCALE 
-		sample_coord = HSM_GetCacheSampleCoord(3, 4);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_DIFFUSE_SCALE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		TUBE_DIFFUSE_SCALE = texture_sample.ba;
-		// CRITICAL: Protect against division by zero
-		TUBE_DIFFUSE_ASPECT = TUBE_DIFFUSE_SCALE.x / max(TUBE_DIFFUSE_SCALE.y, 0.001) * output_aspect;
+		TUBE_DIFFUSE_ASPECT = TUBE_DIFFUSE_SCALE.x / TUBE_DIFFUSE_SCALE.y * output_aspect;
 
-		// Sample 4, 2
 		// rg CROPPED_ROTATED_SIZE_WITH_RES_MULT
-		sample_coord = HSM_GetCacheSampleCoord(4, 2);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE_WITH_RES_MULT_2ND_SCREEN);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		CROPPED_ROTATED_SIZE_WITH_RES_MULT = texture_sample.rg;
 		res_mult_size2_sum = CROPPED_ROTATED_SIZE_WITH_RES_MULT.x + CROPPED_ROTATED_SIZE_WITH_RES_MULT.y;
 
-		// Sample 1, 3
 		// rg CROPPED_ROTATED_SIZE
 		// ba SAMPLE_AREA_START_PIXEL_COORD
-		sample_coord = HSM_GetCacheSampleCoord(1, 3);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CROPPED_ROTATED_SIZE_2ND_SCREEN);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		CROPPED_ROTATED_SIZE = texture_sample.rg;
 		SAMPLE_AREA_START_PIXEL_COORD = texture_sample.ba;
 
-		// Sample 4, 4
 		// rg screen size first screen
 		// ba screen size second screen
-		sample_coord = HSM_GetCacheSampleCoord(4, 4);
+		sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_SCREEN_SIZE);
 		texture_sample = texture(in_cache_pass, sample_coord);
 		SCREEN_SIZE = texture_sample.ba;
 	}
 
-	// Sample 3, 1
 	// rg TUBE_SCALE 
 	// ba SCREEN_POS_OFFSET
-	sample_coord = HSM_GetCacheSampleCoord(3, 1);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_SCALE);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	// TUBE_SCALE_1ST_SCREEN = texture_sample.rg;
 	SCREEN_POS_OFFSET_1ST_SCREEN = texture_sample.ba;
 
-	// Sample 3, 4
 	// rg TUBE_DIFFUSE_SCALE_1ST_SCREEN 
-	sample_coord = HSM_GetCacheSampleCoord(3, 4);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_DIFFUSE_SCALE);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	TUBE_DIFFUSE_SCALE_1ST_SCREEN = texture_sample.rg;
 	// TUBE_DIFFUSE_ASPECT_1ST_SCREEN = TUBE_DIFFUSE_SCALE_1ST_SCREEN.x / TUBE_DIFFUSE_SCALE_1ST_SCREEN.y * output_aspect;
 
-	// Sample 3, 2 - 2nd Screen
+	// 2nd Screen
 	// rg TUBE_SCALE_2ND_SCREEN
 	// ba SCREEN_POS_OFFSET_2ND_SCREEN
-	sample_coord = HSM_GetCacheSampleCoord(3, 2);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_SCALE_2ND_SCREEN);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	// TUBE_SCALE_2ND_SCREEN = 		texture_sample.rg;
 	SCREEN_POS_OFFSET_2ND_SCREEN = texture_sample.ba;
 
 	// TODO need to add TUBE_DIFFUSE_ASPECT & deal with 2nd Screen
-	// Sample 3, 4
 	// ba TUBE_DIFFUSE_SCALE_2ND_SCREEN 
-	sample_coord = HSM_GetCacheSampleCoord(3, 4);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_TUBE_DIFFUSE_SCALE);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	TUBE_DIFFUSE_SCALE_2ND_SCREEN = texture_sample.ba;
 
-	// Sample 2, 3 Sample
 	// rg CORE_SIZE
-	sample_coord = HSM_GetCacheSampleCoord(2, 3);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CORE_SIZE);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	CORE_SIZE = texture_sample.rg;
 	ROTATED_CORE_ORIGINAL_SIZE = texture_sample.ba;
 
-	// Sample 3, 3
 	// rg VIEWPORT_SCALE
 	// ba VIEWPORT_POS
-	sample_coord = HSM_GetCacheSampleCoord(3, 3);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_VIEWPORT_SCALE);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	VIEWPORT_SCALE = texture_sample.rg;
 	VIEWPORT_POS = texture_sample.ba;
 
-	// Sample 4, 3
 	// rg SCREEN_SCALE_2ND_SCREEN
 	// ba SCREEN_POS_OFFSET_2ND_SCREEN
-	sample_coord = HSM_GetCacheSampleCoord(4, 3);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_VIEWPORT_SCALE_2ND_SCREEN);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	SCREEN_SCALE_2ND_SCREEN = texture_sample.rg;
 	SCREEN_POS_OFFSET_2ND_SCREEN = texture_sample.ba;
@@ -329,7 +456,7 @@ vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoo
 	// Sample 1, 4
 	// g CURRENT_FRAME_FROM_CACHE_INFO
 	// b ROTATED_DEREZED_SIZE
-	sample_coord = HSM_GetCacheSampleCoord(1, 4);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_PARAMETER_SUM);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	CURRENT_FRAME_FROM_CACHE_INFO = texture_sample.g;
 	ROTATED_DEREZED_SIZE = texture_sample.ba;
@@ -337,7 +464,7 @@ vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoo
 	// Sample 2, 4 
 	// r NEGATIVE_CROP_EXPAND_MULTIPLIER
 	// g MAX_NEGATIVE_CROP
-	sample_coord = HSM_GetCacheSampleCoord(2, 4);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_VERTICAL_SCANLINES);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	NEGATIVE_CROP_EXPAND_MULTIPLIER = texture_sample.r;
 	MAX_NEGATIVE_CROP = texture_sample.g;
@@ -345,7 +472,7 @@ vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoo
 
 	// Sample 8, 8
 	// r CACHE_INFO_CHANGED
-	sample_coord = HSM_GetCacheSampleCoord(8, 8);
+	sample_coord = HSM_GetCacheSampleCoord(SAMPLE_CELL_CACHE_CHANGED);
 	texture_sample = texture(in_cache_pass, sample_coord);
 	CACHE_INFO_CHANGED = texture_sample.r > 0.5 ? true : false;
 
@@ -355,65 +482,4 @@ vec4 HSM_UpdateGlobalScreenValuesFromCache(sampler2D in_cache_pass, vec2 vTexCoo
 	TUBE_DIFFUSE_COORD_MIXED_POS = HSM_GetVTexCoordWithArgs(flipped_viewport_coord, TUBE_DIFFUSE_SCALE_1ST_SCREEN, (SCREEN_POS_OFFSET_1ST_SCREEN + SCREEN_POS_OFFSET_2ND_SCREEN) / 2.0);
 
 	return vec4(0);
-}
-
-// ============================================================================
-// PACK/UNPACK FUNCTIONS - For packing multiple RGBA values into single textures
-// WebGL2 GLSL ES 3.0 compatible implementations
-// ============================================================================
-
-// WebGL2 manual implementation of packUnorm4x8 (not available in GLSL ES 3.0)
-uint HSM_PackUnorm4x8(vec4 v)
-{
-	uvec4 bytes = uvec4(clamp(v, 0.0, 1.0) * 255.0 + 0.5);
-	return bytes.x | (bytes.y << 8u) | (bytes.z << 16u) | (bytes.w << 24u);
-}
-
-// WebGL2 manual implementation of unpackUnorm4x8 (not available in GLSL ES 3.0)
-vec4 HSM_UnpackUnorm4x8(uint p)
-{
-	return vec4(
-		float(p & 0xFFu),
-		float((p >> 8u) & 0xFFu),
-		float((p >> 16u) & 0xFFu),
-		float((p >> 24u) & 0xFFu)
-	) / 255.0;
-}
-
-// Pack a single RGBA into a float
-float HSM_Pack_Rgba_To_Float(vec4 in_rgba)
-{
-	// Need to clamp and reduce max value for AMD GPUs
-	in_rgba = clamp(in_rgba, 0.0, 1.0) * (255.0 / 256.0);
-	return uintBitsToFloat(HSM_PackUnorm4x8(in_rgba));
-}
-
-// Unpack a float back to RGBA
-vec4 HSM_Unpack_Float_To_Rgba(float in_packed)
-{
-	// Need to bring back to the full 0-1 range
-	return HSM_UnpackUnorm4x8(floatBitsToUint(in_packed)) * (256.0 / 255.0);
-}
-
-// Pack 4 RGBA vec4s into a single RGBA vec4
-vec4 HSM_Pack_4_Rgba_To_1_Rgba(vec4 rgba_1, vec4 rgba_2, vec4 rgba_3, vec4 rgba_4)
-{
-	vec4 out_color = vec4(HSM_Pack_Rgba_To_Float(rgba_1),
-						HSM_Pack_Rgba_To_Float(rgba_2),
-						HSM_Pack_Rgba_To_Float(rgba_3),
-						HSM_Pack_Rgba_To_Float(rgba_4));
-	return out_color;
-}
-
-// Unpack a single RGBA vec4 back to 4 RGBA vec4s
-void HSM_Unpack_1_Rgba_To_4_Rgba(vec4 packed_rgba,
-								inout vec4 rgba_1,
-								inout vec4 rgba_2,
-								inout vec4 rgba_3,
-								inout vec4 rgba_4)
-{
-	rgba_1 = HSM_Unpack_Float_To_Rgba(packed_rgba.r);
-	rgba_2 = HSM_Unpack_Float_To_Rgba(packed_rgba.g);
-	rgba_3 = HSM_Unpack_Float_To_Rgba(packed_rgba.b);
-	rgba_4 = HSM_Unpack_Float_To_Rgba(packed_rgba.a);
 }

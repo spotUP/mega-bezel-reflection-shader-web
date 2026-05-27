@@ -1,6 +1,6 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
     Incorporates much great feedback from the libretro forum, and thanks 
     to Hunterk who helped me get started
@@ -46,9 +46,9 @@ layout(location = 1) in vec2 VIEWPORT_COORD;
 layout(location = 0) out vec4 FragColor;
 
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D BR_MirrorLowResPass;
+layout(set = 0, binding = 3) uniform sampler2D ReflectPrepLowResPass;
 
-layout(set = 0, binding = 4) uniform sampler2D InfoCachePass;
+layout(set = 0, binding = 4) uniform sampler2D CacheInfoPass;
 
 float clamp_0_1(float in_value)
 {
@@ -57,10 +57,18 @@ float clamp_0_1(float in_value)
 
 void main()
 {
+	// HSM Added
+	HSM_UpdateGlobalScreenValuesFromCache(CacheInfoPass, vTexCoord);
+
+	if (HSM_IsOutsideReflectionBoundary())
+	{
+		FragColor = vec4(0);
+		return;
+	}
+
 	if (HSM_REFLECT_BLUR_NUM_SAMPLES > 0)
 	{
-		vec2 viewportCoordTransformed = HSM_GetViewportCoordWithZoomAndPan(vTexCoord);
-		HSM_UpdateGlobalScreenValuesFromCache(InfoCachePass, vTexCoord);
+		// HSM_UpdateGlobalScreenValuesFromCache(CacheInfoPass, vTexCoord);
 
 		vec2 tube_curved_coord_ctr = HSM_GetTubeCurvedCoord(TUBE_DIFFUSE_COORD, 1, TUBE_DIFFUSE_SCALE, TUBE_SCALE, TUBE_DIFFUSE_ASPECT, 1) - 0.5;
 
@@ -131,7 +139,7 @@ void main()
 		}
 		vec4 blurred_color = vec4(col / k_total, 1.0);
 
-		vec4 unblurred_color = texture(BR_MirrorLowResPass, vTexCoord);
+		vec4 unblurred_color = texture(ReflectPrepLowResPass, vTexCoord);
 		FragColor = mix(unblurred_color, blurred_color, blend_with_unblurred);
 	}
 	else

@@ -268,13 +268,9 @@ void main()
 	float TATE = USE_VERTICAL_SCANLINES;
 
 	// HSM Added
-	// CRITICAL: Protect against division by zero which causes NaN
-	vec2 derezed_safe = max(global.DerezedPassSize.xy, vec2(1.0));
-	vec2 prescalex = textureSize(LinearizePass, 0).xy / derezed_safe;
+	vec2 prescalex = textureSize(LinearizePass, 0).xy / global.DerezedPassSize.xy;
 
-	// CRITICAL: Ensure CROPPED_ROTATED_SIZE is never zero to prevent NaN
-	vec2 cropped_safe = max(CROPPED_ROTATED_SIZE, vec2(1.0));
-	vec4 SourceSize = vec4(cropped_safe, 1.0 / cropped_safe) * mix( vec4(prescalex.x, 1.0, 1.0/max(prescalex.x, 0.001), 1.0), vec4(1.0, prescalex.y, 1.0, 1.0/max(prescalex.y, 0.001)), TATE);
+	vec4 SourceSize = vec4(CROPPED_ROTATED_SIZE, 1 / CROPPED_ROTATED_SIZE) * mix( vec4(prescalex.x, 1.0, 1.0/prescalex.x, 1.0), vec4(1.0, prescalex.y, 1.0, 1.0/prescalex.y), TATE);
 
 	// float lum = COMPAT_TEXTURE(AvgLumPass, vec2(0.5,0.5)).a;
 
@@ -282,9 +278,7 @@ void main()
 	// Find out if we should use no scanlines based on interlace mode, no scanlines param, & intetrlace settings
 	float no_scanlines = HSM_GetNoScanlineMode();
 
-	// CRITICAL: Protect against division by zero
-	float linearize_alpha = COMPAT_TEXTURE(LinearizePass, vec2(0.25,0.25)).a;
-	float gamma_in = 1.0 / max(linearize_alpha, 0.001);
+	float gamma_in = 1.0/COMPAT_TEXTURE(LinearizePass, vec2(0.25,0.25)).a;
 	float intera = COMPAT_TEXTURE(LinearizePass, vec2(0.75,0.25)).a;
 	bool hscan = (hiscan > 0.5);
 	bool interb  = (((intera < 0.35) || (no_scanlines > 0.025)) && !hscan);
@@ -293,8 +287,7 @@ void main()
 
 	float SourceY = mix(SourceSize.y, SourceSize.x, TATE);
 
-	// CRITICAL: Protect against division by zero
-	float hsm_intres = 1.0 / max(HSM_CORE_RES_SAMPLING_MULT_OPPOSITE_DIR, 0.001);
+	float hsm_intres = 1 / HSM_CORE_RES_SAMPLING_MULT_OPPOSITE_DIR;
 	float sy = hsm_intres;
 
 	/* HSM Removed
@@ -304,8 +297,6 @@ void main()
 	// VGA Scan Mode
 	if (vgascan) sy = 0.5; else if (abs(intera-0.75) < 0.05) sy = 1.0;
 
-	// CRITICAL: Ensure sy is never zero
-	sy = max(sy, 0.001);
 	if (TATE < 0.5) SourceSize*=vec4(1.0, 1.0/sy, 1.0, sy); else SourceSize*=vec4(1.0/sy, 1.0, sy, 1.0);
 
 	/* HSM Removed

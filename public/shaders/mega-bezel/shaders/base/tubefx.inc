@@ -23,7 +23,6 @@
 */
 
 #include "../base/common/common-functions-bezel.inc"
-#include "../base/common/params-webgl2-defaults.inc"
 
 #pragma name TubeFxPass
 

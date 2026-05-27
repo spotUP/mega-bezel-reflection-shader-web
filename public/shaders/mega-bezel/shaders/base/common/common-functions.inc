@@ -1,8 +1,8 @@
 /*
     Mega Bezel - Creates a graphic treatment for the game play area to give a retro feel
-    Copyright (C) 2019-2022 HyperspaceMadness - HyperspaceMadness@outlook.com
+    Copyright (C) 2019-2023 HyperspaceMadness - HyperspaceMadness@outlook.com
 
-    Incorporates much great feedback from the libretro forum, and thanks 
+    Incorporates much great feedback from the libretro forum, and thanks
     to Hunterk who helped me get started
 
     See more at the libretro forum
@@ -25,7 +25,7 @@
 #include "helper-functions.inc"
 #include "base-functions.inc"
 
-#if 0
+#ifndef IS_POTATO_PRESET
 #include "royale-geometry-functions.inc"
 #endif
 
@@ -37,7 +37,7 @@ float CURVATURE_MODE_3D_2 = 4;
 float CURVATURE_MODE_3D_CYLINDER = 5;
 
 float HSM_GetAspectRatioFromMode(float in_aspect_ratio_mode, float in_explicit_aspect)
-{                                                  
+{
 	float out_explicit_aspect = in_explicit_aspect;
 
 	if (in_aspect_ratio_mode == TEXTURE_ASPECT_MODE_VIEWPORT)
@@ -93,7 +93,7 @@ vec2 HSM_RotateCoordinate(vec2 in_coord, float rotation)
 {
 	if (rotation == 0)
 		return in_coord;
-	
+
 	float abs_rotation = abs(rotation);
 	vec2 ctr_coord = in_coord - 0.5;
 
@@ -115,15 +115,15 @@ vec4 HSM_GetTexSampleFromSampleStartAndSize(sampler2D in_sampler, vec2 in_screen
 	if ( HSM_DUALSCREEN_MODE > 0 )
 		if (HSM_FLIP_CORE_VERTICAL == -1)
 			in_screen_coord.y = 1 - in_screen_coord.y;
-			
+
 		// in_screen_coord.y = abs(HSM_FLIP_CORE_VERTICAL) * (1 - in_screen_coord.y) + (1 - abs(HSM_FLIP_CORE_VERTICAL)) * in_screen_coord.y;
 		// in_screen_coord.y = HSM_FLIP_CORE_VERTICAL * (in_screen_coord.y - 0.5) + 0.5;
-		
+
 	vec2 px_coord = SAMPLE_AREA_START_PIXEL_COORD + in_screen_coord * window_size;
 
 	vec2 sample_coord = px_coord / core_prepped_size;
 	sample_coord =  HSM_RotateCoordinate(sample_coord, HSM_ROTATE_CORE_IMAGE);
-	
+
 	vec4 out_color = texture(in_sampler, sample_coord);
 
 	return out_color;
@@ -131,7 +131,7 @@ vec4 HSM_GetTexSampleFromSampleStartAndSize(sampler2D in_sampler, vec2 in_screen
 
 // Applies the position before scaling from the center
 // Should allow having an image where the center of the tube in the graphic is off center
-// the position offset moves it so the screen is centered, then the graphic is scaled from the center 
+// the position offset moves it so the screen is centered, then the graphic is scaled from the center
 vec2 HSM_AddPosScaleToCoord(vec2 in_base_coord, vec2 in_pos, vec2 in_scale)
 {
 	vec2 positioned_coord = in_base_coord + in_pos;
@@ -139,7 +139,7 @@ vec2 HSM_AddPosScaleToCoord(vec2 in_base_coord, vec2 in_pos, vec2 in_scale)
 	return out_coord;
 }
 
-vec2 GetSimpleImageScaledCoord(vec2 in_viewport_coord, vec2 in_viewport_unscaled_coord, vec2 in_tube_coord, vec2 in_tube_scale, in sampler2D in_sampler, vec2 in_pos, float in_inherit_pos, vec2 in_scale, float in_scale_inherit_mode, float in_keep_aspect, float in_mirror_horz, float in_rotate )
+vec2 GetSimpleScaledCoord(vec2 in_viewport_coord, vec2 in_viewport_unscaled_coord, vec2 in_tube_coord, vec2 in_tube_scale, in sampler2D in_sampler, vec2 in_pos, float in_inherit_pos, vec2 in_scale, float in_scale_inherit_mode, float in_keep_aspect, float in_mirror_horz, float in_rotate )
 {
 	float output_aspect = global.FinalViewportSize.x / global.FinalViewportSize.y;
 
@@ -164,7 +164,7 @@ vec2 GetSimpleImageScaledCoord(vec2 in_viewport_coord, vec2 in_viewport_unscaled
 	}
 
 	coord_ctr.x = in_mirror_horz == 1 ? -1 * coord_ctr.x : coord_ctr.x;
-	
+
 	in_viewport_coord = HSM_RotateCoordinate(in_viewport_coord, in_rotate);
 
 	vec2 tex_size = textureSize(in_sampler, 0);
@@ -220,12 +220,12 @@ vec2 HSM_GetScreenPositionOffset(vec2 placement_image_pos, vec2 screen_scale, fl
 
 float HSM_GetAverageLuma(sampler2D Source, vec2 SourceSize)
 {
-   //////// Calculate Average Luminance ////////// 
+   //////// Calculate Average Luminance //////////
    float m = max(log2(global.SourceSize.x), log2(global.SourceSize.y));
 	m = max(m - 1.0, 1.0);
-	
+
 	float luma_total = 0.0;
-	
+
 	float num_samples = 5;
 	float sample_dist = 1 / (num_samples - 1);
 	vec4 tex_sample = vec4(0);
@@ -309,18 +309,18 @@ vec2 HSM_GetCurvatureValues(float screen_aspect)
 // CRT Geom Curvature
 #define FIX(c) max(abs(c), 1e-5)
 
-vec2 intersect(vec2 in_coord , vec2 sinangle, vec2 cosangle, float in_radius, vec2 in_distance)
+float intersect(vec2 in_coord , vec2 sinangle, vec2 cosangle, float in_radius, float in_distance)
 {
   float A = dot(in_coord, in_coord) + in_distance.x * in_distance.x;
   float B = 2.0 * (in_radius * (dot(in_coord, sinangle) - in_distance.x * cosangle.x * cosangle.y) - in_distance.x * in_distance.x);
   float C = in_distance.x * in_distance.x + 2.0 * in_radius * in_distance.x * cosangle.x * cosangle.y;
-  return vec2((-B-sqrt(B * B - 4.0 * A * C)) / (2.0 * A));
+  return (-B-sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
 }
 
-vec2 bkwtrans(vec2 in_coord, vec2 sinangle, vec2 cosangle, float in_radius, vec2 in_distance)
+vec2 bkwtrans(vec2 in_coord, vec2 sinangle, vec2 cosangle, float in_radius, float in_distance)
 {
-  vec2 c = intersect(in_coord, sinangle, cosangle, in_radius, in_distance);
-  vec2 pt = c * in_coord;
+  float c = intersect(in_coord, sinangle, cosangle, in_radius, in_distance);
+  vec2 pt = vec2(c) * in_coord;
   pt -= vec2(-in_radius) * sinangle;
   pt /= vec2(in_radius);
   vec2 tang = sinangle / cosangle;
@@ -334,42 +334,42 @@ vec2 bkwtrans(vec2 in_coord, vec2 sinangle, vec2 cosangle, float in_radius, vec2
   return uv * r / sin(r / in_radius);
 }
 
-vec2 fwtrans(vec2 uv, vec2 sinangle, vec2 cosangle, float in_radius, vec2 in_distance)
+vec2 fwtrans(vec2 uv, vec2 sinangle, vec2 cosangle, float in_radius, float in_distance)
 {
   float r = FIX(sqrt(dot(uv,uv)));
   uv *= sin(r/in_radius)/r;
   float x = 1.0-cos(r/in_radius);
-  float D = in_distance.x/in_radius + x*cosangle.x*cosangle.y+dot(uv,sinangle);
-  return in_distance.x*(uv*cosangle-x*sinangle)/D;
+  float D = in_distance/in_radius + x*cosangle.x*cosangle.y+dot(uv,sinangle);
+  return in_distance*(uv*cosangle-x*sinangle)/D;
 }
 
-vec3 maxscale(vec2 sinangle, vec2 cosangle, float in_radius, vec2 in_distance, float in_aspect)
+vec3 maxscale(vec2 sinangle, vec2 cosangle, float in_radius, float in_distance, float in_aspect)
 {
   vec2 aspect_vec2 = vec2(1, 1/in_aspect);
-  vec2 c = bkwtrans(-in_radius * sinangle / (1.0 + in_radius/in_distance.x*cosangle.x*cosangle.y), sinangle, cosangle, in_radius, in_distance);
+  vec2 c = bkwtrans(-in_radius * sinangle / (1.0 + in_radius/in_distance*cosangle.x*cosangle.y), sinangle, cosangle, in_radius, in_distance);
   vec2 a = vec2(0.5,0.5)*aspect_vec2.xy;
 
   vec2 lo = vec2(	fwtrans(vec2(-a.x,c.y), sinangle, cosangle, in_radius, in_distance).x,
-  		 			fwtrans(vec2(c.x,-a.y), sinangle, cosangle, in_radius, in_distance).y)/aspect_vec2.xy;
+		 			fwtrans(vec2(c.x,-a.y), sinangle, cosangle, in_radius, in_distance).y)/aspect_vec2.xy;
 
   vec2 hi = vec2(	fwtrans(vec2(+a.x,c.y), sinangle, cosangle, in_radius, in_distance).x,
-  		 			fwtrans(vec2(c.x,+a.y), sinangle, cosangle, in_radius, in_distance).y)/aspect_vec2.xy;
+		 			fwtrans(vec2(c.x,+a.y), sinangle, cosangle, in_radius, in_distance).y)/aspect_vec2.xy;
 
   return vec3((hi+lo)*aspect_vec2.xy*0.5,max(hi.x-lo.x,hi.y-lo.y));
 }
 
-vec2 transform(vec2 coord, vec3 stretch, vec2 sinangle, vec2 cosangle, float in_radius, vec2 in_distance, vec2 aspect)
+vec2 transform(vec2 coord, vec3 stretch, vec2 sinangle, vec2 cosangle, float in_radius, float in_distance, vec2 aspect)
 {
   coord = (coord-vec2(0.5))*aspect.xy*stretch.z+stretch.xy;
   return (bkwtrans(coord, sinangle, cosangle, in_radius, in_distance)/aspect.xy+vec2(0.5));
 }
 
 // TODO need to rescale so the screen does not shrink
-vec2 HSM_GetGeomCurvedCoord(vec2 in_coord, float tilt_x, float tilt_y, float in_radius, vec2 in_distance, float in_aspect)
+vec2 HSM_GetGeomCurvedCoord(vec2 in_coord, float tilt_x, float tilt_y, float in_radius, float in_distance, float in_aspect)
 {
 	//default radius = 3.5
     //default distance = 2
-	in_distance *= vec2(1.4);
+	in_distance *= 1.4;
 	vec2 ang = vec2(tilt_x, tilt_y);
 	vec2 v_sinangle = sin(ang);
 	vec2 v_cosangle = cos(ang);
@@ -380,7 +380,7 @@ vec2 HSM_GetGeomCurvedCoord(vec2 in_coord, float tilt_x, float tilt_y, float in_
 	return curved_coord;
 }
 
-vec2 HSM_GetGeomCurvedCoordRetainWidth(vec2 in_coord, float tilt_x, float tilt_y, float in_radius, vec2 in_distance, float in_aspect)
+vec2 HSM_GetGeomCurvedCoordRetainWidth(vec2 in_coord, float tilt_x, float tilt_y, float in_radius, float in_distance, float in_aspect)
 {
 	vec2 ctr_curved_coord =  HSM_GetGeomCurvedCoord(in_coord, tilt_x, tilt_y, in_radius, in_distance, in_aspect) - 0.5;
 	vec2 right_edge_curved_ctr_coord = HSM_GetGeomCurvedCoord(vec2(1, 0.5), tilt_x, tilt_y, in_radius, in_distance, in_aspect) - 0.5;
@@ -396,7 +396,7 @@ vec2 HSM_GetGuestCurvedCoord(vec2 in_coord, vec2 in_curvature, float in_curvatur
 	float warpY = in_curvature.y;
 	float c_shape = in_curvature_shape;
 
-	pos  = pos*2.0-1.0;    
+	pos  = pos*2.0-1.0;
 	pos  = mix(pos, vec2(pos.x*inversesqrt(1.0-c_shape*pos.y*pos.y), pos.y*inversesqrt(1.0-c_shape*pos.x*pos.x)), vec2(warpX, warpY)/c_shape);
 	return pos*0.5 + 0.5;
 }
@@ -427,7 +427,7 @@ vec2 HSM_GetCrtPiCurvedCoord(vec2 in_coord, vec2 in_curvature)
 	in_curvature *= 5;
 	vec2 barrelScale = 1.0 - (0.23 * in_curvature);
     in_coord -= vec2(0.5);
-    float rsq = in_coord.x * in_coord.x + (HSM_CURVATURE_MODE == 2 ? 0 : in_coord.y * in_coord.y);
+    float rsq = in_coord.x * in_coord.x + (HSM_CURVATURE_MODE == CURVATURE_MODE_2D_CYLINDER ? 0 : in_coord.y * in_coord.y);
     in_coord += in_coord * (in_curvature * rsq);
     in_coord *= barrelScale;
 	in_coord += vec2(0.5);
@@ -453,7 +453,7 @@ vec2 HSM_GetCurvedCoord(vec2 in_coord, float curvature_multiplier, float screen_
 {
 	if (HSM_CURVATURE_MODE == CURVATURE_MODE_OFF)
 		return in_coord;
-	
+
 	float epsilon = 0.002;
 
 	vec2 adjusted_coord = in_coord;
@@ -463,18 +463,53 @@ vec2 HSM_GetCurvedCoord(vec2 in_coord, float curvature_multiplier, float screen_
 
 	vec2 curved_coord = vec2(0);
 
-	// Calculate 2D curvature for all presets (potato and non-potato)
-	// The original had separate 3D curvature logic for non-potato that isn't ported to WebGL2
-	vec2 curvature_values = curvature_multiplier * HSM_GetCurvatureValues(screen_aspect);
-	curved_coord = HSM_Get2DCurvedCoord(adjusted_coord, curvature_values);
+// TODO only allow 3D curvature in ADV?
+// #ifdef IS_ADV_PRESET
+	if (HSM_CURVATURE_MODE > CURVATURE_MODE_2D_CYLINDER)
+	{
+		if (HSM_USE_GEOM > 0.5)
+			curved_coord = HSM_GetGeomCurvedCoordRetainWidth(in_coord, HSM_CURVATURE_3D_TILT_ANGLE_X, HSM_CURVATURE_3D_TILT_ANGLE_Y, HSM_CURVATURE_3D_RADIUS, HSM_CURVATURE_3D_VIEW_DIST, screen_aspect);
+		else
+		{
+			float geom_radius_with_mult = HSM_CURVATURE_3D_RADIUS;
+			// Adjust curvature so 3D mode 1 looks similar to 3D mode 2
+			if (HSM_CURVATURE_MODE == CURVATURE_MODE_3D_1) geom_radius_with_mult -= 0.40;
+			if (HSM_CURVATURE_MODE == CURVATURE_MODE_3D_CYLINDER) geom_radius_with_mult -= 1;
+			geom_radius_with_mult *= (1 / (curvature_multiplier + epsilon));
+			mat2x2 pixel_to_video_uv;
+
+			float geom_mode = HSM_CURVATURE_MODE - 2;
+
+			curved_coord = HRG_GetGeomCurvedCoord(	adjusted_coord,
+													geom_mode,
+													geom_radius_with_mult,
+													HSM_CURVATURE_3D_VIEW_DIST,
+													tilt_angle_x,
+													tilt_angle_y,
+													screen_aspect,
+													pin_inner_edge,
+													global.SourceSize.xy,
+													global.OutputSize.xy,
+													pixel_to_video_uv);
+		}
+	}
+	else
+	{
+		vec2 curvature_values = curvature_multiplier * HSM_GetCurvatureValues(screen_aspect);
+		curved_coord = HSM_Get2DCurvedCoord(adjusted_coord, curvature_values);
+	}
+// #else
+// 		vec2 curvature_values = curvature_multiplier * HSM_GetCurvatureValues(screen_aspect);
+// 		curved_coord = HSM_Get2DCurvedCoord(adjusted_coord, curvature_values);
+// #endif
 
 	return curved_coord;
 }
 
 vec2 HSM_GetCRTShaderCurvedCoord(vec2 in_coord)
-{	
+{
 	vec2 out_coord = HSM_GetCurvedCoord(in_coord, 1, SCREEN_ASPECT);
-	
+
 	if (HHLP_IsOutsideCoordSpace(out_coord))
 	{
 		vec2 tube_scale_ratio = TUBE_SCALE / SCREEN_SCALE;
@@ -487,7 +522,7 @@ vec2 HSM_GetCRTShaderCurvedCoord(vec2 in_coord)
 }
 
 vec2 HSM_GetMirrorWrappedCoord(vec2 in_coord)
-{	
+{
 	vec2 ctr_coord = in_coord - 0.5;
 	if (abs(ctr_coord.x) > 0.5 || abs(ctr_coord.y) > 0.5 )
 		in_coord = ctr_coord / HSM_SCREEN_REFLECTION_SCALE + 0.5 + vec2(HSM_SCREEN_REFLECTION_POS_X, HSM_SCREEN_REFLECTION_POS_Y);
@@ -510,11 +545,11 @@ vec2 HSM_GetMirrorWrapCoord(vec2 in_coord)
 	vec2 ctr_mirror_coord = vec2(0,0);
 
 	float x_is_outside = clamp((clamp(abs(ctr_coord.x), 0.5, 1) - 0.5) * 100000, 0, 1);
-	ctr_mirror_coord.x = (1 - x_is_outside) * ctr_coord.x + 
+	ctr_mirror_coord.x = (1 - x_is_outside) * ctr_coord.x +
 						x_is_outside * (ctr_coord.x - 2 * sign(ctr_coord.x) * (abs(ctr_coord.x) - 0.5));
 
 	float y_is_outside = clamp((clamp(abs(ctr_coord.y), 0.5, 1) - 0.5) * 100000, 0, 1);
-	ctr_mirror_coord.y = (1 - y_is_outside) * ctr_coord.y + 
+	ctr_mirror_coord.y = (1 - y_is_outside) * ctr_coord.y +
 						y_is_outside * (ctr_coord.y - 2 * sign(ctr_coord.y) * (abs(ctr_coord.y) - 0.5));
 
 	return ctr_mirror_coord + 0.5;
@@ -544,7 +579,7 @@ float HSM_GetCornerMask(vec2 in_coord, float screen_aspect, float corner_radius,
 // 	crn = (csize == 0.0) ? max(pos.x, pos.y) : pow(crn, 1.0/csize1);
 // 	pos = max(pos, crn);
 // 	vec2 res = (bsize1 == 0.0) ? 1.0.xx : mix(0.0.xx, 1.0.xx, smoothstep(1.0.xx, 1.0.xx-b, sqrt(pos)));
-// 	res = pow(res, sborder.xx);	
+// 	res = pow(res, sborder.xx);
 // 	return sqrt(res.x*res.y);
 // }
 
@@ -609,7 +644,7 @@ vec4 HSM_GetStoichaicBlurredSample(sampler2D in_sampler, vec2 in_coord, float nu
 	// srand
 	float radius = sin(dot(in_coord, vec2(1233.224, 1743.335)));
 	vec2 radius_vector;
-	
+
 	vec2 sample_coord = vec2(0);
 
 	// The following are all unrolled otherwise they won't compile in D3D11
@@ -719,10 +754,11 @@ bool HSM_GetIsInABCompareArea(vec2 viewport_coord)
 {
 	float test_value = HSM_AB_COMPARE_AREA > 1.5 ? viewport_coord.y : viewport_coord.x;
 	float position = mod(HSM_AB_COMPARE_AREA, 2) == 1 ? (1 - HSM_AB_COMPARE_SPLIT_POSITION) : HSM_AB_COMPARE_SPLIT_POSITION;
-	return  mod(HSM_AB_COMPARE_AREA, 2) == 0 && test_value < position || 
+	return  mod(HSM_AB_COMPARE_AREA, 2) == 0 && test_value < position ||
 			mod(HSM_AB_COMPARE_AREA, 2) == 1 && test_value > position;
 }
 
+// TODO we should probably give the canvas size as an input instead of assuming FinalViewportSize
 vec4 HSM_GetMipmappedTexSample(sampler2D in_sampler, vec2 in_coord, vec2 in_scale, float in_blend_bias)
 {
 	vec2 tex_size = textureSize(in_sampler, 0);
@@ -735,6 +771,13 @@ vec4 HSM_GetMipmappedTexSample(sampler2D in_sampler, vec2 in_coord, vec2 in_scal
 vec4 HSM_GetCroppedTexSample(sampler2D in_sampler, vec2 in_screen_coord)
 {
 	return HSM_GetTexSampleFromSampleStartAndSize(in_sampler, in_screen_coord, SAMPLE_AREA_START_PIXEL_COORD, CROPPED_ROTATED_SIZE);
+}
+
+vec4 HSM_TextureAbsolute(sampler2D in_sampler, vec2 in_viewport_coord)
+{
+	vec2 tex_size = textureSize(in_sampler, 0);
+	vec2 sampling_scale = global.OutputSize.xy / tex_size;
+	return texture(in_sampler, in_viewport_coord * sampling_scale);
 }
 
 float HSM_GetVignetteFactor(vec2 coord, float amount, float size)
@@ -753,15 +796,20 @@ float HSM_GetVignetteFactor(vec2 coord, float amount, float size)
 	return 1 - vignette_multiplier + vignette * vignette_multiplier;
 }
 
-float HSM_GetScreenVignetteFactor(vec2 in_coord)
+float HSM_GetStrengthPowerVignetteFactor(vec2 in_coord, float in_strength, float in_power)
 {
 	vec2 vpos = HSM_GetMirrorWrappedCoord(in_coord);
 	vpos = (vpos - 0.5) / 1.01 + 0.5;
 	vpos *= 1.0 - vpos.xy;
-    float vig = vpos.x * vpos.y * HSM_SCREEN_VIGNETTE_STRENGTH;
-    vig = min(pow(vig, HSM_SCREEN_VIGNETTE_POWER), 1.0);
+    float vig = vpos.x * vpos.y * in_strength;
+    vig = min(pow(vig, in_power), 1.0);
 
 	return vig;
+}
+
+float HSM_GetScreenVignetteFactor(vec2 in_coord)
+{
+	return HSM_GetStrengthPowerVignetteFactor(in_coord, HSM_SCREEN_VIGNETTE_STRENGTH, HSM_SCREEN_VIGNETTE_POWER);
 }
 
 bool HSM_GetUseOnCurrentScreenIndex(float dual_screen_vis_mode)
@@ -774,15 +822,15 @@ bool HSM_GetUseScreenVignette()
 	return HSM_SCREEN_VIGNETTE_ON > 0.5 && HSM_GetUseOnCurrentScreenIndex(HSM_SCREEN_VIGNETTE_DUALSCREEN_VIS_MODE);
 }
 
-vec4 HSM_GetNightLightingMultiplyColor( vec2 in_coord, float hue, float saturation, float value, float contrast, float global_ambient_opacity, in sampler2D NightLightingImage )
+vec3 HSM_GetNightLightingMultiplyColor( vec2 in_coord, float hue, float saturation, float value, float contrast, float global_ambient_opacity, in sampler2D NightLightingImage )
 {
 	vec4 lighting_image = vec4(0);
-	// if (HSM_AMBIENT1_DITHERING_SAMPLES > 0.5)
+	// if (HSM_NIGHTLIGHT1_DITHERING_SAMPLES > 0.5)
 	// {
 	// 	// Dithering if needed to reduce banding
 	// 	float blur_max_size = 1;
 	// 	float blur_amount = 0.2;
-	// 	lighting_image = HSM_GetStoichaicBlurredSample(NightLightingImage, in_coord.xy, HSM_AMBIENT1_DITHERING_SAMPLES, blur_max_size, blur_amount);
+	// 	lighting_image = HSM_GetStoichaicBlurredSample(NightLightingImage, in_coord.xy, HSM_NIGHTLIGHT1_DITHERING_SAMPLES, blur_max_size, blur_amount);
 	// }
 	// else
 	lighting_image = HSM_GetMipmappedTexSample(NightLightingImage, in_coord.xy, vec2(1), 0);
@@ -800,113 +848,122 @@ vec4 HSM_GetNightLightingMultiplyColor( vec2 in_coord, float hue, float saturati
 		lighting_image = vec4(HSM_HSVtoRGB(night_lighting_image_hsv), lighting_image.a);
 	}
 
-	lighting_image.rgb = mix( vec3(1), lighting_image.rgb, global_ambient_opacity );
-
-	return lighting_image;
+	vec3 out_color = mix( vec3(1), lighting_image.rgb, global_ambient_opacity );
+	return out_color;
 }
 
-bool HSM_Fill_Ambient_Images(vec2 in_viewport_coord, vec2 in_viewport_unscaled_coord, vec2 in_tube_coord, vec2 in_tube_scale, float in_swap_images, in sampler2D in_ambient_sampler, in sampler2D in_ambient2_sampler, inout vec4 ambient_lighting_image, inout vec4 ambient2_lighting_image)
+bool HSM_Fill_Nightlight_Images(vec2 in_viewport_coord,
+								vec2 in_viewport_unscaled_coord,
+								vec2 in_tube_coord,
+								vec2 in_tube_scale,
+								float nightlight1_opacity,
+								float nightlight2_opacity,
+								float in_swap_images,
+								in sampler2D in_ambient_sampler,
+								in sampler2D in_ambient2_sampler,
+								inout vec3 nightlight1_rgb,
+								inout vec3 nightlight2_rgb)
 {
-		ambient_lighting_image = vec4(1);
-		ambient2_lighting_image = vec4(1);
+		nightlight1_rgb = vec3(1);
+		nightlight2_rgb = vec3(1);
 
-		if (HSM_AMBIENT1_OPACITY > 0)
+		if (nightlight1_opacity > 0)
 		{
-			float ambient1_scale = HSM_AMBIENT1_SCALE;
-			if (HSM_AMBIENT1_SCALE_INHERIT_MODE == 1 && HSM_AMBIENT1_SCALE * HSM_VIEWPORT_ZOOM < 1)
+			float ambient1_scale = HSM_NIGHTLIGHT1_SCALE;
+			if (HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE == 1 && HSM_NIGHTLIGHT1_SCALE * HSM_VIEWPORT_ZOOM < 1)
 				ambient1_scale = 1 / HSM_VIEWPORT_ZOOM;
 
-			vec2 lighting_coord = GetSimpleImageScaledCoord(in_viewport_coord, 
+			vec2 lighting_coord = GetSimpleScaledCoord(in_viewport_coord,
 															in_viewport_unscaled_coord,
 															in_tube_coord,
 															in_tube_scale,
 															in_ambient_sampler,
-															vec2(HSM_AMBIENT1_POSITION_X, HSM_AMBIENT1_POSITION_Y),
-															HSM_AMBIENT1_POS_INHERIT_MODE, 
-															vec2(ambient1_scale * HSM_AMBIENT1_SCALE_X, ambient1_scale), 
-															HSM_AMBIENT1_SCALE_INHERIT_MODE, 
-															HSM_AMBIENT1_SCALE_KEEP_ASPECT,
-															HSM_AMBIENT1_MIRROR_HORZ,
-															HSM_AMBIENT1_ROTATE );
+															vec2(HSM_NIGHTLIGHT1_POSITION_X, HSM_NIGHTLIGHT1_POSITION_Y),
+															HSM_NIGHTLIGHT1_POS_INHERIT_MODE,
+															vec2(ambient1_scale * HSM_NIGHTLIGHT1_SCALE_X, ambient1_scale),
+															HSM_NIGHTLIGHT1_SCALE_INHERIT_MODE,
+															HSM_NIGHTLIGHT1_SCALE_KEEP_ASPECT,
+															HSM_NIGHTLIGHT1_MIRROR_HORZ,
+															HSM_NIGHTLIGHT1_ROTATE );
 
-			ambient_lighting_image = HSM_GetNightLightingMultiplyColor( lighting_coord,
-																		HSM_AMBIENT1_HUE,
-																		HSM_AMBIENT1_SATURATION,
-																		HSM_AMBIENT1_VALUE,
-																		HSM_AMBIENT1_CONTRAST,
-																		HSM_AMBIENT1_OPACITY,
+			nightlight1_rgb = HSM_GetNightLightingMultiplyColor( lighting_coord,
+																		HSM_NIGHTLIGHT1_HUE,
+																		HSM_NIGHTLIGHT1_SATURATION,
+																		HSM_NIGHTLIGHT1_VALUE,
+																		HSM_NIGHTLIGHT1_CONTRAST,
+																		nightlight1_opacity,
 																		in_ambient_sampler );
 		}
 
-		if (HSM_AMBIENT2_OPACITY > 0)
+		if (nightlight2_opacity > 0)
 		{
-			float ambient2_scale = HSM_AMBIENT2_SCALE;
-			if (HSM_AMBIENT2_SCALE_INHERIT_MODE == 1 && HSM_AMBIENT2_SCALE * HSM_VIEWPORT_ZOOM < 1)
+			float ambient2_scale = HSM_NIGHTLIGHT2_SCALE;
+			if (HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE == 1 && HSM_NIGHTLIGHT2_SCALE * HSM_VIEWPORT_ZOOM < 1)
 				ambient2_scale = 1 / HSM_VIEWPORT_ZOOM;
 
-			vec2 lighting2_coord = GetSimpleImageScaledCoord(in_viewport_coord, 
+			vec2 lighting2_coord = GetSimpleScaledCoord(in_viewport_coord,
 															in_viewport_unscaled_coord,
 															in_tube_coord,
 															in_tube_scale,
 															in_ambient2_sampler,
-															vec2(HSM_AMBIENT2_POSITION_X, HSM_AMBIENT2_POSITION_Y),
-															HSM_AMBIENT2_POS_INHERIT_MODE, 
-															vec2(ambient2_scale * HSM_AMBIENT2_SCALE_X, ambient2_scale), 
-															HSM_AMBIENT2_SCALE_INHERIT_MODE, 
-															HSM_AMBIENT2_SCALE_KEEP_ASPECT,
-															HSM_AMBIENT2_MIRROR_HORZ,
-															HSM_AMBIENT2_ROTATE );
+															vec2(HSM_NIGHTLIGHT2_POSITION_X, HSM_NIGHTLIGHT2_POSITION_Y),
+															HSM_NIGHTLIGHT2_POS_INHERIT_MODE,
+															vec2(ambient2_scale * HSM_NIGHTLIGHT2_SCALE_X, ambient2_scale),
+															HSM_NIGHTLIGHT2_SCALE_INHERIT_MODE,
+															HSM_NIGHTLIGHT2_SCALE_KEEP_ASPECT,
+															HSM_NIGHTLIGHT2_MIRROR_HORZ,
+															HSM_NIGHTLIGHT2_ROTATE );
 
-			ambient2_lighting_image = HSM_GetNightLightingMultiplyColor( lighting2_coord,
-																		HSM_AMBIENT2_HUE,
-																		HSM_AMBIENT2_SATURATION,
-																		HSM_AMBIENT2_VALUE,
-																		HSM_AMBIENT2_CONTRAST,
-																		HSM_AMBIENT2_OPACITY,
+			nightlight2_rgb = HSM_GetNightLightingMultiplyColor( lighting2_coord,
+																		HSM_NIGHTLIGHT2_HUE,
+																		HSM_NIGHTLIGHT2_SATURATION,
+																		HSM_NIGHTLIGHT2_VALUE,
+																		HSM_NIGHTLIGHT2_CONTRAST,
+																		nightlight2_opacity,
 																		in_ambient2_sampler );
 		}
 
 	// if (in_swap_images == 1)
 	// {
-	// 	vec4 temp_image = ambient_lighting_image;
-	// 	ambient_lighting_image = ambient2_lighting_image;
-	// 	ambient2_lighting_image = temp_image;
+	// 	vec4 temp_image = nightlight1_rgb;
+	// 	nightlight1_rgb = nightlight2_rgb;
+	// 	nightlight2_rgb = temp_image;
 	// }
 
 	return true;
 }
 
-vec3 ApplyAmbientImages(vec3 base_image, vec3 ambient_image, vec3 ambient2_image, float blend_ambient, float blend_ambient2, float apply_in_add_mode, float layer_blend_mode, float swap_images) 
+vec3 ApplyNightlights(vec3 base_image, vec3 nightlight1_rgb, vec3 nightlight2_rgb, float blend_ambient, float blend_ambient2, float apply_in_add_mode, float layer_blend_mode, float swap_images)
 {
-	vec3 outImage = base_image;
+	vec3 out_color = base_image;
 
 	if (swap_images == 1)
-		ambient2_image = ambient_image;
+		nightlight2_rgb = nightlight1_rgb;
 	if (swap_images == 2)
-		ambient_image = ambient2_image;
+		nightlight1_rgb = nightlight2_rgb;
 	if (swap_images == 3)
 	{
-		vec3 temp_image = ambient_image;
-		ambient_image = ambient2_image;
-		ambient2_image = temp_image;
+		vec3 temp_image = nightlight1_rgb;
+		nightlight1_rgb = nightlight2_rgb;
+		nightlight2_rgb = temp_image;
 	}
 
-	if ( (HSM_AMBIENT1_OPACITY > 0 || HSM_AMBIENT2_OPACITY > 0) && (blend_ambient > 0 || blend_ambient2 > 0) )
+	if ( (HSM_NIGHTLIGHT1_OPACITY > 0 || HSM_NIGHTLIGHT2_OPACITY > 0) && (blend_ambient > 0 || blend_ambient2 > 0) )
 	{
 		if(	apply_in_add_mode == 1 || layer_blend_mode != BLEND_MODE_ADD)
 		{
 			if (blend_ambient > 0)
 			{
-				outImage = (1 - blend_ambient) * outImage.rgb + blend_ambient * outImage.rgb * ambient_image.rgb;
+				out_color = (1 - blend_ambient) * out_color.rgb + blend_ambient * out_color.rgb * nightlight1_rgb.rgb;
 			}
 			if (blend_ambient2 > 0)
 			{
-				outImage = (1 - blend_ambient2) * outImage.rgb + blend_ambient2 * outImage.rgb * ambient2_image.rgb;
+				out_color = (1 - blend_ambient2) * out_color.rgb + blend_ambient2 * out_color.rgb * nightlight2_rgb.rgb;
 			}
 		}
 	}
 
-	return outImage;
+	return out_color;
 }
 
 vec4 HSM_ApplyMonochrome(vec4 in_color)
@@ -927,25 +984,19 @@ vec4 HSM_ApplyMonochrome(vec4 in_color)
 		mcolor = HSM_HSVtoRGB(mcolor_hsv);
 	}
 
-	out_color.rgb = pow(luma, 1.0/HSM_MONOCHROME_GAMMA) * mcolor;
+	out_color.rgb = pow(luma, 1.0 / HSM_MONOCHROME_GAMMA) * mcolor;
 	return out_color;
 }
 
 float HSM_GetTubeOpacity()
 {
-	float tube_diffuse_opacity = HSM_TUBE_DIFFUSE_MODE < 1.5 ? HSM_TUBE_OPACITY : 0;
-
-	// If CRT Blend Mode is Multiply (2) then the tube must be fully opaque
-	if (HSM_CRT_BLEND_MODE == 2)
-		tube_diffuse_opacity = 1;
-
-	return tube_diffuse_opacity;
+	return HSM_TUBE_DIFFUSE_MODE < 1.5 ? HSM_TUBE_OPACITY : 0;
 }
 
-vec3 HSM_ApplyAmbientImage(vec3 base_image, vec3 ambient_image, float layer_blend_amount) 
+vec3 HSM_ApplyAmbient(vec3 base_image, vec3 nightlight_rgb, float layer_blend_amount)
 {
 	if (layer_blend_amount > 0)
-		return (1 - layer_blend_amount) * base_image.rgb + layer_blend_amount * base_image.rgb * ambient_image.rgb;
+		return (1 - layer_blend_amount) * base_image.rgb + layer_blend_amount * base_image.rgb * nightlight_rgb.rgb;
 	else
 		return base_image;
 }
@@ -962,13 +1013,7 @@ float HSM_GetNoScanlineMode()
 	float scan_res = (1 - USE_VERTICAL_SCANLINES) * CROPPED_ROTATED_SIZE_WITH_RES_MULT.y +
 						USE_VERTICAL_SCANLINES *  CROPPED_ROTATED_SIZE_WITH_RES_MULT.x;
 
-	// WEBGL FIX: no_scanlines may not be defined in all presets, default to 0.0 (scanlines enabled)
-	float no_scanlines_value = 0.0;
-	#ifdef PARAM_no_scanlines
-		no_scanlines_value = PARAM_no_scanlines;
-	#endif
-
-	return no_scanlines_value > 0.5 || HSM_GetUseFakeScanlines() || HSM_INTERLACE_MODE < 0 && HSM_INTERLACE_TRIGGER_RES <= scan_res ? 1 : 0;
+	return global.no_scanlines > 0.5 || HSM_GetUseFakeScanlines() || HSM_INTERLACE_MODE < 0 && HSM_INTERLACE_TRIGGER_RES <= scan_res ? 1 : 0;
 }
 
 vec4 HSM_ApplyScanlineMask(vec4 in_color, vec2 screen_scale, vec2 in_coord, vec2 in_screen_curved_coord, vec2 in_tube_curved_coord, float in_scanline_opacity)
@@ -980,7 +1025,7 @@ vec4 HSM_ApplyScanlineMask(vec4 in_color, vec2 screen_scale, vec2 in_coord, vec2
 	in_coord = mix(in_coord, in_screen_curved_coord, HSM_FAKE_SCANLINE_CURVATURE);
 
     /* Scanlines */
-	float scanline_roll_offset = float(mod(global.FrameCount, 1280)) / 1280 * HSM_FAKE_SCANLINE_ROLL; 
+	float scanline_roll_offset = float(mod(global.FrameCount, 1280)) / 1280 * HSM_FAKE_SCANLINE_ROLL;
 
     // float scans = clamp( 0.35+0.18*sin(6.0*time-curved_uv.y*resolution.y*1.5), 0.0, 1.0);
     // float s = pow(scans,0.9);
@@ -991,7 +1036,7 @@ vec4 HSM_ApplyScanlineMask(vec4 in_color, vec2 screen_scale, vec2 in_coord, vec2
 
 	vec2 screen_size = global.OutputSize.xy * screen_scale;
 	float scan_axis_screen_scale_res = USE_VERTICAL_SCANLINES > 0.5 ? screen_size.x : screen_size.y;
-	
+
 	float cropped_rotated_scan_res = USE_VERTICAL_SCANLINES > 0.5 ? CROPPED_ROTATED_SIZE.x : CROPPED_ROTATED_SIZE.y;
 	float simulated_scanline_res = HSM_FAKE_SCANLINE_RES_MODE > 0.5 ? HSM_FAKE_SCANLINE_RES : cropped_rotated_scan_res;
 
@@ -1000,7 +1045,7 @@ vec4 HSM_ApplyScanlineMask(vec4 in_color, vec2 screen_scale, vec2 in_coord, vec2
 	if (HSM_FAKE_SCANLINE_INT_SCALE == 1)
 		scanline_size = ceil(scanline_size);
 
-	float scan = mod(scan_axis_pos * scan_axis_screen_scale_res + scanline_size, scanline_size) / scanline_size;
+	float scan = mod(scan_axis_pos * scan_axis_screen_scale_res + scanline_size / 2, scanline_size) / scanline_size;
 
 	// Alternate, modulating the scanline width depending on brightness
 	//float scanline_mask = HHLP_EasePowerOut(1 - abs(scan - 0.5) * 2, 0.5 + 2 * smoothstep(0.4, 0.9, (in_color.r + in_color.g +  in_color.b) / 3));
@@ -1031,14 +1076,19 @@ vec4 HSM_ApplyScanlineMask(vec4 in_color, vec2 screen_scale, vec2 in_coord, vec2
 
 vec4 HSM_Apply_Sinden_Lightgun_Border(vec4 in_rgba, vec2 in_tube_diffuse_curved_coord, float in_tube_diffuse_mask, float in_black_edge_corner_radius)
 {
-	float sinden_gun_mask =  in_tube_diffuse_mask - HSM_GetCornerMask((in_tube_diffuse_curved_coord - 0.5) * (1 + vec2(1 / TUBE_DIFFUSE_ASPECT * HSM_SINDEN_BORDER_THICKNESS, HSM_SINDEN_BORDER_THICKNESS)) + 0.5, TUBE_DIFFUSE_ASPECT, in_black_edge_corner_radius, 0.99);
-	vec4 out_rgba = in_rgba;
+	if (HSM_SINDEN_BORDER_ON < 0.5)
+	{
+		return in_rgba;
+	}
+	else
+	{
+		float sinden_gun_mask =  in_tube_diffuse_mask - HSM_GetCornerMask((in_tube_diffuse_curved_coord - 0.5) * (1 + vec2(1 / TUBE_DIFFUSE_ASPECT * HSM_SINDEN_BORDER_THICKNESS, HSM_SINDEN_BORDER_THICKNESS)) + 0.5, TUBE_DIFFUSE_ASPECT, in_black_edge_corner_radius, 0.99);
 
-	vec3 base_rgb = vec3(1);
-	out_rgba.rgb = base_rgb * HSM_SINDEN_BORDER_BRIGHTNESS * sinden_gun_mask + (1 - sinden_gun_mask) * out_rgba.rgb;
+		vec4 out_rgba = in_rgba;
+		out_rgba.rgb = vec3(1) * HSM_SINDEN_BORDER_BRIGHTNESS * sinden_gun_mask + (1 - sinden_gun_mask) * in_rgba.rgb;
 
-	// out_rgba.rgb += HSM_SINDEN_BORDER_OPACITY * sinden_gun_mask;
-	return out_rgba;
+		return out_rgba;
+	}
 }
 
 vec2 HSM_ApplyOverscan(vec2 in_coord, float overscan_x, float overscan_y)
@@ -1061,17 +1111,18 @@ float HSM_GetRasterBloomScale(float raster_bloom_overscan_mode, float raster_blo
 	float neutral_min = neutral_center - neutral_range;
 	float neutral_max = neutral_center + neutral_range;
 	float adjusted_luma = neutral_center;
-	if (screen_avg_luma < 0.5 - neutral_range || screen_avg_luma > 0.5 + neutral_range) 
+	if (screen_avg_luma < 0.5 - neutral_range || screen_avg_luma > 0.5 + neutral_range)
 	{
-		if (screen_avg_luma < neutral_min) 
+		if (screen_avg_luma < neutral_min)
 			adjusted_luma = neutral_center * HHLP_EasePowerIn(smoothstep(0, neutral_min, screen_avg_luma), 2);
 
-		if (screen_avg_luma > neutral_max) 
+		if (screen_avg_luma > neutral_max)
 			adjusted_luma = neutral_center + (1 - neutral_center) * HHLP_EasePowerOut(smoothstep(neutral_max, 1, screen_avg_luma), 2);
 	}
 	bloom_scale = 1.00 + raster_bloom_mult * ((1.0 - 0.5 * raster_bloom_overscan_mode) - adjusted_luma);
 	return bloom_scale;
 }
+
 
 // Thanks to Guest.r for this simple yet effective implementation of raster bloom
 vec2 HSM_ApplyRasterBloomOverscan(vec2 in_coord, float raster_bloom_overscan_mode, float raster_bloom_mult, float screen_avg_luma)
@@ -1086,15 +1137,55 @@ vec2 HSM_ApplyRasterBloomOverscan(vec2 in_coord, float raster_bloom_overscan_mod
 	return ctr_coord * 0.5 + 0.5;
 }
 
+/*
+	Anamorphic v1.1b Shader 2020
+	by Nerboruto
+*/
+float HSM_Anamorphic_Distort_Multiplier(float in_coord_1D, float in_distort_amount)
+{
+	if (in_distort_amount == 0.0)
+		return 1.0;
+
+	float rx = abs(in_coord_1D);
+	float fx = -radians(in_distort_amount);
+	return (1.0 - fx) / (1.0 - fx * rx);
+}
+
+/*
+	Anamorphic v1.1b Shader 2020
+	by Nerboruto
+*/
+vec2 HSM_Anamorphic_Distort(vec2 in_coord, float in_distort_amount)
+{
+	if (in_distort_amount == 0.0) return in_coord;
+
+	vec2 out_coord = in_coord * 2.0 - 1.0;
+	out_coord.x *= HSM_Anamorphic_Distort_Multiplier(out_coord.x, in_distort_amount);
+	out_coord = out_coord * 0.5 + 0.5;
+	return out_coord;
+}
+
 vec2 HSM_GetCrtShaderFinalCoord(vec2 screen_coord,
 								vec2 screen_scale,
 								float raster_bloom_avg_lum,
 								inout vec2 screen_curved_coord
 								)
-
 {
 	// -- START -- This section repeated in function below
-	screen_curved_coord = HSM_GetCRTShaderCurvedCoord(screen_coord);
+	screen_curved_coord = screen_coord;
+	if (HSM_ANAMORPHIC_DISTORT_ON > 0.5)
+	{
+		float anamorph_distort_amount = HSM_ANAMORPHIC_DISTORT_AMOUNT;
+		if (HSM_ANAMORPHIC_DISTORT_AUTO_MULTIPLY_MODE > 0.5)
+		{
+			vec2 screen_size = global.FinalViewportSize.xy * screen_scale;
+			float screen_aspect = screen_size.x / screen_size.y;
+			float amount_auto_multiplier = smoothstep(HSM_ANAMORPHIC_DISTORT_SOURCE_ASPECT, 1.77, screen_aspect);
+			anamorph_distort_amount *= amount_auto_multiplier;
+		}
+		screen_curved_coord = HSM_Anamorphic_Distort(screen_curved_coord, anamorph_distort_amount);
+	}
+	screen_curved_coord = HSM_GetCRTShaderCurvedCoord(screen_curved_coord);
 
 	// Get the Mirrored coord and then add overscan to it
 	vec2 screen_curved_coord_with_overscan_and_mirror = HSM_GetMirrorWrappedCoord(screen_curved_coord);
@@ -1102,9 +1193,9 @@ vec2 HSM_GetCrtShaderFinalCoord(vec2 screen_coord,
 
 	if (HSM_OVERSCAN_RASTER_BLOOM_ON > 0.5)
 	{
-		screen_curved_coord_with_overscan_and_mirror = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan_and_mirror, 
-			HSM_OVERSCAN_RASTER_BLOOM_MODE, 
-			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT, 
+		screen_curved_coord_with_overscan_and_mirror = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan_and_mirror,
+			HSM_OVERSCAN_RASTER_BLOOM_MODE,
+			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT,
 			raster_bloom_avg_lum);
 	}
 	// -- END -- Repeated Section
@@ -1121,8 +1212,23 @@ vec2 HSM_GetCrtShaderFinalCoordExtraVariables(vec2 screen_coord,
 	inout vec2 screen_scale_with_overscan)
 
 {
-	// -- START -- This section repeated from function above
-	screen_curved_coord = HSM_GetCRTShaderCurvedCoord(screen_coord);
+	// TODO take into account horizontal integer scale, right now the tube image just slides into the bezel area
+
+	// -- START -- This section repeated in function below
+	screen_curved_coord = screen_coord;
+	if (HSM_ANAMORPHIC_DISTORT_ON > 0.5)
+	{
+		float anamorph_distort_amount = HSM_ANAMORPHIC_DISTORT_AMOUNT;
+		if (HSM_ANAMORPHIC_DISTORT_AUTO_MULTIPLY_MODE > 0.5)
+		{
+			vec2 screen_size = global.FinalViewportSize.xy * screen_scale;
+			float screen_aspect = screen_size.x / screen_size.y;
+			float amount_auto_multiplier = smoothstep(HSM_ANAMORPHIC_DISTORT_SOURCE_ASPECT, 1.77, screen_aspect);
+			anamorph_distort_amount *= amount_auto_multiplier;
+		}
+		screen_curved_coord = HSM_Anamorphic_Distort(screen_curved_coord, anamorph_distort_amount);
+	}
+	screen_curved_coord = HSM_GetCRTShaderCurvedCoord(screen_curved_coord);
 
 	// Get the Mirrored coord and then add overscan to it
 	vec2 screen_curved_coord_with_overscan_and_mirror = HSM_GetMirrorWrappedCoord(screen_curved_coord);
@@ -1130,32 +1236,32 @@ vec2 HSM_GetCrtShaderFinalCoordExtraVariables(vec2 screen_coord,
 
 	if (HSM_OVERSCAN_RASTER_BLOOM_ON > 0.5)
 	{
-		screen_curved_coord_with_overscan_and_mirror = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan_and_mirror, 
-			HSM_OVERSCAN_RASTER_BLOOM_MODE, 
-			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT, 
+		screen_curved_coord_with_overscan_and_mirror = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan_and_mirror,
+			HSM_OVERSCAN_RASTER_BLOOM_MODE,
+			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT,
 			raster_bloom_avg_lum);
 	}
 	// -- END -- Repeated Section
 
-	// Screen Coordinate overscan but without curvature 
+	// Screen Coordinate overscan but without curvature
 	// Screen Curved Coordinate but not Mirrored
 	screen_curved_coord_with_overscan = HSM_ApplyOverscan(screen_curved_coord, HSM_OVERSCAN_X, HSM_OVERSCAN_Y);
 	screen_scale_with_overscan = screen_scale * (vec2(HSM_OVERSCAN_X, HSM_OVERSCAN_Y) + 1);
 
 	if (HSM_OVERSCAN_RASTER_BLOOM_ON > 0.5)
 	{
-		screen_curved_coord_with_overscan = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan, 
-			HSM_OVERSCAN_RASTER_BLOOM_MODE, 
-			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT, 
+		screen_curved_coord_with_overscan = HSM_ApplyRasterBloomOverscan(screen_curved_coord_with_overscan,
+			HSM_OVERSCAN_RASTER_BLOOM_MODE,
+			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT,
 			raster_bloom_avg_lum);
 
-		screen_coord_with_overscan = HSM_ApplyRasterBloomOverscan(screen_coord_with_overscan, 
-			HSM_OVERSCAN_RASTER_BLOOM_MODE, 
-			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT, 
+		screen_coord_with_overscan = HSM_ApplyRasterBloomOverscan(screen_coord_with_overscan,
+			HSM_OVERSCAN_RASTER_BLOOM_MODE,
+			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT,
 			raster_bloom_avg_lum);
 
-		screen_scale_with_overscan *= HSM_GetRasterBloomScale(HSM_OVERSCAN_RASTER_BLOOM_MODE, 
-			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT, 
+		screen_scale_with_overscan *= HSM_GetRasterBloomScale(HSM_OVERSCAN_RASTER_BLOOM_MODE,
+			HSM_OVERSCAN_RASTER_BLOOM_AMOUNT,
 			raster_bloom_avg_lum);
 	}
 
@@ -1164,5 +1270,195 @@ vec2 HSM_GetCrtShaderFinalCoordExtraVariables(vec2 screen_coord,
 	return screen_curved_coord_with_overscan_and_mirror;
 }
 
-// NOTE: HSM_ApplyPackedTubeLayers is defined in tube-layers-functions.inc
-// Include that file in shaders that need tube layer compositing (e.g., deconvergence)
+vec4 HSM_ApplySimpleBGExplicit(	vec4 in_crt_color,
+							vec2 zoomed_viewport_coord,
+							sampler2D BackgroundImage,
+							float crt_blend_mode,
+							float bg_on_top,
+							float bg_blend_mode,
+							float bg_opacity,
+							float bg_brightness,
+							float colorize_using_texture,
+							float colorize_brightness,
+							float graphics_global_brightness,
+							float graphics_gamma
+						)
+{
+	vec4 out_color = in_crt_color;
+
+	if (bg_opacity > 0)
+	{
+		//-----------------------------------------------------------------------------------------
+		// BackgroundImage
+		//-----------------------------------------------------------------------------------------
+		vec2 bg_coord = zoomed_viewport_coord;
+		vec2 bg_size = textureSize(BackgroundImage, 0);
+
+		vec4 bg_layer = vec4(0);
+
+		if (bg_size.y > 16)
+		{
+			// Correct image coordinate for image aspect ratio
+			bg_coord.x = (bg_coord.x - 0.5) / ((bg_size.x / bg_size.y) / (global.FinalViewportSize.x/global.FinalViewportSize.y)) + 0.5;
+
+			bg_layer = texture(BackgroundImage, bg_coord);
+			bg_layer = HSM_Linearize(bg_layer, DEFAULT_SRGB_GAMMA);
+
+			vec3 bg_gel = colorize_using_texture * bg_layer.rgb * colorize_brightness + (1 - colorize_using_texture);
+
+			bg_layer.rgb *= graphics_global_brightness;
+			bg_layer.rgb *= bg_brightness;
+			bg_layer.rgb = pow(bg_layer.rgb, vec3(1/graphics_gamma));
+
+
+			if (bg_on_top == 1)
+			{
+				out_color.rgb *= bg_gel.rgb;
+				out_color = HSM_BlendModeLayerMix(vec4(0), out_color, crt_blend_mode, 1);
+				out_color = HSM_BlendModeLayerMix(out_color, bg_layer, bg_blend_mode, bg_opacity);
+			}
+			else
+			{
+				out_color.rgb *= bg_gel.rgb;
+				bg_layer = HSM_BlendModeLayerMix(vec4(0), bg_layer, bg_blend_mode, bg_opacity);
+				out_color = HSM_BlendModeLayerMix(bg_layer, out_color, crt_blend_mode, 1);
+			}
+		}
+	}
+	return out_color;
+}
+
+vec4 HSM_ApplySimpleBG(	vec4 in_crt_color,
+						vec2 in_vTexCoord,
+						sampler2D BackgroundImage
+						)
+{
+	if (HSM_SIMPLEBG_OPACITY < 0.001)
+		return in_crt_color;
+
+	vec2 zoomed_viewport_coord = HSM_GetViewportCoordWithZoomAndPan(in_vTexCoord);
+	float crt_blend_mode = HSM_SIMPLEBG_CRT_SCREEN_BLEND_MODE;
+	float bg_on_top = HSM_SIMPLEBG_SHOW_BG_OVER_SCREEN;
+	float bg_blend_mode = HSM_SIMPLEBG_BLEND_MODE;
+	float bg_brightness = HSM_SIMPLEBG_BRIGHTNESS;
+	float bg_opacity = HSM_SIMPLEBG_OPACITY;
+	float colorize_using_texture = HSM_SIMPLEBG_COLORIZE_CRT_WITH_BG;
+	float colorize_brightness = HSM_SIMPLEBG_COLORIZE_BRIGHTNESS;
+	float graphics_global_brightness = HSM_GLOBAL_GRAPHICS_BRIGHTNESS;
+	float graphics_gamma = HSM_STATIC_LAYERS_GAMMA;
+
+	return HSM_ApplySimpleBGExplicit(	in_crt_color,
+										zoomed_viewport_coord,
+										BackgroundImage,
+										crt_blend_mode,
+										bg_on_top,
+										bg_blend_mode,
+										bg_opacity,
+										bg_brightness,
+										colorize_using_texture,
+										colorize_brightness,
+										graphics_global_brightness,
+										graphics_gamma
+									);
+}
+
+
+bool HSM_GetUseTubeHighlight()
+{
+	return HSM_TUBE_STATIC_REFLECTION_IMAGE_ON > 0.5 && HSM_GetUseOnCurrentScreenIndex(HSM_TUBE_STATIC_REFLECTION_IMAGE_DUALSCREEN_VIS_MODE);
+}
+
+bool HSM_GetUseTubeDiffuse()
+{
+	return HSM_TUBE_DIFFUSE_MODE == 1 && HSM_GetUseOnCurrentScreenIndex(HSM_TUBE_DIFFUSE_IMAGE_DUALSCREEN_VIS_MODE);
+}
+
+bool HSM_GetUseTubeColoredGel()
+{
+	return HSM_TUBE_COLORED_GEL_IMAGE_ON > 0.5 && HSM_GetUseOnCurrentScreenIndex(HSM_TUBE_COLORED_GEL_IMAGE_DUALSCREEN_VIS_MODE);
+}
+
+vec4 HSM_ApplyPackedTubeLayers(vec4 crt_color, vec4 image_layers_packed)
+{
+	vec4 unpacked_precomp_tube_diffuse = vec4(0);
+	vec4 unpacked_precomp_gel = vec4(0);
+	vec4 unpacked_precomp_tube_highlight = vec4(0);
+	vec4 unpacked_precomp_lighting_mask = vec4(0);
+
+	HSM_Unpack_1_Rgba_To_4_Rgba(image_layers_packed,
+								unpacked_precomp_tube_diffuse,
+								unpacked_precomp_gel,
+								unpacked_precomp_tube_highlight,
+								unpacked_precomp_lighting_mask);
+
+	unpacked_precomp_tube_diffuse = HSM_Linearize(unpacked_precomp_tube_diffuse, DEFAULT_SRGB_GAMMA);
+	unpacked_precomp_gel = HSM_Linearize(unpacked_precomp_gel, DEFAULT_SRGB_GAMMA);
+	unpacked_precomp_tube_highlight = HSM_Linearize(unpacked_precomp_tube_highlight, DEFAULT_SRGB_GAMMA);
+
+	// 0.25 was added to avoid clipping issues with AMD GPUs
+	float unpacked_vignette = unpacked_precomp_tube_highlight.a - 0.25;
+
+	unpacked_precomp_lighting_mask = HSM_Linearize(unpacked_precomp_lighting_mask, DEFAULT_SRGB_GAMMA);
+	float unpacked_crt_mask = unpacked_precomp_lighting_mask.b;
+	float unpacked_shadow = unpacked_precomp_lighting_mask.a;
+
+	vec4 out_color = unpacked_precomp_tube_diffuse;
+
+	if (HSM_MONOCHROME_MODE > 0.5 && HSM_GetUseOnCurrentScreenIndex(HSM_MONOCHROME_DUALSCREEN_VIS_MODE))
+		crt_color = HSM_ApplyMonochrome(crt_color);
+
+	crt_color *= HSM_POST_CRT_BRIGHTNESS;
+
+	crt_color.rgb *= unpacked_crt_mask;
+
+	// Multiply CRT image by Vignette
+	if (HSM_GetUseScreenVignette())
+		crt_color.rgb *= unpacked_vignette;
+
+	// Multiply CRT image by gel
+	if (HSM_GetUseTubeColoredGel())
+	{
+		crt_color.rgb *= HSM_TUBE_COLORED_GEL_CRT_BRIGHTNESS;
+		if (HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT > 0)
+			crt_color.rgb = mix(crt_color.rgb, crt_color.rgb * clamp(HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_BRIGHTNESS * unpacked_precomp_gel.rgb, 0, 1), HSM_TUBE_COLORED_GEL_IMAGE_MULTIPLY_AMOUNT);
+
+// TODO Do Vignette here instead of in tubefx pass
+
+		// Add Gel with Over/Normal blending on top of tube before we add the CRT
+		if ( HSM_TUBE_COLORED_GEL_LAYERING_ORDER == 1 )
+		{
+			// out_color += HSM_BlendModeLayerMix(vec4(0, 0, 0, 1), unpacked_precomp_gel, BLEND_MODE_NORMAL, HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_AMOUNT);
+			unpacked_precomp_gel.rgb *= unpacked_shadow;
+			out_color = HSM_BlendModeLayerMix(out_color, unpacked_precomp_gel, BLEND_MODE_NORMAL, HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_AMOUNT);
+		}
+	}
+
+	// Apply the CRT image Additive Blend
+	if (HSM_CRT_BLEND_MODE == 1)
+		out_color = HSM_BlendModeLayerMix(out_color, crt_color, BLEND_MODE_ADD, HSM_CRT_BLEND_AMOUNT);
+	// Apply the CRT image with Multiply Blend
+	else if (HSM_CRT_BLEND_MODE == 2)
+	{
+		out_color = clamp(out_color, 0, 1);
+		out_color = HSM_BlendModeLayerMix(out_color, crt_color, BLEND_MODE_MULTIPLY, HSM_CRT_BLEND_AMOUNT);
+	}
+	// Apply the CRT image with "Over" Blend, probably useful for something like Gameboy DMG
+	else if (HSM_CRT_BLEND_MODE == 3)
+	{
+		out_color = clamp(out_color, 0, 1);
+		out_color = HSM_BlendModeLayerMix(out_color, crt_color, BLEND_MODE_NORMAL, HSM_CRT_BLEND_AMOUNT);
+	}
+
+	if (HSM_GetUseTubeColoredGel())
+	{
+		// Put Gel on top of CRT (Default situation)
+		unpacked_precomp_gel.rgb *= unpacked_shadow;
+		if ( HSM_TUBE_COLORED_GEL_LAYERING_ORDER == 0 )
+			out_color = HSM_BlendModeLayerMix(out_color, unpacked_precomp_gel, BLEND_MODE_NORMAL, HSM_TUBE_COLORED_GEL_IMAGE_NORMAL_AMOUNT);
+	}
+
+	// Add Tube Highlight
+	out_color.rgb += unpacked_precomp_tube_highlight.rgb;
+
+	return out_color;
+}

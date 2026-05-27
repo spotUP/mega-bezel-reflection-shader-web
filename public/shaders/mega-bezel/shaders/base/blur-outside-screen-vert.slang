@@ -28,4 +28,3 @@
 
 // Import Screen Scale Functions and global structure
 #include "blur-outside-screen.inc"
-

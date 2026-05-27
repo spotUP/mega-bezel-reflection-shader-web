@@ -5,185 +5,328 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>mega-bezel-wasm: render test</title>
   <style>
-    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
-    canvas { border: 1px solid #333; display: block; margin: 1rem 0; }
-    #log { padding: 1rem; background: #16213e; border-radius: 4px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-size: 12px; }
-    .ok { color: #0f0; }
-    .err { color: #f44; }
-    .info { color: #4af; }
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; margin: 0; }
+    h1 { margin: 1rem 2rem; }
+    #canvas-wrap {
+      position: relative;
+      width: 800px; height: 600px;
+      margin: 1rem 2rem;
+    }
+    canvas {
+      display: block;
+      width: 100%; height: 100%;
+      border: 1px solid #333;
+      background: #000;
+    }
+    #overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.85);
+      transition: opacity 0.6s ease;
+      z-index: 10;
+    }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+    #overlay-status { font-size: 14px; margin-bottom: 12px; color: #8af; }
+    #overlay-detail { font-size: 11px; color: #667; margin-top: 8px; max-width: 70%; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    #bar-track {
+      width: 60%; height: 6px;
+      background: #222;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #2a6, #4cf);
+      border-radius: 3px;
+      transition: width 0.15s ease;
+    }
+    #log { padding: 1rem; margin: 0 2rem; background: #16213e; border-radius: 4px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; font-size: 11px; }
+    .ok { color: #0f0; } .err { color: #f44; } .info { color: #4af; }
   </style>
 </head>
 <body>
   <h1>mega-bezel-wasm: render test</h1>
-  <canvas id="output" width="640" height="480"></canvas>
+  <div id="canvas-wrap">
+    <canvas id="output" width="800" height="600"></canvas>
+    <div id="overlay">
+      <div id="overlay-status">Initializing...</div>
+      <div id="bar-track"><div id="bar-fill"></div></div>
+      <div id="overlay-detail"></div>
+    </div>
+  </div>
   <div id="log"></div>
   <script src="../dist/wasm/mega-bezel.js"></script>
   <script>
-const SIMPLE_SHADER = `#version 450
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
-
-#pragma stage vertex
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 vTexCoord;
-
-void main()
-{
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
-}
-
-#pragma stage fragment
-layout(location = 0) in vec2 vTexCoord;
-layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
-
-void main()
-{
-   FragColor = vec4(texture(Source, vTexCoord).rgb, 1.0);
-}
-`;
-
-const SIMPLE_PRESET = `shaders = 1
-
-shader0 = /shaders/test.slang
-filter_linear0 = true
-`;
+const SHADER_ROOT = '../public/shaders';
+const SHADER_BASE = SHADER_ROOT + '/mega-bezel';
+const PRESET_NAME = 'MBZ__3__STD__GDV-local';
 
 const el = document.getElementById('log');
 const log = (cls, msg) => { el.innerHTML += `<span class="${cls}">${msg}</span>\n`; el.scrollTop = el.scrollHeight; };
 
+const overlayEl     = document.getElementById('overlay');
+const statusEl      = document.getElementById('overlay-status');
+const detailEl      = document.getElementById('overlay-detail');
+const barFillEl     = document.getElementById('bar-fill');
+
+function progress(pct, status, detail) {
+  barFillEl.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  if (status) statusEl.textContent = status;
+  if (detail !== undefined) detailEl.textContent = detail;
+}
+
+function hideOverlay() {
+  overlayEl.classList.add('hidden');
+}
+
+async function fetchText(url) {
+  const r = await fetch(url + '?t=' + Date.now());
+  if (!r.ok) throw new Error(`fetch ${url}: ${r.status}`);
+  return r.text();
+}
+
+function mkdirp(FS, path) {
+  const parts = path.split('/').filter(Boolean);
+  let cur = '';
+  for (const p of parts) {
+    cur += '/' + p;
+    try { FS.mkdir(cur); } catch (e) { /* exists */ }
+  }
+}
+
+async function resolveIncludes(Module, shaderText, shaderDir, loaded = new Set()) {
+  const includeRe = /^\s*#include\s+"([^"]+)"/gm;
+  let match;
+  while ((match = includeRe.exec(shaderText)) !== null) {
+    const relPath = match[1];
+    const parts = (shaderDir + '/' + relPath).split('/');
+    const resolved = [];
+    for (const p of parts) {
+      if (p === '..') { if (resolved.length) resolved.pop(); }
+      else if (p !== '.' && p !== '') resolved.push(p);
+    }
+    const includePath = resolved.join('/');
+    if (loaded.has(includePath)) continue;
+    loaded.add(includePath);
+
+    let url;
+    if (includePath.startsWith('shaders/')) {
+      url = `${SHADER_BASE}/${includePath}`;
+    } else {
+      url = `../public/${includePath}`;
+    }
+
+    let text;
+    try { text = await fetchText(url); } catch (e) { continue; }
+
+    const memfsPath = includePath.startsWith('shaders/')
+      ? `/preset/${includePath}`
+      : `/${includePath}`;
+    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
+    Module.FS.writeFile(memfsPath, text);
+
+    const includeDir = includePath.substring(0, includePath.lastIndexOf('/'));
+    await resolveIncludes(Module, text, includeDir, loaded);
+  }
+}
+
+async function decodeImageToRaw(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = url + '?t=' + Date.now();
+  });
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const rgba = ctx.getImageData(0, 0, img.width, img.height).data;
+  const header = new Uint32Array([img.width, img.height]);
+  const raw = new Uint8Array(8 + rgba.length);
+  raw.set(new Uint8Array(header.buffer), 0);
+  raw.set(rgba, 8);
+  return raw;
+}
+
+function resolveUrl(base, relPath) {
+  const parts = (base + '/' + relPath).split('/');
+  const resolved = [];
+  for (const p of parts) {
+    if (p === '..') resolved.pop();
+    else if (p !== '.' && p !== '') resolved.push(p);
+  }
+  return resolved.join('/');
+}
+
+async function loadPresetToMemfs(Module, presetName) {
+  const presetUrl = `${SHADER_BASE}/${presetName}.slangp`;
+  const presetText = await fetchText(presetUrl);
+
+  const shaderPaths = [];
+  for (const line of presetText.split('\n')) {
+    const m = line.match(/^shader(\d+)\s*=\s*(.+)/);
+    if (m) shaderPaths.push(m[2].trim());
+  }
+
+  const texturePaths = {};
+  for (const line of presetText.split('\n')) {
+    const pm = line.match(/^(\w+)\s*=\s*(.+\.(png|jpg|bmp))\s*$/i);
+    if (pm) {
+      let texPath = pm[2].trim();
+      if (texPath.startsWith('../') || texPath.startsWith('./')) {
+        const parts = texPath.split('/');
+        const resolved = [];
+        for (const p of parts) {
+          if (p === '..') resolved.pop();
+          else if (p !== '.') resolved.push(p);
+        }
+        texPath = resolved.join('/');
+      }
+      texturePaths[pm[1]] = texPath;
+    }
+  }
+
+  const totalSteps = shaderPaths.length + Object.keys(texturePaths).length + 1;
+  let step = 0;
+
+  // -- Shaders --
+  progress(0, 'Loading shaders...', `0 / ${shaderPaths.length}`);
+  const loadedIncludes = new Set();
+  for (const sp of shaderPaths) {
+    const resolvedPath = resolveUrl('', sp);
+    const shaderUrl = sp.startsWith('../')
+      ? `${SHADER_ROOT}/${resolvedPath}`
+      : `${SHADER_BASE}/${resolvedPath}`;
+    const shaderText = await fetchText(shaderUrl);
+    const memfsPath = `/preset/${resolvedPath}`;
+    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
+    Module.FS.writeFile(memfsPath, shaderText);
+
+    const shaderDir = sp.substring(0, sp.lastIndexOf('/'));
+    await resolveIncludes(Module, shaderText, shaderDir, loadedIncludes);
+
+    step++;
+    const name = resolvedPath.split('/').pop();
+    progress((step / totalSteps) * 80, 'Loading shaders...', `${step} / ${shaderPaths.length}: ${name}`);
+    await new Promise(r => setTimeout(r, 0)); // yield to repaint
+  }
+
+  // -- Textures --
+  const texEntries = Object.entries(texturePaths);
+  const uniqueTexPaths = [...new Set(texEntries.map(e => e[1]))];
+  const texCache = {};
+
+  progress((step / totalSteps) * 80, 'Decoding textures...', `0 / ${uniqueTexPaths.length}`);
+  for (let ti = 0; ti < uniqueTexPaths.length; ti++) {
+    const path = uniqueTexPaths[ti];
+    const imgUrl = `${SHADER_BASE}/${path}`;
+    const rawData = await decodeImageToRaw(imgUrl);
+    const memfsPath = `/preset/${path}`;
+    const rawMemfsPath = memfsPath + '.raw';
+    mkdirp(Module.FS, memfsPath.substring(0, memfsPath.lastIndexOf('/')));
+    Module.FS.writeFile(rawMemfsPath, rawData);
+    texCache[path] = true;
+
+    const name = path.split('/').pop();
+    const w = new DataView(rawData.buffer).getUint32(0, true);
+    const h = new DataView(rawData.buffer).getUint32(4, true);
+    step++;
+    progress(
+      ((shaderPaths.length + ti + 1) / totalSteps) * 80,
+      'Decoding textures...',
+      `${ti + 1} / ${uniqueTexPaths.length}: ${name} (${w}x${h})`
+    );
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  // -- Write preset --
+  let memfsPreset = presetText.replace(/^(shader\d+\s*=\s*)(.+)$/gm, (_, prefix, path) => {
+    return `${prefix}/preset/${resolveUrl('', path.trim())}`;
+  });
+  for (const [id, path] of texEntries) {
+    const re = new RegExp(`^(${id}\\s*=\\s*)(.+)$`, 'gm');
+    memfsPreset = memfsPreset.replace(re, `${id} = /preset/${path}`);
+  }
+  Module.FS.writeFile('/preset/current.slangp', memfsPreset);
+
+  return '/preset/current.slangp';
+}
+
 (async function () {
   try {
-    log('info', 'Loading WASM module...');
+    // -- WASM --
+    progress(0, 'Loading WASM module...');
     const canvas = document.getElementById('output');
 
     const Module = await MegaBezelModule({
+      canvas: canvas,
       locateFile: (path) => {
         if (path.endsWith('.wasm')) return '../dist/wasm/mega-bezel.wasm';
         return path;
       }
     });
-    log('ok', '[OK] WASM module loaded');
+    progress(5, 'WASM loaded');
 
-    const mbz_renderer_init_gl = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
-    const glOk = mbz_renderer_init_gl('#output');
-    log(glOk ? 'ok' : 'err', `[${glOk ? 'OK' : 'FAIL'}] WebGL2 context init = ${glOk}`);
-
-    const mbz_init = Module.cwrap('mbz_init', 'number', []);
-    const mbz_load_preset = Module.cwrap('mbz_load_preset', 'number', ['string']);
-    const mbz_get_pass_count = Module.cwrap('mbz_get_pass_count', 'number', []);
-    const mbz_get_pass_source_path = Module.cwrap('mbz_get_pass_source_path', 'string', ['number']);
-    const mbz_renderer_create = Module.cwrap('mbz_renderer_create', 'number', ['string']);
+    const mbz_renderer_init_gl     = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
+    const mbz_init                 = Module.cwrap('mbz_init', 'number', []);
+    const mbz_renderer_create      = Module.cwrap('mbz_renderer_create', 'number', ['string']);
     const mbz_renderer_upload_frame = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
-    const mbz_renderer_render = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
-    const mbz_renderer_destroy = Module.cwrap('mbz_renderer_destroy', 'void', []);
+    const mbz_renderer_render      = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
+    const mbz_renderer_get_heap_ptr = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
+    const mbz_renderer_read_pixel  = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
 
+    mbz_renderer_init_gl('#output');
     mbz_init();
-    log('ok', '[OK] mbz_init()');
+    progress(8, 'GL + bridge ready');
 
-    // Write shader and preset to MEMFS
-    Module.FS.mkdir('/shaders');
-    Module.FS.writeFile('/shaders/test.slang', SIMPLE_SHADER);
-    Module.FS.writeFile('/test.slangp', SIMPLE_PRESET);
-    log('info', '[INFO] Wrote shader + preset to MEMFS');
+    // -- Load preset assets --
+    const presetPath = await loadPresetToMemfs(Module, PRESET_NAME);
 
-    // Parse preset first to verify
-    const parseOk = mbz_load_preset('/test.slangp');
-    log(parseOk ? 'ok' : 'err', `[${parseOk ? 'OK' : 'FAIL'}] mbz_load_preset = ${parseOk}`);
-    log('info', `[INFO] passes=${mbz_get_pass_count()}, path[0]=${mbz_get_pass_source_path(0)}`);
-
-    // Create renderer from preset
-    log('info', '[INFO] Creating renderer...');
-    const createOk = mbz_renderer_create('/test.slangp');
-    log(createOk ? 'ok' : 'err', `[${createOk ? 'OK' : 'FAIL'}] mbz_renderer_create = ${createOk}`);
-
+    // -- Compile --
+    progress(82, 'Compiling 36-pass shader pipeline...');
+    await new Promise(r => setTimeout(r, 0));
+    const createOk = mbz_renderer_create(presetPath);
     if (!createOk) {
-      log('err', '[ERROR] Renderer creation failed - check console for details');
+      progress(82, 'Compilation failed', 'Check console for details');
+      log('err', '[ERROR] Renderer creation failed');
       return;
     }
+    progress(95, 'Pipeline compiled');
+    log('ok', '[OK] 36-pass pipeline compiled');
 
-    // Create a test input image (red/green gradient)
-    const inputW = 256;
-    const inputH = 224;
+    // -- Upload test frame --
+    const inputW = 256, inputH = 224;
     const inputPixels = new Uint8Array(inputW * inputH * 4);
     for (let y = 0; y < inputH; y++) {
       for (let x = 0; x < inputW; x++) {
         const i = (y * inputW + x) * 4;
-        inputPixels[i + 0] = Math.floor(x / inputW * 255);  // R
-        inputPixels[i + 1] = Math.floor(y / inputH * 255);  // G
-        inputPixels[i + 2] = 64;                              // B
-        inputPixels[i + 3] = 255;                             // A
+        inputPixels[i + 0] = Math.floor(x / inputW * 255);
+        inputPixels[i + 1] = Math.floor(y / inputH * 255);
+        inputPixels[i + 2] = 64;
+        inputPixels[i + 3] = 255;
       }
     }
+    const heapPtr = mbz_renderer_get_heap_ptr(inputPixels.byteLength);
+    Module.HEAPU8.set(inputPixels, heapPtr);
+    mbz_renderer_upload_frame(heapPtr, inputW, inputH);
 
-    // Upload frame - allocate on WASM heap via bridge helpers
-    const mbz_renderer_get_heap_ptr = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
-    const mbz_renderer_free_ptr = Module.cwrap('mbz_renderer_free_ptr', 'void', ['number']);
-    const ptr = mbz_renderer_get_heap_ptr(inputPixels.byteLength);
-    Module.HEAPU8.set(inputPixels, ptr);
-    const uploadOk = mbz_renderer_upload_frame(ptr, inputW, inputH);
-    mbz_renderer_free_ptr(ptr);
-    log(uploadOk ? 'ok' : 'err', `[${uploadOk ? 'OK' : 'FAIL'}] upload frame ${inputW}x${inputH}`);
+    progress(100, 'Rendering...');
+    await new Promise(r => setTimeout(r, 200));
+    hideOverlay();
+    log('ok', '[OK] Render loop started');
 
-    // Test direct draw
-    const mbz_renderer_test_draw = Module.cwrap('mbz_renderer_test_draw', 'void', []);
-    log('info', '[INFO] Test draw (direct quad with purple clear)...');
-    mbz_renderer_test_draw();
-
-    // Read immediately after test draw
-    const mbz_renderer_read_pixel = Module.cwrap('mbz_renderer_read_pixel', 'number', ['number', 'number']);
-    const testPx = mbz_renderer_read_pixel(320, 240);
-    const tr = testPx & 0xFF, tg = (testPx >> 8) & 0xFF, tb = (testPx >> 16) & 0xFF, ta = (testPx >> 24) & 0xFF;
-    log('info', `[INFO] After test draw center: R=${tr} G=${tg} B=${tb} A=${ta}`);
-    if (tr > 0 || tg > 0 || tb > 0)
-      log('ok', `[OK] Test draw produced visible output`);
-    else
-      log('err', `[WARN] Test draw output is black too - GL context issue`);
-
-    // Filter chain render
-    log('info', '[INFO] Filter chain render...');
-    mbz_renderer_render(canvas.width, canvas.height);
-    log('ok', '[OK] Render complete');
-
-    // Read back input texture to verify upload
-    const mbz_renderer_read_input_pixel = Module.cwrap('mbz_renderer_read_input_pixel', 'number', ['number', 'number']);
-    const inputPx = mbz_renderer_read_input_pixel(128, 112);
-    const ir = inputPx & 0xFF, ig = (inputPx >> 8) & 0xFF, ib = (inputPx >> 16) & 0xFF;
-    log('info', `[INFO] Input tex center (128,112): R=${ir} G=${ig} B=${ib}`);
-    if (ir === 0 && ig === 0 && ib === 0)
-      log('err', '[WARN] Input texture is empty - upload may have failed');
-    else
-      log('ok', `[OK] Input texture has data`);
-
-    // Read back output pixels after filter chain
-    const cx = Math.floor(canvas.width / 2);
-    const cy = Math.floor(canvas.height / 2);
-    const centerPixel = mbz_renderer_read_pixel(cx, cy);
-    const r = centerPixel & 0xFF;
-    const g = (centerPixel >> 8) & 0xFF;
-    const b = (centerPixel >> 16) & 0xFF;
-    const a = (centerPixel >> 24) & 0xFF;
-    log('info', `[INFO] Center pixel (${cx},${cy}): R=${r} G=${g} B=${b} A=${a}`);
-
-    const cornerPixel = mbz_renderer_read_pixel(10, 10);
-    const cr = cornerPixel & 0xFF;
-    const cg = (cornerPixel >> 8) & 0xFF;
-    const cb = (cornerPixel >> 16) & 0xFF;
-    log('info', `[INFO] Corner pixel (10,10): R=${cr} G=${cg} B=${cb}`);
-
-    const isBlack = r === 0 && g === 0 && b === 0 && cr === 0 && cg === 0 && cb === 0;
-    if (!isBlack) {
-      log('ok', '[PASS] Output has visible content');
-    } else {
-      log('err', '[FAIL] Output is black - rendering may have failed');
+    // -- Render loop --
+    function loop() {
+      mbz_renderer_render(canvas.width, canvas.height);
+      requestAnimationFrame(loop);
     }
+    requestAnimationFrame(loop);
 
   } catch (e) {
+    progress(0, 'Error', e.message);
     log('err', `[ERROR] ${e.message}\n${e.stack}`);
   }
 })();

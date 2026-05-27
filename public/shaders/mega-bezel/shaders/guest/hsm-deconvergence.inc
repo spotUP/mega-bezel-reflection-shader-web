@@ -25,17 +25,6 @@
 #include "../base/common/globals-and-bezel-params.inc"
 #include "../base/common/common-functions.inc"
 #include "../base/common/common-functions-bezel.inc"
-#include "../base/common/tube-layers-functions.inc"
-
-// WebGL2 Compatibility: Explicit uniform declarations for critical CRT parameters
-// These may not be properly extracted from the UBO by the shader compiler
-// The compiler should skip duplicates if they're already declared
-#ifndef WEBGL2_CRT_UNIFORMS_DECLARED
-#define WEBGL2_CRT_UNIFORMS_DECLARED
-// Note: These are declared as fallbacks - the actual values come from UBO members
-// which are converted to uniforms by the compiler. If the UBO extraction works,
-// these declarations will be skipped as duplicates.
-#endif
 
 // #pragma parameter hiscan "       High Resolution Scanlines (GDV with ScaleFx or XBR Only)" 0.0 0.0 1.0 1.0
 // #define hiscan        global.hiscan
@@ -274,9 +263,6 @@ layout(set = 0, binding = 7) uniform sampler2D Source;
 // HSM Added
 layout(set = 0, binding = 8) uniform sampler2D CacheInfoPass;
 layout(set = 0, binding = 9) uniform sampler2D TubeFxPass;
-// CRITICAL: CrtAdvancedPass is the CRT shader output - use this instead of Source
-// because Source is now TubeFxPass output (zeros) due to pipeline ordering
-layout(set = 0, binding = 10) uniform sampler2D CrtAdvancedPass;
 
 #define eps 1e-10 
 
@@ -623,9 +609,9 @@ void fetch_pixel (inout vec3 c, inout vec3 b, inout vec3 g, vec2 coord, vec2 bco
 		vec2 gc = global.deconrg * dx + global.deconrgy*dy;
 		vec2 bc = global.deconrb * dx + global.deconrby*dy;		
 
-		float r1 = COMPAT_TEXTURE(CrtAdvancedPass, coord + rc).r;
-		float g1 = COMPAT_TEXTURE(CrtAdvancedPass, coord + gc).g;
-		float b1 = COMPAT_TEXTURE(CrtAdvancedPass, coord + bc).b;
+		float r1 = COMPAT_TEXTURE(Source, coord + rc).r;
+		float g1 = COMPAT_TEXTURE(Source, coord + gc).g;
+		float b1 = COMPAT_TEXTURE(Source, coord + bc).b;
 
 		vec3 d = vec3(r1, g1, b1);
 		c = clamp(mix(c, d, ds), 0.0, 1.0);
@@ -715,7 +701,7 @@ void main()
 	// End Addition
 
 	// color and bloom fetching
-	vec3 color = COMPAT_TEXTURE(CrtAdvancedPass,pos1).rgb;
+	vec3 color = COMPAT_TEXTURE(Source,pos1).rgb;
 	vec3  Bloom = HSM_GetCroppedTexSample(BloomPass, pos).rgb;
 	vec3  Glow = HSM_GetCroppedTexSample(GlowPass, pos).rgb;
 
@@ -733,13 +719,13 @@ if ((abs(global.deconrr) + abs(global.deconrry) + abs(global.deconrg) + abs(glob
 		fetch_pixel(color, Bloom, Glow, pos1, pos); // deconvergence
 	
 	float cm = igc(max(max(color.r,color.g),color.b));
-	float mx1 = COMPAT_TEXTURE(CrtAdvancedPass, pos1     ).a;
+	float mx1 = COMPAT_TEXTURE(Source, pos1     ).a;
 	float colmx = max(mx1, cm);
 	float w3 = min((cm + 0.0001) / (colmx + 0.0005), 1.0); if(interb) w3 = 1.0;
 	
 	vec2 dx = mix(vec2(0.001, 0.0), vec2(0.0, 0.001), TATE);
-	float mx0 = COMPAT_TEXTURE(CrtAdvancedPass, pos1 - dx).a;
-	float mx2 = COMPAT_TEXTURE(CrtAdvancedPass, pos1 + dx).a;
+	float mx0 = COMPAT_TEXTURE(Source, pos1 - dx).a;
+	float mx2 = COMPAT_TEXTURE(Source, pos1 + dx).a;
 	float mxg = max(max(mx0,mx1),max(mx2,cm));
 	float mx = pow(mxg, 1.40/gamma_in);
 
@@ -754,8 +740,8 @@ if ((abs(global.deconrr) + abs(global.deconrry) + abs(global.deconrg) + abs(glob
 			 TATE) * 0.25;
 	dx *=  SCREEN_SCALE.y / DEFAULT_SCREEN_HEIGHT;
 
-	mx0 = COMPAT_TEXTURE(CrtAdvancedPass, pos1 - dx).a;
-	mx2 = COMPAT_TEXTURE(CrtAdvancedPass, pos1 + dx).a;
+	mx0 = COMPAT_TEXTURE(Source, pos1 - dx).a;
+	mx2 = COMPAT_TEXTURE(Source, pos1 + dx).a;
 	float mb = (1.0 - min(abs(mx0-mx2)/(0.5+mx1), 1.0));
 	
 	vec3 one = vec3(1.0);
@@ -942,10 +928,6 @@ else{
 	// 	crt_color = HSM_Linearize(drezzed_color, GAMMA_INPUT);
 	// }
 
-	// SIMPLIFIED TUBE EFFECTS: TubeFxPass outputs RGB=tube_diffuse, A=highlight
-	// DISABLED FOR NOW - tube effects were overwhelming the CRT output
-	// TODO: Re-enable with proper coordinate mapping and subtle blending
-
-	// Output CRT color directly (bypassing tube effects)
-	FragColor = HSM_Delinearize(crt_color, DEFAULT_SRGB_GAMMA);
+	vec4 image_layers_packed = texture(TubeFxPass, vTexCoord);
+	FragColor = HSM_ApplyPackedTubeLayers(crt_color, image_layers_packed);
 }

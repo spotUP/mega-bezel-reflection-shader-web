@@ -25,6 +25,7 @@
 layout(push_constant) uniform Push
 {
 	uint FrameCount;
+	vec4 SourceSize;
 	float lsmooth;
 } params;
 
@@ -35,17 +36,13 @@ layout(push_constant) uniform Push
 #define lsmooth 0.7
 
 #define COMPAT_TEXTURE(c,d) texture(c,d)
+#define SourceSize params.SourceSize
 #define TEX0 vTexCoord
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
 	mat4 MVP;
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
 } global;
-
-#define SourceSize global.SourceSize
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
