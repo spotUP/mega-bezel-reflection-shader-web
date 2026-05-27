@@ -6,24 +6,23 @@
   <title>Mega Bezel WASM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0a; color: #ccc; }
-    #app { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 24px; }
-    h1 { font-weight: 500; font-size: 16px; color: #888; margin-bottom: 16px; letter-spacing: -0.01em; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0a; color: #ccc; overflow: hidden; }
+    #app { display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
 
     #canvas-wrap { position: relative; }
     canvas { display: block; background: #000; }
 
-    /* Loading overlay */
+    /* --- Loading overlay --- */
     #overlay {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       background: rgba(0,0,0,0.92);
       transition: opacity 0.5s ease;
-      z-index: 10;
+      z-index: 20;
     }
     #overlay.hidden { opacity: 0; pointer-events: none; }
     #overlay-status { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: #777; }
@@ -31,91 +30,144 @@
     #bar-track { width: 240px; height: 2px; background: #1a1a1a; }
     #bar-fill { height: 100%; width: 0%; background: #555; transition: width 0.15s ease; }
 
-    /* FPS counter */
-    #fps {
-      position: absolute; top: 8px; right: 10px;
+    /* --- HUD (always visible) --- */
+    #hud {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px;
       font-size: 11px; font-weight: 500; color: #555;
-      z-index: 5; pointer-events: none;
+      pointer-events: none; z-index: 15;
       font-variant-numeric: tabular-nums;
     }
+    #hud select {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.6); color: #888; border: 1px solid #333;
+      padding: 2px 4px; font-family: inherit; font-size: 10px; border-radius: 2px;
+    }
+    #hud-left { display: flex; gap: 8px; align-items: center; }
 
-    /* Controls */
-    #controls {
-      display: flex; gap: 20px; margin-top: 16px;
-      font-size: 12px; color: #555;
+    /* --- OSD Parameter Panel --- */
+    #osd {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 18;
+      display: flex; flex-direction: column;
+      transition: opacity 0.2s ease;
+      font-size: 11px;
     }
-    #controls label { display: flex; align-items: center; gap: 6px; }
-    #controls select, #controls input[type="range"] { accent-color: #555; }
-    #controls select {
-      background: #151515; color: #999; border: 1px solid #222;
-      padding: 3px 6px; font-family: inherit; font-size: 11px;
-      border-radius: 2px;
-    }
-    #controls input[type="range"] { width: 100px; }
-    #controls .val { color: #666; min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+    #osd.hidden { opacity: 0; pointer-events: none; }
 
-    /* Log */
-    #log {
-      margin-top: 16px; padding: 12px; width: 800px;
-      background: #0d0d0d; border: 1px solid #181818;
-      white-space: pre-wrap; max-height: 200px; overflow-y: auto;
-      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-      font-size: 10px; line-height: 1.5; color: #444;
+    /* Tabs */
+    #osd-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0 8px; overflow-x: auto; flex-shrink: 0;
     }
-    .ok { color: #6a6; } .err { color: #a55; } .info { color: #666; }
+    .osd-tab {
+      padding: 8px 12px; cursor: pointer;
+      color: #555; font-weight: 500; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+    }
+    .osd-tab:hover { color: #999; }
+    .osd-tab.active { color: #bbb; border-bottom-color: #666; }
+
+    /* Param list */
+    #osd-params {
+      flex: 1; overflow-y: auto; padding: 8px 12px;
+      scrollbar-width: thin; scrollbar-color: #333 transparent;
+    }
+    .param-section { color: #666; font-weight: 600; font-size: 10px; padding: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .param-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 3px 0; color: #888;
+    }
+    .param-row:hover { color: #bbb; }
+    .param-row.focused { color: #ddd; background: rgba(255,255,255,0.04); margin: 0 -4px; padding: 3px 4px; border-radius: 2px; }
+    .param-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .param-val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: #666; font-size: 10px; }
+    .param-range {
+      width: 120px; height: 2px; -webkit-appearance: none; appearance: none;
+      background: #333; outline: none; border-radius: 1px; cursor: pointer;
+    }
+    .param-range::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 8px; height: 8px;
+      background: #888; border-radius: 50%; cursor: pointer;
+    }
+    .param-range::-moz-range-thumb {
+      width: 8px; height: 8px; background: #888; border-radius: 50%; border: none; cursor: pointer;
+    }
+
+    /* OSD footer */
+    #osd-footer {
+      padding: 6px 12px; border-top: 1px solid rgba(255,255,255,0.06);
+      color: #444; font-size: 9px; display: flex; justify-content: space-between;
+    }
+
+    /* Performance tier */
+    #perf-tier {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.6); color: #888; border: 1px solid #333;
+      padding: 2px 4px; font-family: inherit; font-size: 10px; border-radius: 2px;
+    }
   </style>
 </head>
 <body>
 <div id="app">
-  <h1>Mega Bezel Reflection Shader</h1>
   <div id="canvas-wrap">
     <canvas id="output" width="800" height="600"></canvas>
-    <div id="fps"></div>
+
+    <!-- HUD bar -->
+    <div id="hud">
+      <div id="hud-left">
+        <span id="fps"></span>
+        <select id="perf-tier" title="Quality tier">
+          <option value="full">Full (36 pass)</option>
+          <option value="crt-with-frame">Medium (3 pass)</option>
+          <option value="crt-simple">Low (2 pass)</option>
+        </select>
+      </div>
+      <span style="pointer-events:auto;cursor:pointer;color:#555" id="osd-toggle" title="Toggle OSD (Tab)">OSD</span>
+    </div>
+
+    <!-- Loading overlay -->
     <div id="overlay">
       <div id="overlay-status">Initializing...</div>
       <div id="bar-track"><div id="bar-fill"></div></div>
       <div id="overlay-detail"></div>
     </div>
+
+    <!-- OSD Panel -->
+    <div id="osd" class="hidden">
+      <div id="osd-tabs"></div>
+      <div id="osd-params"></div>
+      <div id="osd-footer">
+        <span>Tab: toggle | Up/Down: navigate | Left/Right: adjust | R: reset</span>
+        <span id="osd-count"></span>
+      </div>
+    </div>
   </div>
-  <div id="controls">
-    <label>Preset
-      <select id="ctl-preset">
-        <option value="MBZ__3__STD__GDV-local">Full 36-pass</option>
-        <option value="crt-with-frame">CRT + frame (3)</option>
-        <option value="crt-simple">CRT simple (2)</option>
-        <option value="ultra-simple-bezel">Bezel only (1)</option>
-      </select>
-    </label>
-    <label>Pass
-      <select id="ctl-pass">
-        <option value="0">Final</option>
-        <option value="1">Reflection</option>
-        <option value="2">Tube</option>
-        <option value="3">CRT</option>
-        <option value="4">Interlace</option>
-        <option value="5">Color</option>
-        <option value="6">Dedither</option>
-        <option value="7">Drez</option>
-        <option value="8">Core</option>
-      </select>
-    </label>
-  </div>
-  <div id="log"></div>
 </div>
 
 <script src="../dist/wasm/mega-bezel.js"></script>
 <script>
+// ============================================================
+//  Globals
+// ============================================================
 const SHADER_ROOT = '../public/shaders';
 const SHADER_BASE = SHADER_ROOT + '/mega-bezel';
-
-const logEl = document.getElementById('log');
-const log = (cls, msg) => { logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`; logEl.scrollTop = logEl.scrollHeight; };
 
 const overlayEl = document.getElementById('overlay');
 const statusEl  = document.getElementById('overlay-status');
 const detailEl  = document.getElementById('overlay-detail');
 const barFillEl = document.getElementById('bar-fill');
 const fpsEl     = document.getElementById('fps');
+const osdEl     = document.getElementById('osd');
+const osdTabsEl = document.getElementById('osd-tabs');
+const osdParamsEl = document.getElementById('osd-params');
+const osdCountEl = document.getElementById('osd-count');
 
 function progress(pct, status, detail) {
   barFillEl.style.width = Math.min(100, Math.max(0, pct)) + '%';
@@ -125,105 +177,84 @@ function progress(pct, status, detail) {
 function showOverlay() { overlayEl.classList.remove('hidden'); }
 function hideOverlay() { overlayEl.classList.add('hidden'); }
 
-// --- FPS ---
-let frameCount = 0, lastFpsTime = performance.now();
+// ============================================================
+//  FPS
+// ============================================================
+let fCount = 0, lastFps = performance.now();
 function updateFps() {
-  frameCount++;
+  fCount++;
   const now = performance.now();
-  if (now - lastFpsTime >= 1000) {
-    fpsEl.textContent = frameCount + ' fps';
-    frameCount = 0;
-    lastFpsTime = now;
+  if (now - lastFps >= 1000) {
+    fpsEl.textContent = fCount + ' fps';
+    fCount = 0;
+    lastFps = now;
   }
 }
 
-// --- Asset loading helpers ---
+// ============================================================
+//  Asset loading (same as before, condensed)
+// ============================================================
 async function fetchText(url) {
   const r = await fetch(url + '?t=' + Date.now());
   if (!r.ok) throw new Error(`fetch ${url}: ${r.status}`);
   return r.text();
 }
-
 function mkdirp(FS, path) {
-  const parts = path.split('/').filter(Boolean);
-  let cur = '';
+  const parts = path.split('/').filter(Boolean); let cur = '';
   for (const p of parts) { cur += '/' + p; try { FS.mkdir(cur); } catch(e) {} }
 }
-
-async function resolveIncludes(Module, shaderText, shaderDir, loaded = new Set()) {
-  const re = /^\s*#include\s+"([^"]+)"/gm;
-  let m;
-  while ((m = re.exec(shaderText)) !== null) {
-    const parts = (shaderDir + '/' + m[1]).split('/');
-    const resolved = [];
-    for (const p of parts) {
-      if (p === '..') { if (resolved.length) resolved.pop(); }
-      else if (p !== '.' && p !== '') resolved.push(p);
-    }
-    const inc = resolved.join('/');
-    if (loaded.has(inc)) continue;
-    loaded.add(inc);
-
+async function resolveIncludes(Mod, text, dir, loaded = new Set()) {
+  const re = /^\s*#include\s+"([^"]+)"/gm; let m;
+  while ((m = re.exec(text)) !== null) {
+    const parts = (dir + '/' + m[1]).split('/');
+    const res = [];
+    for (const p of parts) { if (p === '..') { if (res.length) res.pop(); } else if (p !== '.' && p !== '') res.push(p); }
+    const inc = res.join('/');
+    if (loaded.has(inc)) continue; loaded.add(inc);
     const url = inc.startsWith('shaders/') ? `${SHADER_BASE}/${inc}` : `../public/${inc}`;
-    let text;
-    try { text = await fetchText(url); } catch(e) { continue; }
-
+    let t; try { t = await fetchText(url); } catch(e) { continue; }
     const mp = inc.startsWith('shaders/') ? `/preset/${inc}` : `/${inc}`;
-    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
-    Module.FS.writeFile(mp, text);
-    await resolveIncludes(Module, text, inc.substring(0, inc.lastIndexOf('/')), loaded);
+    mkdirp(Mod.FS, mp.substring(0, mp.lastIndexOf('/')));
+    Mod.FS.writeFile(mp, t);
+    await resolveIncludes(Mod, t, inc.substring(0, inc.lastIndexOf('/')), loaded);
   }
 }
-
 async function decodeImageToRaw(url) {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
+  const img = new Image(); img.crossOrigin = 'anonymous';
   await new Promise((ok, err) => { img.onload = ok; img.onerror = err; img.src = url + '?t=' + Date.now(); });
-  const c = document.createElement('canvas');
-  c.width = img.width; c.height = img.height;
-  const ctx = c.getContext('2d');
-  ctx.drawImage(img, 0, 0);
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
   const rgba = ctx.getImageData(0, 0, img.width, img.height).data;
   const hdr = new Uint32Array([img.width, img.height]);
   const raw = new Uint8Array(8 + rgba.length);
-  raw.set(new Uint8Array(hdr.buffer), 0);
-  raw.set(rgba, 8);
+  raw.set(new Uint8Array(hdr.buffer), 0); raw.set(rgba, 8);
   return raw;
 }
-
 function resolveUrl(base, rel) {
-  const parts = (base + '/' + rel).split('/');
-  const r = [];
+  const parts = (base + '/' + rel).split('/'); const r = [];
   for (const p of parts) { if (p === '..') r.pop(); else if (p !== '.' && p !== '') r.push(p); }
   return r.join('/');
 }
 
-async function loadPreset(Module, presetName) {
-  const presetText = await fetchText(`${SHADER_BASE}/${presetName}.slangp`);
-
-  const shaderPaths = [];
+async function loadPreset(Mod, name) {
+  const presetText = await fetchText(`${SHADER_BASE}/${name}.slangp`);
+  const shaderPaths = [], texturePaths = {};
   for (const line of presetText.split('\n')) {
-    const m = line.match(/^shader(\d+)\s*=\s*(.+)/);
-    if (m) shaderPaths.push(m[2].trim());
-  }
-
-  const texturePaths = {};
-  for (const line of presetText.split('\n')) {
+    const sm = line.match(/^shader(\d+)\s*=\s*(.+)/);
+    if (sm) shaderPaths.push(sm[2].trim());
     const pm = line.match(/^(\w+)\s*=\s*(.+\.(png|jpg|bmp))\s*$/i);
     if (pm) {
       let tp = pm[2].trim();
       if (tp.startsWith('../') || tp.startsWith('./')) {
-        const pts = tp.split('/'), res = [];
-        for (const p of pts) { if (p === '..') res.pop(); else if (p !== '.') res.push(p); }
-        tp = res.join('/');
+        const pts = tp.split('/'), rs = [];
+        for (const p of pts) { if (p === '..') rs.pop(); else if (p !== '.') rs.push(p); }
+        tp = rs.join('/');
       }
       texturePaths[pm[1]] = tp;
     }
   }
-
   const total = shaderPaths.length + Object.keys(texturePaths).length + 1;
   let step = 0;
-
   progress(0, 'Loading shaders...', `0 / ${shaderPaths.length}`);
   const loadedInc = new Set();
   for (const sp of shaderPaths) {
@@ -231,71 +262,293 @@ async function loadPreset(Module, presetName) {
     const url = sp.startsWith('../') ? `${SHADER_ROOT}/${rp}` : `${SHADER_BASE}/${rp}`;
     const text = await fetchText(url);
     const mp = `/preset/${rp}`;
-    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
-    Module.FS.writeFile(mp, text);
-    await resolveIncludes(Module, text, sp.substring(0, sp.lastIndexOf('/')), loadedInc);
+    mkdirp(Mod.FS, mp.substring(0, mp.lastIndexOf('/'))); Mod.FS.writeFile(mp, text);
+    await resolveIncludes(Mod, text, sp.substring(0, sp.lastIndexOf('/')), loadedInc);
     step++;
     progress((step / total) * 80, 'Loading shaders...', `${step} / ${shaderPaths.length}: ${rp.split('/').pop()}`);
     await new Promise(r => setTimeout(r, 0));
   }
-
   const texEntries = Object.entries(texturePaths);
   const uniq = [...new Set(texEntries.map(e => e[1]))];
-  progress((step / total) * 80, 'Decoding textures...', `0 / ${uniq.length}`);
   for (let i = 0; i < uniq.length; i++) {
     const path = uniq[i];
     const raw = await decodeImageToRaw(`${SHADER_BASE}/${path}`);
     const mp = `/preset/${path}`;
-    mkdirp(Module.FS, mp.substring(0, mp.lastIndexOf('/')));
-    Module.FS.writeFile(mp + '.raw', raw);
+    mkdirp(Mod.FS, mp.substring(0, mp.lastIndexOf('/'))); Mod.FS.writeFile(mp + '.raw', raw);
     step++;
-    const w = new DataView(raw.buffer).getUint32(0, true);
-    const h = new DataView(raw.buffer).getUint32(4, true);
+    const w = new DataView(raw.buffer).getUint32(0, true), h = new DataView(raw.buffer).getUint32(4, true);
     progress(((shaderPaths.length + i + 1) / total) * 80, 'Decoding textures...', `${i+1} / ${uniq.length}: ${path.split('/').pop()} (${w}x${h})`);
     await new Promise(r => setTimeout(r, 0));
   }
-
   let mp = presetText.replace(/^(shader\d+\s*=\s*)(.+)$/gm, (_, pfx, p) => `${pfx}/preset/${resolveUrl('', p.trim())}`);
-  for (const [id, path] of texEntries) {
-    mp = mp.replace(new RegExp(`^(${id}\\s*=\\s*)(.+)$`, 'gm'), `${id} = /preset/${path}`);
-  }
-  Module.FS.writeFile('/preset/current.slangp', mp);
+  for (const [id, path] of texEntries) mp = mp.replace(new RegExp(`^(${id}\\s*=\\s*)(.+)$`, 'gm'), `${id} = /preset/${path}`);
+  Mod.FS.writeFile('/preset/current.slangp', mp);
   return '/preset/current.slangp';
 }
 
-// --- Main ---
-let Module, mbz, heapPtr, inputPixels, running = false;
+// ============================================================
+//  OSD Parameter System
+// ============================================================
+let allParams = [];   // {id, desc, current, min, max, step, initial, tab}
+let osdTabs = [];
+let activeTab = 0;
+let focusedIdx = 0;
+let osdVisible = false;
+let paramElements = [];  // DOM elements for current tab
 
+function parseParameters(Mod) {
+  allParams = [];
+  const paramCount = api.getParamCount();
+  if (paramCount === 0) return;
+
+  // Read all param IDs and values from the filter chain's preset
+  // We also need the pragma metadata (desc, min, max, step) which is in the shader source.
+  // For now, read the preset file back and parse pragmas from it + includes.
+  const presetText = new TextDecoder().decode(Mod.FS.readFile('/preset/current.slangp'));
+
+  // Collect all pragma parameters from all loaded shader files
+  const pragmas = new Map();
+  function scanFile(path) {
+    try {
+      const text = new TextDecoder().decode(Mod.FS.readFile(path));
+      const re = /#pragma parameter (\S+)\s+"([^"]+)"\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)/g;
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        pragmas.set(m[1], { desc: m[2], initial: parseFloat(m[3]), min: parseFloat(m[4]), max: parseFloat(m[5]), step: parseFloat(m[6]) });
+      }
+    } catch(e) {}
+  }
+
+  // Scan all files in /preset/shaders recursively
+  function scanDir(dir) {
+    try {
+      const entries = Mod.FS.readdir(dir).filter(e => e !== '.' && e !== '..');
+      for (const e of entries) {
+        const full = dir + '/' + e;
+        try {
+          const stat = Mod.FS.stat(full);
+          if (stat.mode & 0o40000) scanDir(full);
+          else if (e.endsWith('.slang') || e.endsWith('.inc')) scanFile(full);
+        } catch(ex) {}
+      }
+    } catch(e) {}
+  }
+  scanDir('/preset/shaders');
+
+  // Build parameter list with metadata
+  let currentTab = 'General';
+  const tabOrder = [];
+  const tabParams = {};
+
+  // Walk pragmas in order they appear (we re-read the shader includes in order)
+  // Actually, we need to match params by ID to get runtime values
+  for (let i = 0; i < paramCount; i++) {
+    const id = api.getParamId(i);
+    const value = api.getParamValue(i);
+    const meta = pragmas.get(id);
+    if (!meta) continue;
+
+    // Detect section headers (step is tiny, min==max or nearly so)
+    if (meta.step <= 0.001 && meta.max <= 0.001) {
+      if (meta.desc.includes('[') && meta.desc.includes(']')) {
+        currentTab = meta.desc.replace(/[\[\]:]/g, '').trim();
+        if (!tabParams[currentTab]) { tabOrder.push(currentTab); tabParams[currentTab] = []; }
+      }
+      continue; // skip separators and headers
+    }
+
+    if (!tabParams[currentTab]) { tabOrder.push(currentTab); tabParams[currentTab] = []; }
+    tabParams[currentTab].push({
+      id, desc: meta.desc.trim(), current: value,
+      min: meta.min, max: meta.max, step: meta.step, initial: meta.initial,
+      tab: currentTab, index: i
+    });
+  }
+
+  osdTabs = tabOrder.filter(t => tabParams[t] && tabParams[t].length > 0);
+  allParams = [];
+  for (const t of osdTabs) allParams.push(...tabParams[t]);
+
+  osdCountEl.textContent = `${allParams.length} parameters`;
+  renderOsdTabs();
+  if (osdTabs.length > 0) switchTab(0);
+}
+
+function renderOsdTabs() {
+  osdTabsEl.innerHTML = '';
+  osdTabs.forEach((name, i) => {
+    const el = document.createElement('div');
+    el.className = 'osd-tab' + (i === activeTab ? ' active' : '');
+    el.textContent = name.length > 20 ? name.substring(0, 18) + '..' : name;
+    el.title = name;
+    el.onclick = () => switchTab(i);
+    osdTabsEl.appendChild(el);
+  });
+}
+
+function switchTab(idx) {
+  activeTab = idx;
+  focusedIdx = 0;
+  renderOsdTabs();
+  renderOsdParams();
+}
+
+function getTabParams() {
+  const tabName = osdTabs[activeTab];
+  return allParams.filter(p => p.tab === tabName);
+}
+
+function renderOsdParams() {
+  const params = getTabParams();
+  osdParamsEl.innerHTML = '';
+  paramElements = [];
+
+  params.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'param-row' + (i === focusedIdx ? ' focused' : '');
+
+    const label = document.createElement('span');
+    label.className = 'param-label';
+    label.textContent = p.desc;
+    label.title = p.id;
+
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.className = 'param-range';
+    range.min = p.min;
+    range.max = p.max;
+    range.step = p.step;
+    range.value = p.current;
+
+    const val = document.createElement('span');
+    val.className = 'param-val';
+    val.textContent = formatVal(p.current, p.step);
+
+    range.addEventListener('input', () => {
+      p.current = parseFloat(range.value);
+      val.textContent = formatVal(p.current, p.step);
+      api.setParam(p.id, p.current);
+    });
+
+    row.appendChild(label);
+    row.appendChild(range);
+    row.appendChild(val);
+    osdParamsEl.appendChild(row);
+    paramElements.push({ row, range, val, param: p });
+  });
+}
+
+function formatVal(v, step) {
+  if (step >= 1) return Math.round(v).toString();
+  if (step >= 0.1) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+function updateFocus() {
+  paramElements.forEach((el, i) => {
+    el.row.className = 'param-row' + (i === focusedIdx ? ' focused' : '');
+  });
+  if (paramElements[focusedIdx]) {
+    paramElements[focusedIdx].row.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function adjustFocused(dir) {
+  const el = paramElements[focusedIdx];
+  if (!el) return;
+  const p = el.param;
+  p.current = Math.min(p.max, Math.max(p.min, p.current + p.step * dir));
+  el.range.value = p.current;
+  el.val.textContent = formatVal(p.current, p.step);
+  api.setParam(p.id, p.current);
+}
+
+function resetFocused() {
+  const el = paramElements[focusedIdx];
+  if (!el) return;
+  const p = el.param;
+  p.current = p.initial;
+  el.range.value = p.current;
+  el.val.textContent = formatVal(p.current, p.step);
+  api.setParam(p.id, p.current);
+}
+
+// Toggle OSD
+function toggleOsd() {
+  osdVisible = !osdVisible;
+  osdEl.classList.toggle('hidden', !osdVisible);
+}
+
+document.getElementById('osd-toggle').addEventListener('click', toggleOsd);
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') { e.preventDefault(); toggleOsd(); return; }
+  if (!osdVisible) return;
+
+  switch(e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      focusedIdx = Math.min(paramElements.length - 1, focusedIdx + 1);
+      updateFocus();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      focusedIdx = Math.max(0, focusedIdx - 1);
+      updateFocus();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      adjustFocused(e.shiftKey ? 10 : 1);
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      adjustFocused(e.shiftKey ? -10 : -1);
+      break;
+    case 'r': case 'R':
+      e.preventDefault();
+      resetFocused();
+      break;
+    case 'PageDown':
+      e.preventDefault();
+      if (activeTab < osdTabs.length - 1) switchTab(activeTab + 1);
+      break;
+    case 'PageUp':
+      e.preventDefault();
+      if (activeTab > 0) switchTab(activeTab - 1);
+      break;
+  }
+});
+
+// ============================================================
+//  Main
+// ============================================================
+let Module, running = false, heapPtr, inputPixels;
 const api = {};
+
 function bindApi() {
-  api.initGL        = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
-  api.init          = Module.cwrap('mbz_init', 'number', []);
-  api.create        = Module.cwrap('mbz_renderer_create', 'number', ['string']);
-  api.upload        = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
-  api.render        = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
-  api.destroy       = Module.cwrap('mbz_renderer_destroy', 'void', []);
-  api.getHeap       = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
-  api.setParam      = Module.cwrap('mbz_renderer_set_parameter', 'number', ['string', 'number']);
+  api.initGL       = Module.cwrap('mbz_renderer_init_gl', 'number', ['string']);
+  api.init         = Module.cwrap('mbz_init', 'number', []);
+  api.create       = Module.cwrap('mbz_renderer_create', 'number', ['string']);
+  api.upload       = Module.cwrap('mbz_renderer_upload_frame', 'number', ['number', 'number', 'number']);
+  api.render       = Module.cwrap('mbz_renderer_render', 'void', ['number', 'number']);
+  api.destroy      = Module.cwrap('mbz_renderer_destroy', 'void', []);
+  api.getHeap      = Module.cwrap('mbz_renderer_get_heap_ptr', 'number', ['number']);
+  api.setParam     = Module.cwrap('mbz_renderer_set_parameter', 'number', ['string', 'number']);
+  api.getParamCount = Module.cwrap('mbz_get_parameter_count', 'number', []);
+  api.getParamId   = Module.cwrap('mbz_get_parameter_id', 'string', ['number']);
+  api.getParamValue = Module.cwrap('mbz_get_parameter_value', 'number', ['number']);
 }
 
 function createTestPattern() {
-  const w = 256, h = 224;
-  const px = new Uint8Array(w * h * 4);
+  const w = 256, h = 224, px = new Uint8Array(w * h * 4);
   const bars = [[255,255,255],[255,255,0],[0,255,255],[0,255,0],[255,0,255],[255,0,0],[0,0,255]];
   const bw = Math.floor(w / bars.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      if (y < h / 2) {
-        const bar = bars[Math.min(Math.floor(x / bw), bars.length - 1)];
-        px[i] = bar[0]; px[i+1] = bar[1]; px[i+2] = bar[2];
-      } else {
-        const on = ((Math.floor(x / 16) + Math.floor(y / 16)) % 2) === 0;
-        const v = on ? 26 : 230;
-        px[i] = v; px[i+1] = v; px[i+2] = v;
-      }
-      px[i+3] = 255;
-    }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (y < h / 2) { const b = bars[Math.min(Math.floor(x / bw), 6)]; px[i]=b[0]; px[i+1]=b[1]; px[i+2]=b[2]; }
+    else { const v = ((Math.floor(x/16)+Math.floor(y/16))%2) ? 230 : 26; px[i]=v; px[i+1]=v; px[i+2]=v; }
+    px[i+3] = 255;
   }
   return { pixels: px, w, h };
 }
@@ -315,23 +568,17 @@ async function loadAndStart(presetName) {
     api.initGL('#output');
     api.init();
     progress(8, 'GL ready');
-    log('ok', 'WASM + GL initialized');
   } else {
     api.destroy();
     progress(8, 'Switching preset...');
   }
 
   const path = await loadPreset(Module, presetName);
-
-  progress(82, `Compiling shader pipeline...`);
+  progress(82, 'Compiling shader pipeline...');
   await new Promise(r => setTimeout(r, 0));
+
   const ok = api.create(path);
-  if (!ok) {
-    progress(82, 'Compilation failed', 'Check console');
-    log('err', 'Renderer creation failed');
-    return;
-  }
-  log('ok', `Pipeline compiled: ${presetName}`);
+  if (!ok) { progress(82, 'Compilation failed', 'Check console'); return; }
 
   if (!inputPixels) {
     const tp = createTestPattern();
@@ -340,6 +587,9 @@ async function loadAndStart(presetName) {
     Module.HEAPU8.set(inputPixels, heapPtr);
     api.upload(heapPtr, tp.w, tp.h);
   }
+
+  // Parse parameters for OSD
+  parseParameters(Module);
 
   progress(100, 'Rendering...');
   await new Promise(r => setTimeout(r, 150));
@@ -355,21 +605,13 @@ async function loadAndStart(presetName) {
   requestAnimationFrame(loop);
 }
 
-// --- Controls ---
-document.getElementById('ctl-preset').addEventListener('change', (e) => {
-  log('info', `Switching to ${e.target.value}...`);
+// Preset/quality switcher
+document.getElementById('perf-tier').addEventListener('change', (e) => {
   loadAndStart(e.target.value);
 });
 
-document.getElementById('ctl-pass').addEventListener('change', (e) => {
-  if (!api.setParam) return;
-  const val = parseInt(e.target.value);
-  api.setParam('HSM_SHOW_PASS_INDEX', val);
-  log('info', `Pass view: ${e.target.selectedOptions[0].text}`);
-});
-
-// --- Boot ---
-loadAndStart(document.getElementById('ctl-preset').value);
+// Boot
+loadAndStart('MBZ__3__STD__GDV-local');
 </script>
 </body>
 </html>

@@ -1,0 +1,47 @@
+name: Build WASM
+
+on:
+  push:
+    branches: [main]
+    paths: ['native/**', 'build/**']
+  pull_request:
+    branches: [main]
+    paths: ['native/**', 'build/**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.51
+
+      - name: Build WASM
+        run: cd build && emmake make -j$(nproc)
+
+      - name: Verify output
+        run: |
+          test -f dist/wasm/mega-bezel.js || exit 1
+          test -f dist/wasm/mega-bezel.wasm || exit 1
+          ls -la dist/wasm/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mega-bezel-wasm
+          path: dist/wasm/
+
+      - name: Commit updated WASM (push to main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f dist/wasm/mega-bezel.js dist/wasm/mega-bezel.wasm
+          git diff --cached --quiet && echo "No WASM changes" || {
+            git commit -m "ci: update WASM build artifacts"
+            git push
+          }
